@@ -13,9 +13,9 @@ type Integration struct {
 	Mode          string   `gorm:"default:'listening'" json:"mode"`      // listening, active, inactive
 	SamplePayload string   `gorm:"type:text" json:"sample_payload"`      // JSON sample from first request
 	MappingConfig string   `gorm:"type:text" json:"mapping_config"`      // JSON string for field mapping
-	Status        string   `gorm:"default:'active'" json:"status"`       // active, inactive (deprecated, use Mode)
-	ProjectID     *uint    `json:"project_id"`                           // Optional project assignment
-	Project       *Project `gorm:"foreignKey:ProjectID" json:"project,omitempty"`
-	CreatedByID   uint     `json:"created_by_id"`
-	CreatedBy     User     `gorm:"foreignKey:CreatedByID" json:"created_by"`
+	Status        string  `gorm:"default:'active'" json:"status"`       // active, inactive (deprecated, use Mode)
+	ProjectID     uint    `gorm:"not null;index" json:"project_id"`     // Required project assignment
+	Project       Project `gorm:"constraint:OnDelete:CASCADE;" json:"project"`
+	CreatedByID   uint    `gorm:"not null;index" json:"created_by_id"`
+	CreatedBy     User    `gorm:"constraint:OnDelete:CASCADE;" json:"created_by"`
 }

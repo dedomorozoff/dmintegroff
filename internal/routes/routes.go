@@ -84,8 +84,11 @@ func SetupRouter() *gin.Engine {
 		authorized.GET("/projects/:id/edit", controllers.ProjectEdit)
 		authorized.POST("/projects/:id/update", controllers.ProjectUpdate)
 		authorized.POST("/projects/:id/delete", controllers.ProjectDelete)
-		authorized.POST("/projects/:id/add-integration", controllers.ProjectAddIntegration)
-		authorized.POST("/projects/:id/remove-integration/:integration_id", controllers.ProjectRemoveIntegration)
+		
+		// Project integrations
+		authorized.GET("/projects/:id/integrations/create", controllers.ProjectCreateIntegration)
+		authorized.POST("/projects/:id/integrations", controllers.ProjectStoreIntegration)
+		authorized.POST("/projects/:id/integrations/:integration_id/delete", controllers.ProjectDeleteIntegration)
 		
 		// Logs
 		authorized.GET("/logs", controllers.LogsPage)
@@ -96,7 +99,7 @@ func SetupRouter() *gin.Engine {
 
 	// Public endpoints
 	r.POST("/webhook/:token", controllers.WebhookHandler)
-	r.POST("/test", controllers.TestEndpoint) // Test endpoint for debugging
+	r.POST("/webhook/test", controllers.TestEndpoint) // Test webhook endpoint
 
 	return r
 }
@@ -151,7 +154,7 @@ func ErrorLogger() gin.HandlerFunc {
 				StatusCode:   statusCode,
 				LogType:      "error",
 			}
-			database.DB.Create(&log)
+			controllers.CreateLogWithLimit(&log)
 		}
 	}
 }
@@ -177,7 +180,7 @@ func PanicRecovery() gin.HandlerFunc {
 					StatusCode:   500,
 					LogType:      "error",
 				}
-				database.DB.Create(&log)
+				controllers.CreateLogWithLimit(&log)
 				
 				// Возвращаем 500 ошибку
 				c.JSON(http.StatusInternalServerError, gin.H{

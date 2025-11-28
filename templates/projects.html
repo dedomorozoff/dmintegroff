@@ -64,7 +64,7 @@
                                     <a href="/projects/{{ .ID }}" class="btn btn-sm" title="Просмотр">👁️</a>
                                     <a href="/projects/{{ .ID }}/edit" class="btn btn-secondary btn-sm" title="Редактировать">✏️</a>
                                     <form method="POST" action="/projects/{{ .ID }}/delete" style="display: inline;"
-                                        onsubmit="return confirm('Удалить проект {{ .Name }}? Интеграции останутся.');">
+                                        onsubmit="return confirm('Удалить проект {{ .Name }}? Все интеграции проекта ({{ len .Integrations }}) также будут удалены!');">
                                         <button type="submit" class="btn btn-danger btn-sm" title="Удалить">🗑️</button>
                                     </form>
                                 </div>

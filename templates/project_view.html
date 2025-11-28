@@ -39,7 +39,10 @@
 
         <!-- Интеграции в проекте -->
         <div class="card">
-            <h2 style="margin-bottom: 1rem;">Интеграции в проекте</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h2>Интеграции в проекте</h2>
+                <a href="/projects/{{ .project.ID }}/integrations/create" class="btn btn-success">➕ Создать интеграцию</a>
+            </div>
             
             {{ if .project.Integrations }}
             <div class="table-container">
@@ -47,6 +50,7 @@
                     <thead>
                         <tr>
                             <th>Название</th>
+                            <th>Webhook URL</th>
                             <th>Статус</th>
                             <th>Target API</th>
                             <th style="text-align: right;">Действия</th>
@@ -56,6 +60,13 @@
                         {{ range .project.Integrations }}
                         <tr>
                             <td><strong>{{ .Name }}</strong></td>
+                            <td>
+                                <code style="font-size: 0.8rem;">/webhook/{{ .WebhookToken }}</code>
+                                <button onclick="copyToClipboard('http://localhost:8080/webhook/{{ .WebhookToken }}')" 
+                                        style="background: none; border: none; cursor: pointer; color: var(--accent-primary); margin-left: 0.5rem;">
+                                    📋
+                                </button>
+                            </td>
                             <td>
                                 {{ if eq .Mode "listening" }}
                                 <span class="badge badge-warning">⏳ Прослушивание</span>
@@ -67,11 +78,30 @@
                             </td>
                             <td>{{ if .TargetAPI }}{{ .TargetAPI }}{{ else }}<span style="color: var(--text-secondary);">-</span>{{ end }}</td>
                             <td style="text-align: right;">
-                                <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-                                    <a href="/integrations/{{ .ID }}/edit" class="btn btn-secondary btn-sm">✏️</a>
-                                    <form method="POST" action="/projects/{{ $.project.ID }}/remove-integration/{{ .ID }}" style="display: inline;"
-                                        onsubmit="return confirm('Убрать интеграцию из проекта?');">
-                                        <button type="submit" class="btn btn-danger btn-sm" title="Убрать из проекта">❌</button>
+                                <div style="display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap;">
+                                    {{ if eq .Mode "listening" }}
+                                        {{ if .SamplePayload }}
+                                        <a href="/integrations/{{ .ID }}/configure" class="btn btn-success btn-sm">⚙️ Настроить</a>
+                                        {{ else }}
+                                        <span style="color: var(--text-secondary); font-size: 0.85rem;">Ожидание данных...</span>
+                                        {{ end }}
+                                    {{ else if eq .Mode "active" }}
+                                        <form method="POST" action="/integrations/{{ .ID }}/toggle" style="display: inline;">
+                                            <button type="submit" class="btn btn-secondary btn-sm" title="Деактивировать">⏸️</button>
+                                        </form>
+                                        <form method="POST" action="/integrations/{{ .ID }}/reconfigure" style="display: inline;"
+                                            onsubmit="return confirm('Переопределить маппинг? Интеграция будет деактивирована.');">
+                                            <button type="submit" class="btn btn-sm" title="Переопределить маппинг">🔄</button>
+                                        </form>
+                                    {{ else }}
+                                        <form method="POST" action="/integrations/{{ .ID }}/toggle" style="display: inline;">
+                                            <button type="submit" class="btn btn-success btn-sm" title="Активировать">▶️</button>
+                                        </form>
+                                    {{ end }}
+                                    <a href="/integrations/{{ .ID }}/edit" class="btn btn-secondary btn-sm" title="Редактировать">✏️</a>
+                                    <form method="POST" action="/projects/{{ $.project.ID }}/integrations/{{ .ID }}/delete" style="display: inline;"
+                                        onsubmit="return confirm('Удалить интеграцию {{ .Name }}?');">
+                                        <button type="submit" class="btn btn-danger btn-sm" title="Удалить">🗑️</button>
                                     </form>
                                 </div>
                             </td>
@@ -82,39 +112,21 @@
             </div>
             {{ else }}
             <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                <p>В проекте пока нет интеграций</p>
-            </div>
-            {{ end }}
-        </div>
-
-        <!-- Добавление интеграции -->
-        <div class="card">
-            <h2 style="margin-bottom: 1rem;">Добавить интеграцию</h2>
-            
-            {{ if .availableIntegrations }}
-            <form method="POST" action="/projects/{{ .project.ID }}/add-integration">
-                <div style="display: flex; gap: 1rem; align-items: flex-end;">
-                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                        <label for="integration_id">Выберите интеграцию</label>
-                        <select id="integration_id" name="integration_id" required>
-                            <option value="">-- Выберите интеграцию --</option>
-                            {{ range .availableIntegrations }}
-                            {{ if not .ProjectID }}
-                            <option value="{{ .ID }}">{{ .Name }}</option>
-                            {{ end }}
-                            {{ end }}
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-success">➕ Добавить</button>
-                </div>
-            </form>
-            {{ else }}
-            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                <p>Нет доступных интеграций для добавления</p>
-                <a href="/integrations/create" class="btn" style="margin-top: 1rem;">Создать интеграцию</a>
+                <div style="font-size: 3rem; margin-bottom: 1rem;">🔗</div>
+                <h3>В проекте пока нет интеграций</h3>
+                <p style="margin-top: 0.5rem;">Создайте первую интеграцию для этого проекта</p>
+                <a href="/projects/{{ .project.ID }}/integrations/create" class="btn btn-success" style="margin-top: 1rem;">➕ Создать интеграцию</a>
             </div>
             {{ end }}
         </div>
     </main>
+
+    <script>
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Скопировано: ' + text);
+            });
+        }
+    </script>
 </body>
 </html>

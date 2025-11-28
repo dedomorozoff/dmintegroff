@@ -32,7 +32,7 @@ func TestEndpoint(c *gin.Context) {
 		StatusCode:     200,
 		LogType:        "request",
 	}
-	database.DB.Create(&log)
+	CreateLogWithLimit(&log)
 
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "success",
@@ -86,7 +86,21 @@ func LogError(method, url, errorMsg string, statusCode int) {
 		StatusCode:   statusCode,
 		LogType:      "error",
 	}
-	database.DB.Create(&log)
+	CreateLogWithLimit(&log)
+}
+
+// CreateLogWithLimit - создает лог и удаляет старые, если их больше 50
+func CreateLogWithLimit(log *models.RequestLog) {
+	database.DB.Create(log)
+	
+	// Подсчитываем количество логов
+	var count int64
+	database.DB.Model(&models.RequestLog{}).Count(&count)
+	
+	// Если больше 50, удаляем самые старые
+	if count > 50 {
+		database.DB.Exec("DELETE FROM request_logs WHERE id IN (SELECT id FROM request_logs ORDER BY created_at ASC LIMIT ?)", count-50)
+	}
 }
 
 // ServerLogsAPI - API endpoint для получения логов из файла dmIntegroff.log

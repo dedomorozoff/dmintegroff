@@ -162,3 +162,5 @@ func runMigration() {
 	fmt.Println("   Пароль: admin")
 	fmt.Println("\n⚠️  ВАЖНО: Смените пароль после первого входа!")
 }
+
+

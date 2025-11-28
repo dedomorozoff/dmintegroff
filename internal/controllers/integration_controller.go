@@ -54,6 +54,26 @@ func IntegrationStore(c *gin.Context) {
 		return
 	}
 
+	// Проверяем, что проект выбран (обязательное поле)
+	projectIDStr := c.PostForm("project_id")
+	if projectIDStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Проект обязателен для создания интеграции"})
+		return
+	}
+
+	projectID, err := strconv.ParseUint(projectIDStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID проекта"})
+		return
+	}
+
+	// Проверяем, что проект существует
+	var project models.Project
+	if err := database.DB.First(&project, uint(projectID)).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Проект не найден"})
+		return
+	}
+
 	integration := models.Integration{
 		Name:         c.PostForm("name"),
 		WebhookToken: token,
@@ -61,16 +81,7 @@ func IntegrationStore(c *gin.Context) {
 		TargetAPI:    c.PostForm("target_api"),
 		Mode:         "listening", // Start in listening mode
 		CreatedByID:  userID,
-	}
-
-	// Добавляем проект, если выбран
-	projectIDStr := c.PostForm("project_id")
-	if projectIDStr != "" {
-		projectID, err := strconv.ParseUint(projectIDStr, 10, 32)
-		if err == nil {
-			projectIDUint := uint(projectID)
-			integration.ProjectID = &projectIDUint
-		}
+		ProjectID:    uint(projectID),
 	}
 
 	if err := database.DB.Create(&integration).Error; err != nil {

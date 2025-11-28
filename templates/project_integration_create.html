@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="/static/css/modern.css">
 </head>
 <body>
-    <!-- Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-logo">
             <span class="icon">🚀</span>
@@ -17,28 +16,19 @@
         <nav>
             <ul class="sidebar-nav">
                 <li><a href="/"><span class="icon">📊</span> Главная</a></li>
-                <li><a href="/projects"><span class="icon">📁</span> Проекты</a></li>
+                <li><a href="/projects" class="active"><span class="icon">📁</span> Проекты</a></li>
                 <li><a href="/integrations"><span class="icon">🔗</span> Интеграции</a></li>
-                <li><a href="/integrations/create" class="active"><span class="icon">➕</span> Создать</a></li>
                 <li><a href="/logs"><span class="icon">📝</span> Логи</a></li>
             </ul>
         </nav>
     </aside>
 
-    <!-- Main Content -->
     <main class="main-content">
         <div class="page-header">
             <h1>Создание интеграции</h1>
-            <p>Настройте новую интеграцию между системами</p>
+            <p>Проект: <strong>{{ .project.Name }}</strong></p>
         </div>
 
-        {{ if not .projects }}
-        <div class="info-box" style="background: #fff3cd; border-color: #ffc107; color: #856404;">
-            <strong>⚠️ Внимание:</strong><br>
-            Для создания интеграции необходимо сначала создать проект.<br>
-            <a href="/projects/create" class="btn btn-success" style="margin-top: 1rem;">➕ Создать проект</a>
-        </div>
-        {{ else }}
         <div class="info-box">
             <strong>ℹ️ Как это работает:</strong><br>
             1. Создайте интеграцию и получите уникальный webhook URL<br>
@@ -46,10 +36,9 @@
             3. Настройте маппинг полей<br>
             4. Активируйте интеграцию
         </div>
-        {{ end }}
 
         <div class="card">
-            <form method="POST" action="/integrations" {{ if not .projects }}onsubmit="return false;" style="opacity: 0.5; pointer-events: none;"{{ end }}>
+            <form method="POST" action="/projects/{{ .project.ID }}/integrations">
                 <div class="form-group">
                     <label>Название интеграции *</label>
                     <input type="text" name="name" required placeholder="Например: Интеграция CRM → Email">
@@ -70,20 +59,9 @@
                     <small>Для документации, откуда ожидаются данные</small>
                 </div>
 
-                <div class="form-group">
-                    <label>Проект *</label>
-                    <select name="project_id" required>
-                        <option value="">-- Выберите проект --</option>
-                        {{ range .projects }}
-                        <option value="{{ .ID }}">{{ .Name }}</option>
-                        {{ end }}
-                    </select>
-                    <small>Проект обязателен для создания интеграции. <a href="/projects/create" style="color: var(--accent-primary);">Создать новый проект</a></small>
-                </div>
-
                 <div style="display: flex; gap: 1rem; margin-top: 2rem;">
                     <button type="submit" class="btn btn-success">✅ Создать интеграцию</button>
-                    <a href="/integrations" class="btn btn-secondary">Отмена</a>
+                    <a href="/projects/{{ .project.ID }}" class="btn btn-secondary">Отмена</a>
                 </div>
             </form>
         </div>
