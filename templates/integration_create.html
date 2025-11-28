@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <title>{{ .title }}</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 2rem;
+            background-color: #f0f2f5;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            margin-top: 0;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #666;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        a {
+            margin-left: 1rem;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Новая интеграция</h1>
+        <form method="POST" action="/integrations">
+            <div class="form-group">
+                <label>Название</label>
+                <input type="text" name="name" required>
+            </div>
+            <div class="form-group">
+                <label>Source API URL</label>
+                <input type="text" name="source_api" required>
+            </div>
+            <div class="form-group">
+                <label>Target API URL</label>
+                <input type="text" name="target_api" required>
+            </div>
+            <div class="form-group">
+                <label>Конфигурация маппинга (JSON)</label>
+                <textarea name="mapping_config" rows="5"
+                    placeholder='{"field_map": {"source_field": "target_field"}}'></textarea>
+            </div>
+            <button type="submit">Создать</button>
+            <a href="/integrations">Отмена</a>
+        </form>
+    </div>
+</body>
+
+</html>

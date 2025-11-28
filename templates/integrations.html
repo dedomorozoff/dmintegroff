@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <title>{{ .title }}</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 2rem;
+            background-color: #f0f2f5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            margin-top: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th,
+        td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f8f9fa;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background-color: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+
+        .btn:hover {
+            background-color: #218838;
+        }
+
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Интеграции</h1>
+        <a href="/integrations/create" class="btn">Создать новую</a>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Название</th>
+                    <th>Источник</th>
+                    <th>Цель</th>
+                    <th>Статус</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{ range .integrations }}
+                <tr>
+                    <td>{{ .ID }}</td>
+                    <td>{{ .Name }}</td>
+                    <td>{{ .SourceAPI }}</td>
+                    <td>{{ .TargetAPI }}</td>
+                    <td>{{ .Status }}</td>
+                </tr>
+                {{ end }}
+            </tbody>
+        </table>
+        <br>
+        <a href="/">На главную</a>
+    </div>
+</body>
+
+</html>
