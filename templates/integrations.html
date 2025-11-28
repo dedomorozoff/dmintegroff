@@ -12,7 +12,7 @@
         }
 
         .container {
-            max-width: 800px;
+            max-width: 1000px;
             margin: 0 auto;
             background: white;
             padding: 2rem;
@@ -39,6 +39,7 @@
 
         th {
             background-color: #f8f9fa;
+            font-weight: 600;
         }
 
         .btn {
@@ -63,6 +64,42 @@
         a:hover {
             text-decoration: underline;
         }
+
+        .mode-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .mode-listening {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .mode-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .mode-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .webhook-url {
+            font-family: monospace;
+            font-size: 0.85rem;
+            background: #f8f9fa;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .copy-btn {
+            cursor: pointer;
+            margin-left: 0.5rem;
+            color: #007bff;
+        }
     </style>
 </head>
 
@@ -73,21 +110,42 @@
         <table>
             <thead>
                 <tr>
-                    <th>ID</th>
                     <th>Название</th>
-                    <th>Источник</th>
-                    <th>Цель</th>
-                    <th>Статус</th>
+                    <th>Webhook URL</th>
+                    <th>Режим</th>
+                    <th>Target API</th>
+                    <th>Действия</th>
                 </tr>
             </thead>
             <tbody>
                 {{ range .integrations }}
                 <tr>
-                    <td>{{ .ID }}</td>
                     <td>{{ .Name }}</td>
-                    <td>{{ .SourceAPI }}</td>
+                    <td>
+                        <span class="webhook-url">/webhook/{{ .WebhookToken }}</span>
+                        <span class="copy-btn" onclick="copyToClipboard('/webhook/{{ .WebhookToken }}')">📋</span>
+                    </td>
+                    <td>
+                        {{ if eq .Mode "listening" }}
+                        <span class="mode-badge mode-listening">🎧 Прослушивание</span>
+                        {{ else if eq .Mode "active" }}
+                        <span class="mode-badge mode-active">✅ Активна</span>
+                        {{ else }}
+                        <span class="mode-badge mode-inactive">⏸️ Неактивна</span>
+                        {{ end }}
+                    </td>
                     <td>{{ .TargetAPI }}</td>
-                    <td>{{ .Status }}</td>
+                    <td>
+                        {{ if eq .Mode "listening" }}
+                        {{ if .SamplePayload }}
+                        <a href="/integrations/{{ .ID }}/configure">Настроить</a>
+                        {{ else }}
+                        <span style="color: #999;">Ожидание данных...</span>
+                        {{ end }}
+                        {{ else }}
+                        <a href="/integrations/{{ .ID }}">Просмотр</a>
+                        {{ end }}
+                    </td>
                 </tr>
                 {{ end }}
             </tbody>
@@ -95,6 +153,14 @@
         <br>
         <a href="/">На главную</a>
     </div>
+    <script>
+        function copyToClipboard(text) {
+            const fullUrl = window.location.origin + text;
+            navigator.clipboard.writeText(fullUrl).then(() => {
+                alert('URL скопирован: ' + fullUrl);
+            });
+        }
+    </script>
 </body>
 
 </html>

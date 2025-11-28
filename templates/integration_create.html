@@ -32,6 +32,7 @@
             display: block;
             margin-bottom: 0.5rem;
             color: #666;
+            font-weight: 600;
         }
 
         input,
@@ -42,6 +43,13 @@
             border-radius: 4px;
             box-sizing: border-box;
             font-size: 1rem;
+        }
+
+        small {
+            color: #999;
+            display: block;
+            margin-top: 0.25rem;
+            font-size: 0.85rem;
         }
 
         button {
@@ -61,6 +69,19 @@
         a {
             margin-left: 1rem;
             color: #666;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #007bff;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border-radius: 4px;
         }
     </style>
 </head>
@@ -68,25 +89,30 @@
 <body>
     <div class="container">
         <h1>Новая интеграция</h1>
+        <div class="info-box">
+            <strong>ℹ️ Как это работает:</strong><br>
+            1. Создайте интеграцию<br>
+            2. Получите уникальный webhook URL<br>
+            3. Отправьте тестовый запрос на этот URL<br>
+            4. Настройте маппинг полей<br>
+            5. Активируйте интеграцию
+        </div>
         <form method="POST" action="/integrations">
             <div class="form-group">
-                <label>Название</label>
-                <input type="text" name="name" required>
-            </div>
-            <div class="form-group">
-                <label>Source API URL</label>
-                <input type="text" name="source_api" required>
+                <label>Название интеграции</label>
+                <input type="text" name="name" required placeholder="Например: Интеграция CRM -> Email">
             </div>
             <div class="form-group">
                 <label>Target API URL</label>
-                <input type="text" name="target_api" required>
+                <input type="text" name="target_api" required placeholder="https://api.example.com/endpoint">
+                <small>Куда будут отправляться преобразованные данные</small>
             </div>
             <div class="form-group">
-                <label>Конфигурация маппинга (JSON)</label>
-                <textarea name="mapping_config" rows="5"
-                    placeholder='{"field_map": {"source_field": "target_field"}}'></textarea>
+                <label>Source API (опционально)</label>
+                <input type="text" name="source_api" placeholder="https://source.example.com">
+                <small>Для документации, откуда ожидаются данные</small>
             </div>
-            <button type="submit">Создать</button>
+            <button type="submit">Создать интеграцию</button>
             <a href="/integrations">Отмена</a>
         </form>
     </div>

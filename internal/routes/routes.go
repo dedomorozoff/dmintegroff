@@ -59,9 +59,11 @@ func SetupRouter() *gin.Engine {
 		authorized.GET("/integrations", controllers.IntegrationList)
 		authorized.GET("/integrations/create", controllers.IntegrationCreate)
 		authorized.POST("/integrations", controllers.IntegrationStore)
+		authorized.GET("/integrations/:id/configure", controllers.IntegrationConfigure)
+		authorized.POST("/integrations/:id/configure", controllers.IntegrationSaveMapping)
 	}
 
-	r.POST("/webhook/:id", controllers.WebhookHandler)
+	r.POST("/webhook/:token", controllers.WebhookHandler)
 
 	return r
 }

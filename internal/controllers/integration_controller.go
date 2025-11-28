@@ -1,9 +1,11 @@
 package controllers
 
 import (
+	"encoding/json"
 	"gintegra/internal/database"
 	"gintegra/internal/models"
 	"gintegra/internal/services"
+	"gintegra/internal/utils"
 	"net/http"
 	"strconv"
 
@@ -31,12 +33,20 @@ func IntegrationStore(c *gin.Context) {
 	session := sessions.Default(c)
 	userID := session.Get("user_id").(uint)
 
+	// Generate unique webhook token
+	token, err := utils.GenerateToken(16)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		return
+	}
+
 	integration := models.Integration{
-		Name:          c.PostForm("name"),
-		SourceAPI:     c.PostForm("source_api"),
-		TargetAPI:     c.PostForm("target_api"),
-		MappingConfig: c.PostForm("mapping_config"),
-		CreatedByID:   userID,
+		Name:         c.PostForm("name"),
+		WebhookToken: token,
+		SourceAPI:    c.PostForm("source_api"), // Optional
+		TargetAPI:    c.PostForm("target_api"),
+		Mode:         "listening", // Start in listening mode
+		CreatedByID:  userID,
 	}
 
 	if err := database.DB.Create(&integration).Error; err != nil {
@@ -48,10 +58,11 @@ func IntegrationStore(c *gin.Context) {
 }
 
 func WebhookHandler(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+	token := c.Param("token")
+	
+	var integration models.Integration
+	if err := database.DB.Where("webhook_token = ?", token).First(&integration).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Integration not found"})
 		return
 	}
 
@@ -61,10 +72,72 @@ func WebhookHandler(c *gin.Context) {
 		return
 	}
 
-	if err := services.ProcessWebhook(uint(id), payload); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	// If in listening mode, save sample payload
+	if integration.Mode == "listening" {
+		payloadJSON, _ := json.Marshal(payload)
+		integration.SamplePayload = string(payloadJSON)
+		database.DB.Save(&integration)
+		
+		c.JSON(http.StatusOK, gin.H{
+			"status":  "captured",
+			"message": "Sample data captured. Configure field mapping to activate integration.",
+		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"status": "success"})
+	// If active, process the webhook
+	if integration.Mode == "active" {
+		if err := services.ProcessWebhook(integration.ID, payload); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"status": "success"})
+		return
+	}
+
+	// If inactive
+	c.JSON(http.StatusOK, gin.H{"status": "inactive", "message": "Integration is inactive"})
+}
+
+func IntegrationConfigure(c *gin.Context) {
+	idStr := c.Param("id")
+	id, _ := strconv.ParseUint(idStr, 10, 32)
+
+	var integration models.Integration
+	if err := database.DB.First(&integration, uint(id)).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Integration not found"})
+		return
+	}
+
+	// Parse sample payload to show fields
+	var sampleData map[string]interface{}
+	if integration.SamplePayload != "" {
+		json.Unmarshal([]byte(integration.SamplePayload), &sampleData)
+	}
+
+	c.HTML(http.StatusOK, "integration_configure.html", gin.H{
+		"title":       "Настройка маппинга",
+		"integration": integration,
+		"sampleData":  sampleData,
+	})
+}
+
+func IntegrationSaveMapping(c *gin.Context) {
+	idStr := c.Param("id")
+	id, _ := strconv.ParseUint(idStr, 10, 32)
+
+	var integration models.Integration
+	if err := database.DB.First(&integration, uint(id)).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Integration not found"})
+		return
+	}
+
+	// Get mapping config from form
+	mappingConfig := c.PostForm("mapping_config")
+	integration.MappingConfig = mappingConfig
+	integration.Mode = "active" // Activate integration
+
+	database.DB.Save(&integration)
+
+	c.Redirect(http.StatusFound, "/integrations")
 }
