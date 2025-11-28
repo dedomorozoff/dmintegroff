@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	"gintegra/internal/database"
-	"gintegra/internal/models"
+	"dmintegroff/internal/database"
+	"dmintegroff/internal/models"
 	"net/http"
 
 	"github.com/gin-contrib/sessions"

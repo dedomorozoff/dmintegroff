@@ -2,10 +2,10 @@ package controllers
 
 import (
 	"encoding/json"
-	"gintegra/internal/database"
-	"gintegra/internal/models"
-	"gintegra/internal/services"
-	"gintegra/internal/utils"
+	"dmintegroff/internal/database"
+	"dmintegroff/internal/models"
+	"dmintegroff/internal/services"
+	"dmintegroff/internal/utils"
 	"net/http"
 	"strconv"
 
@@ -193,5 +193,51 @@ func IntegrationDelete(c *gin.Context) {
 
 	database.DB.Delete(&models.Integration{}, uint(id))
 
+	c.Redirect(http.StatusFound, "/integrations")
+}
+
+// IntegrationToggle - активация/деактивация интеграции
+func IntegrationToggle(c *gin.Context) {
+	idStr := c.Param("id")
+	id, _ := strconv.ParseUint(idStr, 10, 32)
+
+	var integration models.Integration
+	if err := database.DB.First(&integration, uint(id)).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Integration not found"})
+		return
+	}
+
+	// Переключаем режим
+	if integration.Mode == "active" {
+		integration.Mode = "inactive"
+	} else if integration.Mode == "inactive" || integration.Mode == "listening" {
+		// Проверяем, что есть маппинг перед активацией
+		if integration.MappingConfig == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot activate: mapping not configured"})
+			return
+		}
+		integration.Mode = "active"
+	}
+
+	database.DB.Save(&integration)
+	c.Redirect(http.StatusFound, "/integrations")
+}
+
+// IntegrationReconfigure - переход в режим переопределения маппинга
+func IntegrationReconfigure(c *gin.Context) {
+	idStr := c.Param("id")
+	id, _ := strconv.ParseUint(idStr, 10, 32)
+
+	var integration models.Integration
+	if err := database.DB.First(&integration, uint(id)).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Integration not found"})
+		return
+	}
+
+	// Переводим в режим прослушивания для получения новых данных
+	integration.Mode = "listening"
+	integration.SamplePayload = "" // Очищаем старые данные
+	
+	database.DB.Save(&integration)
 	c.Redirect(http.StatusFound, "/integrations")
 }

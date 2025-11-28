@@ -1,18 +1,21 @@
-# ⚡ Быстрый старт GIntegra
+# ⚡ Быстрый старт dmIntegroff
 
-Это руководство поможет вам запустить GIntegra за 5 минут.
+Это руководство поможет вам запустить dmIntegroff за 5 минут.
 
 ## 📦 Установка
 
 ```bash
 # 1. Клонируйте репозиторий
-git clone https://github.com/yourusername/gintegra.git
-cd gintegra
+git clone https://github.com/yourusername/dmIntegroff.git
+cd dmIntegroff
 
 # 2. Установите зависимости
 go mod download
 
-# 3. Запустите сервер
+# 3. Выполните миграцию базы данных (первый запуск)
+go run cmd/admin/main.go --migrate
+
+# 4. Запустите сервер
 go run cmd/server/main.go
 ```
 
@@ -133,24 +136,24 @@ PORT=3000 go run cmd/server/main.go
 
 Проверьте права на запись в текущей директории:
 ```bash
-ls -la gintegra.db
+ls -la dmIntegroff.db
 ```
 
 ### Не могу войти
 
 Проверьте логи:
 ```bash
-tail -f gintegra.log
+tail -f dmIntegroff.log
 ```
 
 ## 🎯 Полезные команды
 
 ```bash
 # Просмотр логов в реальном времени
-tail -f gintegra.log
+tail -f dmIntegroff.log
 
 # Очистка базы данных
-rm gintegra.db
+rm dmIntegroff.db
 
 # Форматирование кода
 go fmt ./...
@@ -159,7 +162,7 @@ go fmt ./...
 go vet ./...
 
 # Сборка исполняемого файла
-go build -o gintegra cmd/server/main.go
+go build -o dmIntegroff cmd/server/main.go
 ```
 
 ## 🌟 Следующие шаги
@@ -181,10 +184,10 @@ go build -o gintegra cmd/server/main.go
 
 ## 📞 Поддержка
 
-- 🐛 [Сообщить о баге](https://github.com/yourusername/gintegra/issues)
-- 💡 [Предложить улучшение](https://github.com/yourusername/gintegra/issues)
+- 🐛 [Сообщить о баге](https://github.com/yourusername/dmIntegroff/issues)
+- 💡 [Предложить улучшение](https://github.com/yourusername/dmIntegroff/issues)
 - 📖 [Документация](docs/)
-- 💬 [Обсуждения](https://github.com/yourusername/gintegra/discussions)
+- 💬 [Обсуждения](https://github.com/yourusername/dmIntegroff/discussions)
 
 ---
 

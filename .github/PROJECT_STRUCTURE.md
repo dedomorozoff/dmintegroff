@@ -1,11 +1,13 @@
-# 📁 Структура проекта GIntegra
+# 📁 Структура проекта dmIntegroff
 
 ```
-gintegra/
+dmIntegroff/
 │
 ├── 📂 cmd/                          # Точки входа приложения
-│   └── server/
-│       └── main.go                  # Главный файл запуска
+│   ├── server/
+│   │   └── main.go                  # Главный файл запуска сервера
+│   └── admin/
+│       └── main.go                  # CLI инструмент администрирования
 │
 ├── 📂 internal/                     # Внутренний код приложения
 │   ├── controllers/                 # HTTP обработчики
@@ -54,6 +56,10 @@ gintegra/
 │   ├── PROGRAMMER_GUIDE.md          # Руководство программиста
 │   └── EXAMPLES.md                  # Примеры использования
 │
+├── 📂 migrations/                   # SQL миграции
+│   ├── 001_initial_schema.sql       # Миграция для MySQL
+│   └── 001_initial_schema_sqlite.sql # Миграция для SQLite
+│
 ├── 📂 .github/                      # GitHub конфигурация
 │   └── PROJECT_STRUCTURE.md         # Этот файл
 │
@@ -61,14 +67,16 @@ gintegra/
 ├── 📄 .env.example                  # Пример конфигурации
 ├── 📄 .gitignore                    # Игнорируемые файлы
 ├── 📄 CHANGELOG.md                  # История изменений
+├── 📄 CLI.md                        # Руководство по CLI
 ├── 📄 CONTRIBUTING.md               # Руководство по контрибуции
 ├── 📄 LICENSE                       # Лицензия MIT
+├── 📄 PRODUCTION.md                 # Гайд по production деплою
 ├── 📄 QUICKSTART.md                 # Быстрый старт
 ├── 📄 README.md                     # Главная документация
 ├── 📄 go.mod                        # Go зависимости
 ├── 📄 go.sum                        # Checksums зависимостей
-├── 📄 gintegra.db                   # База данных SQLite (не в git)
-└── 📄 gintegra.log                  # Лог файл (не в git)
+├── 📄 dmIntegroff.db                   # База данных SQLite (не в git)
+└── 📄 dmIntegroff.log                  # Лог файл (не в git)
 ```
 
 ## 🎯 Ключевые файлы
@@ -76,6 +84,8 @@ gintegra/
 ### Для пользователей
 - **README.md** - Начните отсюда
 - **QUICKSTART.md** - Быстрый старт за 5 минут
+- **CLI.md** - Руководство по CLI инструменту
+- **PRODUCTION.md** - Деплой в production
 - **docs/EXAMPLES.md** - Примеры реальных интеграций
 
 ### Для разработчиков
@@ -83,16 +93,18 @@ gintegra/
 - **docs/TECHNICAL_DOCS.md** - Архитектура и API
 - **CONTRIBUTING.md** - Как внести вклад
 
-### Конфигурация
+### Конфигурация и миграции
 - **.env.example** - Пример настроек
+- **migrations/** - SQL миграции для БД
 - **go.mod** - Зависимости проекта
 
 ## 📊 Статистика проекта
 
-- **Языки**: Go (backend), HTML/CSS/JS (frontend)
-- **Строк кода**: ~3000+ (без зависимостей)
-- **Файлов**: ~30
+- **Языки**: Go (backend), HTML/CSS/JS (frontend), SQL (миграции)
+- **Строк кода**: ~5000+ (без зависимостей)
+- **Файлов**: ~40
 - **Зависимостей**: 10+ Go пакетов
+- **Документов**: 10+ markdown файлов
 
 ## 🔄 Жизненный цикл запроса
 
@@ -169,8 +181,8 @@ import (
     "gorm.io/gorm"
     
     // Внутренние пакеты
-    "gintegra/internal/models"
-    "gintegra/internal/database"
+    "dmIntegroff/internal/models"
+    "dmIntegroff/internal/database"
 )
 ```
 
@@ -202,7 +214,7 @@ import (
 - `LOG_LEVEL` - Уровень логирования
 
 ### База данных
-- **Разработка**: SQLite (`gintegra.db`)
+- **Разработка**: SQLite (`dmIntegroff.db`)
 - **Production**: MySQL (рекомендуется)
 
 ## 📦 Зависимости

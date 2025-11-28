@@ -1,4 +1,4 @@
-# 🤝 Руководство по внесению вклада в GIntegra
+# 🤝 Руководство по внесению вклада в dmIntegroff
 
 Спасибо за интерес к проекту! Мы рады любому вкладу - от исправления опечаток до новых функций.
 
@@ -24,7 +24,7 @@
 
 ### 🐛 Сообщить о баге
 
-1. Проверьте, не был ли баг уже сообщен в [Issues](https://github.com/yourusername/gintegra/issues)
+1. Проверьте, не был ли баг уже сообщен в [Issues](https://github.com/yourusername/dmIntegroff/issues)
 2. Если нет, создайте новый issue с:
    - Четким описанием проблемы
    - Шагами для воспроизведения
@@ -60,11 +60,11 @@
 # Fork репозитория через GitHub UI
 
 # Клонируйте ваш fork
-git clone https://github.com/YOUR_USERNAME/gintegra.git
-cd gintegra
+git clone https://github.com/YOUR_USERNAME/dmIntegroff.git
+cd dmIntegroff
 
 # Добавьте upstream remote
-git remote add upstream https://github.com/ORIGINAL_OWNER/gintegra.git
+git remote add upstream https://github.com/ORIGINAL_OWNER/dmIntegroff.git
 ```
 
 ### 2. Создайте ветку
@@ -303,7 +303,7 @@ Fixes #456
 Если у вас есть вопросы:
 
 1. Проверьте [документацию](docs/)
-2. Поищите в [Issues](https://github.com/yourusername/gintegra/issues)
+2. Поищите в [Issues](https://github.com/yourusername/dmIntegroff/issues)
 3. Создайте новый issue с тегом `question`
 
 ## Лицензия

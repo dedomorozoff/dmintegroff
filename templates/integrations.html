@@ -11,7 +11,7 @@
     <aside class="sidebar">
         <div class="sidebar-logo">
             <span class="icon">🚀</span>
-            <h1>GIntegra</h1>
+            <h1>dmIntegroff</h1>
         </div>
         
         <nav>
@@ -74,18 +74,34 @@
                             </td>
                             <td>{{ if .TargetAPI }}{{ .TargetAPI }}{{ else }}<span style="color: var(--text-secondary);">-</span>{{ end }}</td>
                             <td style="text-align: right;">
-                                <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                <div style="display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap;">
                                     {{ if eq .Mode "listening" }}
-                                    {{ if .SamplePayload }}
-                                    <a href="/integrations/{{ .ID }}/configure" class="btn btn-sm">⚙️ Настроить</a>
+                                        {{ if .SamplePayload }}
+                                        <a href="/integrations/{{ .ID }}/configure" class="btn btn-success btn-sm">⚙️ Настроить</a>
+                                        {{ else }}
+                                        <span style="color: var(--text-secondary); font-size: 0.85rem;">Ожидание данных...</span>
+                                        {{ end }}
+                                    {{ else if eq .Mode "active" }}
+                                        <form method="POST" action="/integrations/{{ .ID }}/toggle" style="display: inline;">
+                                            <button type="submit" class="btn btn-secondary btn-sm" title="Деактивировать">⏸️</button>
+                                        </form>
+                                        <form method="POST" action="/integrations/{{ .ID }}/reconfigure" style="display: inline;"
+                                            onsubmit="return confirm('Переопределить маппинг? Интеграция будет деактивирована.');">
+                                            <button type="submit" class="btn btn-sm" title="Переопределить маппинг">🔄</button>
+                                        </form>
                                     {{ else }}
-                                    <span style="color: var(--text-secondary); font-size: 0.85rem;">Ожидание данных...</span>
+                                        <form method="POST" action="/integrations/{{ .ID }}/toggle" style="display: inline;">
+                                            <button type="submit" class="btn btn-success btn-sm" title="Активировать">▶️</button>
+                                        </form>
+                                        <form method="POST" action="/integrations/{{ .ID }}/reconfigure" style="display: inline;"
+                                            onsubmit="return confirm('Переопределить маппинг?');">
+                                            <button type="submit" class="btn btn-sm" title="Переопределить маппинг">🔄</button>
+                                        </form>
                                     {{ end }}
-                                    {{ end }}
-                                    <a href="/integrations/{{ .ID }}/edit" class="btn btn-secondary btn-sm">✏️</a>
+                                    <a href="/integrations/{{ .ID }}/edit" class="btn btn-secondary btn-sm" title="Редактировать">✏️</a>
                                     <form method="POST" action="/integrations/{{ .ID }}/delete" style="display: inline;"
                                         onsubmit="return confirm('Удалить интеграцию {{ .Name }}?');">
-                                        <button type="submit" class="btn btn-danger btn-sm">🗑️</button>
+                                        <button type="submit" class="btn btn-danger btn-sm" title="Удалить">🗑️</button>
                                     </form>
                                 </div>
                             </td>

@@ -18,13 +18,13 @@ func Connect() {
 
 	if dbType == "mysql" {
 		if dsn == "" {
-			dsn = "user:password@tcp(127.0.0.1:3306)/gintegra?charset=utf8mb4&parseTime=True&loc=Local"
+			dsn = "user:password@tcp(127.0.0.1:3306)/dmIntegroff?charset=utf8mb4&parseTime=True&loc=Local"
 		}
 		DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	} else {
 		// Default to SQLite
 		if dsn == "" {
-			dsn = "gintegra.db"
+			dsn = "dmIntegroff.db"
 		}
 		DB, err = gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	}

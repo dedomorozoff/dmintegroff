@@ -1,10 +1,12 @@
 package controllers
 
 import (
+	"bufio"
 	"encoding/json"
-	"gintegra/internal/database"
-	"gintegra/internal/models"
+	"dmintegroff/internal/database"
+	"dmintegroff/internal/models"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -68,5 +70,48 @@ func LogsAPI(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"logs": logs,
+	})
+}
+
+// LogError - логирование ошибок сервера
+func LogError(method, url, errorMsg string, statusCode int) {
+	log := models.RequestLog{
+		Method:       method,
+		URL:          url,
+		ErrorMessage: errorMsg,
+		StatusCode:   statusCode,
+		LogType:      "error",
+	}
+	database.DB.Create(&log)
+}
+
+// ServerLogsAPI - API endpoint для получения логов из файла dmIntegroff.log
+func ServerLogsAPI(c *gin.Context) {
+	// Читаем последние 100 строк из лог-файла
+	logFile := "dmIntegroff.log"
+	
+	file, err := os.Open(logFile)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"logs": []string{},
+		})
+		return
+	}
+	defer file.Close()
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+
+	// Берем последние 100 строк
+	start := 0
+	if len(lines) > 100 {
+		start = len(lines) - 100
+	}
+	
+	c.JSON(http.StatusOK, gin.H{
+		"logs": lines[start:],
 	})
 }

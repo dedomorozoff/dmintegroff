@@ -14,6 +14,23 @@
             margin-bottom: 1rem;
         }
 
+        .log-entry.error-log {
+            border-color: var(--danger);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .error-message {
+            padding: 1rem;
+            background: rgba(239, 68, 68, 0.2);
+            border-radius: 6px;
+            color: var(--danger);
+            font-family: monospace;
+        }
+
+        .error-status {
+            background: var(--danger) !important;
+        }
+
         .log-header {
             display: flex;
             justify-content: space-between;
@@ -70,7 +87,7 @@
     <aside class="sidebar">
         <div class="sidebar-logo">
             <span class="icon">🚀</span>
-            <h1>GIntegra</h1>
+            <h1>dmIntegroff</h1>
         </div>
         
         <nav>
@@ -137,17 +154,25 @@
         <div id="logs-container">
             {{ if .logs }}
             {{ range .logs }}
-            <div class="log-entry">
+            <div class="log-entry {{ if eq .LogType "error" }}error-log{{ end }}">
                 <div class="log-header">
                     <div>
-                        <span class="log-method">{{ .Method }}</span>
+                        <span class="log-method {{ if ge .StatusCode 400 }}error-status{{ end }}">{{ .Method }}</span>
                         <span class="log-url">{{ .URL }}</span>
+                        {{ if eq .LogType "error" }}
+                        <span class="badge badge-danger" style="margin-left: 0.5rem;">{{ .StatusCode }} ERROR</span>
+                        {{ end }}
                         <span class="log-meta" style="margin-left: 1rem;">{{ .CreatedAt.Format "2006-01-02 15:04:05" }}</span>
                     </div>
                     <form method="POST" action="/logs/{{ .ID }}/delete" style="display: inline;">
                         <button type="submit" class="btn btn-danger btn-sm">🗑️</button>
                     </form>
                 </div>
+                {{ if eq .LogType "error" }}
+                <div class="error-message">
+                    <strong>❌ Ошибка:</strong> {{ .ErrorMessage }}
+                </div>
+                {{ else }}
                 <div class="json-viewer" id="log-{{ .ID }}" data-json="{{ .RequestBody }}"></div>
                 <script>
                     (function () {
@@ -162,6 +187,7 @@
                         }
                     })();
                 </script>
+                {{ end }}
             </div>
             {{ end }}
             {{ else }}
@@ -212,31 +238,49 @@
                 const method = log.method || log.Method;
                 const url = log.url || log.URL;
                 const createdAt = log.CreatedAt || log.created_at;
+                const logType = log.log_type || log.LogType || 'request';
+                const statusCode = log.status_code || log.StatusCode;
+                const errorMessage = log.error_message || log.ErrorMessage;
+                
+                const isError = logType === 'error' || statusCode >= 400;
+                const errorClass = isError ? 'error-log' : '';
+                const statusClass = statusCode >= 400 ? 'error-status' : '';
                 
                 html += `
-                    <div class="log-entry">
+                    <div class="log-entry ${errorClass}">
                         <div class="log-header">
                             <div>
-                                <span class="log-method">${method}</span>
+                                <span class="log-method ${statusClass}">${method}</span>
                                 <span class="log-url">${url}</span>
+                                ${isError ? `<span class="badge badge-danger" style="margin-left: 0.5rem;">${statusCode} ERROR</span>` : ''}
                                 <span class="log-meta" style="margin-left: 1rem;">${formatDate(createdAt)}</span>
                             </div>
                             <form method="POST" action="/logs/${log.ID}/delete" style="display: inline;">
                                 <button type="submit" class="btn btn-danger btn-sm">🗑️</button>
                             </form>
                         </div>
-                        <div class="json-viewer" id="log-${log.ID}"></div>
+                        ${isError ? 
+                            `<div class="error-message"><strong>❌ Ошибка:</strong> ${errorMessage || 'Unknown error'}</div>` :
+                            `<div class="json-viewer" id="log-${log.ID}"></div>`
+                        }
                     </div>
                 `;
             });
 
             container.innerHTML = html;
 
-            // Применяем подсветку синтаксиса сразу после вставки HTML
+            // Применяем подсветку синтаксиса сразу после вставки HTML (только для не-ошибок)
             logs.forEach(log => {
+                const logType = log.log_type || log.LogType || 'request';
+                const statusCode = log.status_code || log.StatusCode;
+                
+                // Пропускаем ошибки - для них уже отображается сообщение
+                if (logType === 'error' || statusCode >= 400) {
+                    return;
+                }
+                
                 const logContainer = document.getElementById(`log-${log.ID}`);
                 if (!logContainer) {
-                    console.error('Container not found for log:', log.ID);
                     return;
                 }
                 
@@ -253,7 +297,6 @@
                     const data = JSON.parse(requestBody);
                     logContainer.innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
                 } catch (e) {
-                    console.error('JSON parse error for log', log.ID, ':', e);
                     logContainer.innerHTML = 'Invalid JSON: ' + e.message;
                 }
             });

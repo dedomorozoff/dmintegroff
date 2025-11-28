@@ -1,13 +1,13 @@
-# 📘 Техническая документация GIntegra
+# 📘 Техническая документация dmIntegroff
 
 ## Архитектура
 
-GIntegra построен по архитектуре MVC с использованием фреймворка Gin и следует принципам чистой архитектуры.
+dmIntegroff построен по архитектуре MVC с использованием фреймворка Gin и следует принципам чистой архитектуры.
 
 ### Структура проекта
 
 ```
-gintegra/
+dmIntegroff/
 ├── cmd/
 │   └── server/           # Точка входа приложения
 │       └── main.go       # Инициализация и запуск сервера
@@ -340,7 +340,7 @@ logger.Log.WithFields(logrus.Fields{
 |------------|----------|--------------|
 | `SESSION_SECRET` | Секретный ключ для сессий | `secret` |
 | `DB_TYPE` | Тип БД (sqlite/mysql) | `sqlite` |
-| `DB_DSN` | Строка подключения к БД | `gintegra.db` |
+| `DB_DSN` | Строка подключения к БД | `dmIntegroff.db` |
 | `APP_PATH` | Префикс пути приложения | `` |
 | `PORT` | Порт сервера | `8080` |
 
@@ -348,7 +348,7 @@ logger.Log.WithFields(logrus.Fields{
 ```env
 SESSION_SECRET=your-super-secret-key-change-this-in-production
 DB_TYPE=sqlite
-DB_DSN=gintegra.db
+DB_DSN=dmIntegroff.db
 APP_PATH=
 PORT=8080
 ```
@@ -396,7 +396,7 @@ gin.SetMode(gin.DebugMode) // или gin.ReleaseMode
 
 ### Просмотр SQL запросов
 ```go
-db, _ := gorm.Open(sqlite.Open("gintegra.db"), &gorm.Config{
+db, _ := gorm.Open(sqlite.Open("dmIntegroff.db"), &gorm.Config{
     Logger: logger.Default.LogMode(logger.Info),
 })
 ```

@@ -1,10 +1,10 @@
 package routes
 
 import (
-	"gintegra/internal/controllers"
-	"gintegra/internal/database"
-	"gintegra/internal/logger"
-	"gintegra/internal/models"
+	"dmintegroff/internal/controllers"
+	"dmintegroff/internal/database"
+	"dmintegroff/internal/logger"
+	"dmintegroff/internal/models"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
@@ -14,7 +14,13 @@ import (
 
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
+	
+	// Настройка доверенных прокси (только localhost для разработки)
+	r.SetTrustedProxies([]string{"127.0.0.1", "::1"})
+	
 	r.Use(logger.RequestLogger())
+	r.Use(ErrorLogger())
+	r.Use(PanicRecovery())
 
 	secret := os.Getenv("SESSION_SECRET")
 	if secret == "" {
@@ -65,6 +71,8 @@ func SetupRouter() *gin.Engine {
 		authorized.GET("/integrations/:id/edit", controllers.IntegrationEdit)
 		authorized.POST("/integrations/:id/update", controllers.IntegrationUpdate)
 		authorized.POST("/integrations/:id/delete", controllers.IntegrationDelete)
+		authorized.POST("/integrations/:id/toggle", controllers.IntegrationToggle)
+		authorized.POST("/integrations/:id/reconfigure", controllers.IntegrationReconfigure)
 		authorized.GET("/integrations/:id/configure", controllers.IntegrationConfigure)
 		authorized.POST("/integrations/:id/configure", controllers.IntegrationSaveMapping)
 		
@@ -91,6 +99,82 @@ func AuthRequired() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+		c.Next()
+	}
+}
+
+// ErrorLogger - middleware для логирования ошибок
+func ErrorLogger() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Next()
+
+		// Проверяем статус код после выполнения запроса
+		statusCode := c.Writer.Status()
+		
+		// Логируем только ошибки (4xx и 5xx)
+		if statusCode >= 400 {
+			errorMsg := ""
+			
+			// Пытаемся получить сообщение об ошибке из контекста
+			if len(c.Errors) > 0 {
+				errorMsg = c.Errors.String()
+			} else {
+				errorMsg = http.StatusText(statusCode)
+			}
+			
+			// Логируем в файл через logrus
+			logger.Log.WithFields(map[string]interface{}{
+				"method":      c.Request.Method,
+				"path":        c.Request.URL.Path,
+				"status":      statusCode,
+				"error":       errorMsg,
+				"ip":          c.ClientIP(),
+				"user_agent":  c.Request.UserAgent(),
+			}).Error("HTTP Error")
+			
+			// Сохраняем в БД
+			log := models.RequestLog{
+				Method:       c.Request.Method,
+				URL:          c.Request.URL.Path,
+				ErrorMessage: errorMsg,
+				StatusCode:   statusCode,
+				LogType:      "error",
+			}
+			database.DB.Create(&log)
+		}
+	}
+}
+
+// PanicRecovery - middleware для перехвата паник
+func PanicRecovery() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		defer func() {
+			if err := recover(); err != nil {
+				// Логируем панику в файл
+				logger.Log.WithFields(map[string]interface{}{
+					"method": c.Request.Method,
+					"path":   c.Request.URL.Path,
+					"ip":     c.ClientIP(),
+					"panic":  err,
+				}).Error("PANIC recovered")
+				
+				// Сохраняем в БД
+				log := models.RequestLog{
+					Method:       c.Request.Method,
+					URL:          c.Request.URL.Path,
+					ErrorMessage: "PANIC: " + err.(string),
+					StatusCode:   500,
+					LogType:      "error",
+				}
+				database.DB.Create(&log)
+				
+				// Возвращаем 500 ошибку
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "Internal Server Error",
+				})
+				c.Abort()
+			}
+		}()
 		c.Next()
 	}
 }

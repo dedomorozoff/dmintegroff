@@ -1,7 +1,7 @@
 package database
 
 import (
-	"gintegra/internal/models"
+	"dmintegroff/internal/models"
 	"log"
 
 	"golang.org/x/crypto/bcrypt"

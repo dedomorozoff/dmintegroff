@@ -11,8 +11,8 @@ import (
 	"strings"
 	"syscall"
 
-	"gintegra/internal/database"
-	"gintegra/internal/models"
+	"dmintegroff/internal/database"
+	"dmintegroff/internal/models"
 
 	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
@@ -26,7 +26,13 @@ func main() {
 	// Define commands
 	resetPassword := flag.Bool("reset-password", false, "Сбросить пароль администратора")
 	generateSecret := flag.Bool("generate-secret", false, "Сгенерировать случайный URL для приложения")
+	migrate := flag.Bool("migrate", false, "Выполнить миграцию базы данных")
 	flag.Parse()
+
+	if *migrate {
+		runMigration()
+		return
+	}
 
 	database.Connect()
 
@@ -40,9 +46,10 @@ func main() {
 }
 
 func showMenu() {
-	fmt.Println("=== GIntegra Admin CLI ===")
-	fmt.Println("1. Сбросить пароль администратора")
-	fmt.Println("2. Сгенерировать случайный URL")
+	fmt.Println("=== dmIntegroff Admin CLI ===")
+	fmt.Println("1. Выполнить миграцию базы данных")
+	fmt.Println("2. Сбросить пароль администратора")
+	fmt.Println("3. Сгенерировать случайный URL")
 	fmt.Println("0. Выход")
 	fmt.Print("\nВыберите действие: ")
 
@@ -52,8 +59,10 @@ func showMenu() {
 
 	switch choice {
 	case "1":
-		resetAdminPassword()
+		runMigration()
 	case "2":
+		resetAdminPassword()
+	case "3":
 		generateRandomSecret()
 	case "0":
 		fmt.Println("Выход...")
@@ -113,4 +122,42 @@ func generateRandomSecret() {
 	fmt.Println("После этого приложение будет доступно по адресу:")
 	fmt.Printf("   http://localhost:8080/%s\n\n", randomPath)
 	fmt.Println("⚠️  Не забудьте перезапустить сервер!")
+}
+
+func runMigration() {
+	fmt.Println("\n=== Миграция базы данных ===")
+	
+	// Определяем тип БД из переменных окружения
+	dbType := os.Getenv("DB_TYPE")
+	if dbType == "" {
+		dbType = "sqlite"
+	}
+	
+	fmt.Printf("Тип базы данных: %s\n", dbType)
+	
+	// Подключаемся к БД
+	database.Connect()
+	
+	fmt.Println("\n📊 Выполнение миграций...")
+	
+	// Выполняем миграцию через GORM
+	if err := database.DB.AutoMigrate(
+		&models.User{},
+		&models.Integration{},
+		&models.RequestLog{},
+	); err != nil {
+		log.Fatal("❌ Ошибка миграции:", err)
+	}
+	
+	fmt.Println("✅ Таблицы созданы/обновлены")
+	
+	// Создаем администратора по умолчанию
+	fmt.Println("\n👤 Создание администратора по умолчанию...")
+	database.SeedAdmin()
+	
+	fmt.Println("\n🎉 Миграция завершена успешно!")
+	fmt.Println("\n📝 Учетные данные по умолчанию:")
+	fmt.Println("   Логин: admin")
+	fmt.Println("   Пароль: admin")
+	fmt.Println("\n⚠️  ВАЖНО: Смените пароль после первого входа!")
 }

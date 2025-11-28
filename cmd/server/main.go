@@ -1,10 +1,10 @@
 package main
 
 import (
-	"gintegra/internal/database"
-	"gintegra/internal/logger"
-	"gintegra/internal/models"
-	"gintegra/internal/routes"
+	"dmintegroff/internal/database"
+	"dmintegroff/internal/logger"
+	"dmintegroff/internal/models"
+	"dmintegroff/internal/routes"
 	"log"
 
 	"github.com/joho/godotenv"
@@ -16,7 +16,7 @@ func main() {
 	}
 
 	logger.Init()
-	logger.Log.Info("Starting GIntegra server...")
+	logger.Log.Info("Starting dmIntegroff server...")
 
 	database.Connect()
 	database.Migrate(&models.User{}, &models.Integration{}, &models.RequestLog{})

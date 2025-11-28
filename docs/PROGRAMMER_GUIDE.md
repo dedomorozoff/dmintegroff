@@ -1,6 +1,6 @@
-# 👨‍💻 Руководство программиста GIntegra
+# 👨‍💻 Руководство программиста dmIntegroff
 
-Этот документ для разработчиков, которые хотят развивать или модифицировать GIntegra.
+Этот документ для разработчиков, которые хотят развивать или модифицировать dmIntegroff.
 
 ## Настройка окружения разработки
 
@@ -13,8 +13,8 @@
 
 ```bash
 # Клонирование репозитория
-git clone https://github.com/yourusername/gintegra.git
-cd gintegra
+git clone https://github.com/yourusername/dmIntegroff.git
+cd dmIntegroff
 
 # Установка зависимостей
 go mod download
@@ -142,8 +142,8 @@ database.Migrate(
 package controllers
 
 import (
-    "gintegra/internal/database"
-    "gintegra/internal/models"
+    "dmIntegroff/internal/database"
+    "dmIntegroff/internal/models"
     "net/http"
     
     "github.com/gin-gonic/gin"
@@ -194,8 +194,8 @@ authorized.POST("/notifications/:id/read", controllers.MarkAsRead)
 package services
 
 import (
-    "gintegra/internal/database"
-    "gintegra/internal/models"
+    "dmIntegroff/internal/database"
+    "dmIntegroff/internal/models"
 )
 
 // NotificationService управляет уведомлениями
@@ -462,26 +462,26 @@ go test -v ./...
 
 ```bash
 # Windows
-go build -o gintegra.exe cmd/server/main.go
+go build -o dmIntegroff.exe cmd/server/main.go
 
 # Linux/macOS
-go build -o gintegra cmd/server/main.go
+go build -o dmIntegroff cmd/server/main.go
 
 # С оптимизацией размера
-go build -ldflags="-s -w" -o gintegra cmd/server/main.go
+go build -ldflags="-s -w" -o dmIntegroff cmd/server/main.go
 ```
 
 ### Cross-compilation
 
 ```bash
 # Для Linux (из Windows/macOS)
-GOOS=linux GOARCH=amd64 go build -o gintegra-linux cmd/server/main.go
+GOOS=linux GOARCH=amd64 go build -o dmIntegroff-linux cmd/server/main.go
 
 # Для Windows (из Linux/macOS)
-GOOS=windows GOARCH=amd64 go build -o gintegra.exe cmd/server/main.go
+GOOS=windows GOARCH=amd64 go build -o dmIntegroff.exe cmd/server/main.go
 
 # Для macOS (из Windows/Linux)
-GOOS=darwin GOARCH=amd64 go build -o gintegra-mac cmd/server/main.go
+GOOS=darwin GOARCH=amd64 go build -o dmIntegroff-mac cmd/server/main.go
 ```
 
 ### Docker (будущее)
@@ -492,15 +492,15 @@ FROM golang:1.20-alpine AS builder
 WORKDIR /app
 COPY . .
 RUN go mod download
-RUN go build -o gintegra cmd/server/main.go
+RUN go build -o dmIntegroff cmd/server/main.go
 
 FROM alpine:latest
 WORKDIR /app
-COPY --from=builder /app/gintegra .
+COPY --from=builder /app/dmIntegroff .
 COPY --from=builder /app/templates ./templates
 COPY --from=builder /app/static ./static
 EXPOSE 8080
-CMD ["./gintegra"]
+CMD ["./dmIntegroff"]
 ```
 
 ## Отладка
@@ -508,7 +508,7 @@ CMD ["./gintegra"]
 ### Логирование
 
 ```go
-import "gintegra/internal/logger"
+import "dmIntegroff/internal/logger"
 
 // Info
 logger.Log.Info("Server started")

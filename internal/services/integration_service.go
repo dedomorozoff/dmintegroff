@@ -3,14 +3,19 @@ package services
 import (
 	"bytes"
 	"encoding/json"
-	"gintegra/internal/database"
-	"gintegra/internal/models"
+	"dmintegroff/internal/database"
+	"dmintegroff/internal/logger"
+	"dmintegroff/internal/models"
 	"net/http"
 )
 
 func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 	var integration models.Integration
 	if err := database.DB.First(&integration, integrationID).Error; err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"integration_id": integrationID,
+			"error":          err.Error(),
+		}).Error("Failed to find integration")
 		return err
 	}
 
@@ -19,8 +24,10 @@ func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 	var mapping map[string]string
 	if integration.MappingConfig != "" {
 		if err := json.Unmarshal([]byte(integration.MappingConfig), &mapping); err != nil {
-			// Log error but proceed? Or fail?
-			// For now, let's treat invalid mapping as empty
+			logger.Log.WithFields(map[string]interface{}{
+				"integration_id": integrationID,
+				"error":          err.Error(),
+			}).Warn("Invalid mapping config, using passthrough")
 		}
 	}
 
@@ -41,9 +48,21 @@ func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 	jsonData, _ := json.Marshal(transformed)
 	resp, err := http.Post(integration.TargetAPI, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"integration_id": integrationID,
+			"target_api":     integration.TargetAPI,
+			"error":          err.Error(),
+		}).Error("Failed to send webhook to target API")
 		return err
 	}
 	defer resp.Body.Close()
+
+	// Логируем успешную отправку
+	logger.Log.WithFields(map[string]interface{}{
+		"integration_id": integrationID,
+		"target_api":     integration.TargetAPI,
+		"status_code":    resp.StatusCode,
+	}).Info("Webhook processed successfully")
 
 	return nil
 }
