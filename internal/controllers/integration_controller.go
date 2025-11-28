@@ -141,3 +141,47 @@ func IntegrationSaveMapping(c *gin.Context) {
 
 	c.Redirect(http.StatusFound, "/integrations")
 }
+
+func IntegrationEdit(c *gin.Context) {
+	idStr := c.Param("id")
+	id, _ := strconv.ParseUint(idStr, 10, 32)
+
+	var integration models.Integration
+	if err := database.DB.First(&integration, uint(id)).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Integration not found"})
+		return
+	}
+
+	c.HTML(http.StatusOK, "integration_edit.html", gin.H{
+		"title":       "Редактирование интеграции",
+		"integration": integration,
+	})
+}
+
+func IntegrationUpdate(c *gin.Context) {
+	idStr := c.Param("id")
+	id, _ := strconv.ParseUint(idStr, 10, 32)
+
+	var integration models.Integration
+	if err := database.DB.First(&integration, uint(id)).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Integration not found"})
+		return
+	}
+
+	integration.Name = c.PostForm("name")
+	integration.SourceAPI = c.PostForm("source_api")
+	integration.TargetAPI = c.PostForm("target_api")
+
+	database.DB.Save(&integration)
+
+	c.Redirect(http.StatusFound, "/integrations")
+}
+
+func IntegrationDelete(c *gin.Context) {
+	idStr := c.Param("id")
+	id, _ := strconv.ParseUint(idStr, 10, 32)
+
+	database.DB.Delete(&models.Integration{}, uint(id))
+
+	c.Redirect(http.StatusFound, "/integrations")
+}

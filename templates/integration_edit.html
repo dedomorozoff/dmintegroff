@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <title>{{ .title }}</title>
+    <link rel="stylesheet" href="/static/css/common.css">
+</head>
+
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>Редактирование интеграции</h1>
+
+            <div class="warning-box">
+                ⚠️ <strong>Внимание:</strong> Изменение Target API может нарушить работу активной интеграции
+            </div>
+
+            <div
+                style="background: #f8f9fa; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; font-family: monospace;">
+                <strong>Webhook URL:</strong> /webhook/{{ .integration.WebhookToken }}<br>
+                <small>URL нельзя изменить. Для нового URL создайте новую интеграцию.</small>
+            </div>
+
+            <form method="POST" action="/integrations/{{ .integration.ID }}/update">
+                <div class="form-group">
+                    <label>Название интеграции</label>
+                    <input type="text" name="name" value="{{ .integration.Name }}" required>
+                </div>
+                <div class="form-group">
+                    <label>Target API URL</label>
+                    <input type="text" name="target_api" value="{{ .integration.TargetAPI }}" required>
+                    <small>Куда будут отправляться преобразованные данные</small>
+                </div>
+                <div class="form-group">
+                    <label>Source API (опционально)</label>
+                    <input type="text" name="source_api" value="{{ .integration.SourceAPI }}">
+                    <small>Для документации, откуда ожидаются данные</small>
+                </div>
+                <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+                <a href="/integrations" class="btn btn-secondary">Отмена</a>
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>

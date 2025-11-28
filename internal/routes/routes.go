@@ -23,6 +23,9 @@ func SetupRouter() *gin.Engine {
 	store := cookie.NewStore([]byte(secret))
 	r.Use(sessions.Sessions("mysession", store))
 
+	// Serve static files
+	r.Static("/static", "./static")
+
 	r.LoadHTMLGlob("templates/*")
 
 	// Get custom app path from env
@@ -59,6 +62,9 @@ func SetupRouter() *gin.Engine {
 		authorized.GET("/integrations", controllers.IntegrationList)
 		authorized.GET("/integrations/create", controllers.IntegrationCreate)
 		authorized.POST("/integrations", controllers.IntegrationStore)
+		authorized.GET("/integrations/:id/edit", controllers.IntegrationEdit)
+		authorized.POST("/integrations/:id/update", controllers.IntegrationUpdate)
+		authorized.POST("/integrations/:id/delete", controllers.IntegrationDelete)
 		authorized.GET("/integrations/:id/configure", controllers.IntegrationConfigure)
 		authorized.POST("/integrations/:id/configure", controllers.IntegrationSaveMapping)
 	}
