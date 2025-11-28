@@ -60,3 +60,13 @@ func DeleteLog(c *gin.Context) {
 	database.DB.Delete(&models.RequestLog{}, uint(id))
 	c.Redirect(http.StatusFound, "/logs")
 }
+
+// LogsAPI - API endpoint для получения логов в JSON
+func LogsAPI(c *gin.Context) {
+	var logs []models.RequestLog
+	database.DB.Order("created_at desc").Limit(100).Find(&logs)
+
+	c.JSON(http.StatusOK, gin.H{
+		"logs": logs,
+	})
+}

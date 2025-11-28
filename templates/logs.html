@@ -89,9 +89,16 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h1>Логи запросов</h1>
-                    <p>Всего записей: {{ len .logs }}</p>
+                    <p>Всего записей: <span id="logs-count">{{ len .logs }}</span> 
+                       <span id="auto-refresh-status" style="color: var(--success); margin-left: 1rem;">
+                           🔄 Автообновление: <span id="countdown">15</span>с
+                       </span>
+                    </p>
                 </div>
-                <div style="display: flex; gap: 0.5rem;">
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button id="toggle-refresh" class="btn btn-secondary btn-sm" onclick="toggleAutoRefresh()">
+                        ⏸️ Пауза
+                    </button>
                     <form method="POST" action="/logs/clear" style="display: inline;"
                         onsubmit="return confirm('Очистить все логи?');">
                         <button type="submit" class="btn btn-danger">🗑️ Очистить все</button>
@@ -105,63 +112,208 @@
             Используйте этот URL в интеграциях для тестирования без отправки на реальные серверы.
         </div>
 
-        {{ if .logs }}
-        {{ range .logs }}
-        <div class="log-entry">
-            <div class="log-header">
-                <div>
-                    <span class="log-method">{{ .Method }}</span>
-                    <span class="log-url">{{ .URL }}</span>
-                    <span class="log-meta" style="margin-left: 1rem;">{{ .CreatedAt.Format "2006-01-02 15:04:05" }}</span>
+        <script>
+            // Функция для подсветки JSON синтаксиса (должна быть определена ДО использования)
+            function syntaxHighlight(json) {
+                json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                    let cls = 'json-number';
+                    if (/^"/.test(match)) {
+                        if (/:$/.test(match)) {
+                            cls = 'json-key';
+                        } else {
+                            cls = 'json-string';
+                        }
+                    } else if (/true|false/.test(match)) {
+                        cls = 'json-boolean';
+                    } else if (/null/.test(match)) {
+                        cls = 'json-null';
+                    }
+                    return '<span class="' + cls + '">' + match + '</span>';
+                });
+            }
+        </script>
+
+        <div id="logs-container">
+            {{ if .logs }}
+            {{ range .logs }}
+            <div class="log-entry">
+                <div class="log-header">
+                    <div>
+                        <span class="log-method">{{ .Method }}</span>
+                        <span class="log-url">{{ .URL }}</span>
+                        <span class="log-meta" style="margin-left: 1rem;">{{ .CreatedAt.Format "2006-01-02 15:04:05" }}</span>
+                    </div>
+                    <form method="POST" action="/logs/{{ .ID }}/delete" style="display: inline;">
+                        <button type="submit" class="btn btn-danger btn-sm">🗑️</button>
+                    </form>
                 </div>
-                <form method="POST" action="/logs/{{ .ID }}/delete" style="display: inline;">
-                    <button type="submit" class="btn btn-danger btn-sm">🗑️</button>
-                </form>
+                <div class="json-viewer" id="log-{{ .ID }}" data-json="{{ .RequestBody }}"></div>
+                <script>
+                    (function () {
+                        try {
+                            const container = document.getElementById('log-{{ .ID }}');
+                            const jsonString = container.getAttribute('data-json');
+                            const data = JSON.parse(jsonString);
+                            container.innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
+                        } catch (e) {
+                            const container = document.getElementById('log-{{ .ID }}');
+                            container.innerHTML = 'Invalid JSON: ' + e.message;
+                        }
+                    })();
+                </script>
             </div>
-            <div class="json-viewer" id="log-{{ .ID }}"></div>
-            <script>
-                (function () {
-                    try {
-                        const jsonString = `{{ .RequestBody }}`;
-                        const data = JSON.parse(jsonString);
-                        const container = document.getElementById('log-{{ .ID }}');
-                        container.innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
-                    } catch (e) {
-                        const container = document.getElementById('log-{{ .ID }}');
-                        container.innerHTML = 'Invalid JSON: ' + e.message;
-                    }
-                })();
-            </script>
+            {{ end }}
+            {{ else }}
+            <div class="card" style="text-align: center; padding: 3rem;">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
+                <h3>Логов пока нет</h3>
+                <p style="color: var(--text-secondary); margin-top: 0.5rem;">Отправьте тестовый запрос на <code>POST /test</code></p>
+            </div>
+            {{ end }}
         </div>
-        {{ end }}
-        {{ else }}
-        <div class="card" style="text-align: center; padding: 3rem;">
-            <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
-            <h3>Логов пока нет</h3>
-            <p style="color: var(--text-secondary); margin-top: 0.5rem;">Отправьте тестовый запрос на <code>POST /test</code></p>
-        </div>
-        {{ end }}
     </main>
+
     <script>
-        function syntaxHighlight(json) {
-            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
-                let cls = 'json-number';
-                if (/^"/.test(match)) {
-                    if (/:$/.test(match)) {
-                        cls = 'json-key';
-                    } else {
-                        cls = 'json-string';
-                    }
-                } else if (/true|false/.test(match)) {
-                    cls = 'json-boolean';
-                } else if (/null/.test(match)) {
-                    cls = 'json-null';
+        // Автообновление логов
+        let autoRefreshEnabled = true;
+        let refreshInterval = null;
+        let countdownInterval = null;
+        let secondsLeft = 15;
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        }
+
+        function renderLogs(logs) {
+            const container = document.getElementById('logs-container');
+            
+            if (logs.length === 0) {
+                container.innerHTML = `
+                    <div class="card" style="text-align: center; padding: 3rem;">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
+                        <h3>Логов пока нет</h3>
+                        <p style="color: var(--text-secondary); margin-top: 0.5rem;">Отправьте тестовый запрос на <code>POST /test</code></p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            logs.forEach(log => {
+                // API возвращает поля в snake_case
+                const method = log.method || log.Method;
+                const url = log.url || log.URL;
+                const createdAt = log.CreatedAt || log.created_at;
+                
+                html += `
+                    <div class="log-entry">
+                        <div class="log-header">
+                            <div>
+                                <span class="log-method">${method}</span>
+                                <span class="log-url">${url}</span>
+                                <span class="log-meta" style="margin-left: 1rem;">${formatDate(createdAt)}</span>
+                            </div>
+                            <form method="POST" action="/logs/${log.ID}/delete" style="display: inline;">
+                                <button type="submit" class="btn btn-danger btn-sm">🗑️</button>
+                            </form>
+                        </div>
+                        <div class="json-viewer" id="log-${log.ID}"></div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+
+            // Применяем подсветку синтаксиса сразу после вставки HTML
+            logs.forEach(log => {
+                const logContainer = document.getElementById(`log-${log.ID}`);
+                if (!logContainer) {
+                    console.error('Container not found for log:', log.ID);
+                    return;
                 }
-                return '<span class="' + cls + '">' + match + '</span>';
+                
+                try {
+                    // API возвращает поля в snake_case (request_body, а не RequestBody)
+                    const requestBody = log.request_body || log.RequestBody;
+                    
+                    if (!requestBody) {
+                        logContainer.innerHTML = '<span style="color: var(--text-secondary);">Нет данных</span>';
+                        return;
+                    }
+                    
+                    // RequestBody уже является JSON строкой
+                    const data = JSON.parse(requestBody);
+                    logContainer.innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
+                } catch (e) {
+                    console.error('JSON parse error for log', log.ID, ':', e);
+                    logContainer.innerHTML = 'Invalid JSON: ' + e.message;
+                }
             });
         }
+
+        async function refreshLogs() {
+            try {
+                const response = await fetch('/api/logs', {
+                    credentials: 'same-origin'
+                });
+                const data = await response.json();
+                
+                console.log('Получено логов:', data.logs.length);
+                console.log('syntaxHighlight доступна:', typeof syntaxHighlight === 'function');
+                
+                renderLogs(data.logs);
+                document.getElementById('logs-count').textContent = data.logs.length;
+                
+                // Сброс таймера
+                secondsLeft = 15;
+            } catch (error) {
+                console.error('Ошибка при обновлении логов:', error);
+            }
+        }
+
+        function updateCountdown() {
+            if (autoRefreshEnabled) {
+                secondsLeft--;
+                document.getElementById('countdown').textContent = secondsLeft;
+                
+                if (secondsLeft <= 0) {
+                    refreshLogs();
+                }
+            }
+        }
+
+        function toggleAutoRefresh() {
+            autoRefreshEnabled = !autoRefreshEnabled;
+            const button = document.getElementById('toggle-refresh');
+            const status = document.getElementById('auto-refresh-status');
+            
+            if (autoRefreshEnabled) {
+                button.innerHTML = '⏸️ Пауза';
+                status.style.color = 'var(--success)';
+                status.innerHTML = '🔄 Автообновление: <span id="countdown">' + secondsLeft + '</span>с';
+                secondsLeft = 15;
+            } else {
+                button.innerHTML = '▶️ Возобновить';
+                status.style.color = 'var(--text-secondary)';
+                status.innerHTML = '⏸️ Автообновление приостановлено';
+            }
+        }
+
+        // Запуск автообновления
+        countdownInterval = setInterval(updateCountdown, 1000);
+
+        // Очистка при уходе со страницы
+        window.addEventListener('beforeunload', () => {
+            if (countdownInterval) clearInterval(countdownInterval);
+        });
     </script>
 </body>
-
 </html>

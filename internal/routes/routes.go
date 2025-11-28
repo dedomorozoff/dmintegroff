@@ -70,6 +70,7 @@ func SetupRouter() *gin.Engine {
 		
 		// Logs
 		authorized.GET("/logs", controllers.LogsPage)
+		authorized.GET("/api/logs", controllers.LogsAPI)
 		authorized.POST("/logs/clear", controllers.ClearLogs)
 		authorized.POST("/logs/:id/delete", controllers.DeleteLog)
 	}
