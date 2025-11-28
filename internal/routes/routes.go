@@ -2,7 +2,9 @@ package routes
 
 import (
 	"gintegra/internal/controllers"
+	"gintegra/internal/database"
 	"gintegra/internal/logger"
+	"gintegra/internal/models"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
@@ -23,17 +25,34 @@ func SetupRouter() *gin.Engine {
 
 	r.LoadHTMLGlob("templates/*")
 
-	r.GET("/login", controllers.LoginPage)
-	r.POST("/login", controllers.LoginPost)
-	r.GET("/logout", controllers.Logout)
+	// Get custom app path from env
+	appPath := os.Getenv("APP_PATH")
+	if appPath == "" {
+		appPath = ""
+	}
+
+	r.GET(appPath+"/login", controllers.LoginPage)
+	r.POST(appPath+"/login", controllers.LoginPost)
+	r.GET(appPath+"/logout", controllers.Logout)
 
 	// Protected routes
-	authorized := r.Group("/")
+	authorized := r.Group(appPath + "/")
 	authorized.Use(AuthRequired())
 	{
 		authorized.GET("/", func(c *gin.Context) {
+			session := sessions.Default(c)
+			role := session.Get("role")
+			
+			var totalIntegrations int64
+			var activeIntegrations int64
+			database.DB.Model(&models.Integration{}).Count(&totalIntegrations)
+			database.DB.Model(&models.Integration{}).Where("status = ?", "active").Count(&activeIntegrations)
+			
 			c.HTML(http.StatusOK, "dashboard.html", gin.H{
-				"title": "Главная",
+				"title":               "Главная",
+				"role":                role,
+				"total_integrations":  totalIntegrations,
+				"active_integrations": activeIntegrations,
 			})
 		})
 

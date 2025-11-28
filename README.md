@@ -59,6 +59,13 @@
     *   Для SQLite: путь к файлу (по умолчанию `gintegra.db`).
     *   Для MySQL: `user:password@tcp(127.0.0.1:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local`.
 
+## Документация
+
+*   **[Техническая документация](docs/TECHNICAL_DOCS.md)** - Архитектура, база данных, API endpoints
+*   **[Руководство программиста](docs/PROGRAMMER_GUIDE.md)** - Разработка и расширение функционала
+*   **[CLI администрирование](docs/ADMIN_CLI.md)** - Управление через консоль
+*   **[Быстрый старт CLI](docs/ADMIN_CLI_QUICKSTART.md)** - Краткое руководство по CLI
+
 ## Лицензия
 
 MIT
