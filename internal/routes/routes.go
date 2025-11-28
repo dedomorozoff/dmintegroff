@@ -67,9 +67,16 @@ func SetupRouter() *gin.Engine {
 		authorized.POST("/integrations/:id/delete", controllers.IntegrationDelete)
 		authorized.GET("/integrations/:id/configure", controllers.IntegrationConfigure)
 		authorized.POST("/integrations/:id/configure", controllers.IntegrationSaveMapping)
+		
+		// Logs
+		authorized.GET("/logs", controllers.LogsPage)
+		authorized.POST("/logs/clear", controllers.ClearLogs)
+		authorized.POST("/logs/:id/delete", controllers.DeleteLog)
 	}
 
+	// Public endpoints
 	r.POST("/webhook/:token", controllers.WebhookHandler)
+	r.POST("/test", controllers.TestEndpoint) // Test endpoint for debugging
 
 	return r
 }

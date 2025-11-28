@@ -19,7 +19,7 @@ func main() {
 	logger.Log.Info("Starting GIntegra server...")
 
 	database.Connect()
-	database.Migrate(&models.User{}, &models.Integration{})
+	database.Migrate(&models.User{}, &models.Integration{}, &models.RequestLog{})
 	database.SeedAdmin()
 
 	r := routes.SetupRouter()
