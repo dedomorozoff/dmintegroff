@@ -80,6 +80,19 @@
         .json-number { color: #d19a66; }
         .json-boolean { color: #56b6c2; }
         .json-null { color: #c678dd; }
+
+        .headers-section {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .section-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
@@ -93,6 +106,7 @@
         <nav>
             <ul class="sidebar-nav">
                 <li><a href="/"><span class="icon">📊</span> Главная</a></li>
+                <li><a href="/projects"><span class="icon">📁</span> Проекты</a></li>
                 <li><a href="/integrations"><span class="icon">🔗</span> Интеграции</a></li>
                 <li><a href="/integrations/create"><span class="icon">➕</span> Создать</a></li>
                 <li><a href="/logs" class="active"><span class="icon">📝</span> Логи</a></li>
@@ -173,18 +187,39 @@
                     <strong>❌ Ошибка:</strong> {{ .ErrorMessage }}
                 </div>
                 {{ else }}
-                <div class="json-viewer" id="log-{{ .ID }}" data-json="{{ .RequestBody }}"></div>
+                <div class="section-title">📦 Тело запроса:</div>
+                <div class="json-viewer" id="log-body-{{ .ID }}" data-json="{{ .RequestBody }}"></div>
+                
+                {{ if .RequestHeaders }}
+                <div class="headers-section">
+                    <div class="section-title">📋 Заголовки запроса:</div>
+                    <div class="json-viewer" id="log-headers-{{ .ID }}" data-json="{{ .RequestHeaders }}"></div>
+                </div>
+                {{ end }}
+                
                 <script>
                     (function () {
                         try {
-                            const container = document.getElementById('log-{{ .ID }}');
-                            const jsonString = container.getAttribute('data-json');
+                            const bodyContainer = document.getElementById('log-body-{{ .ID }}');
+                            const jsonString = bodyContainer.getAttribute('data-json');
                             const data = JSON.parse(jsonString);
-                            container.innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
+                            bodyContainer.innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
                         } catch (e) {
-                            const container = document.getElementById('log-{{ .ID }}');
-                            container.innerHTML = 'Invalid JSON: ' + e.message;
+                            const bodyContainer = document.getElementById('log-body-{{ .ID }}');
+                            bodyContainer.innerHTML = 'Invalid JSON: ' + e.message;
                         }
+
+                        {{ if .RequestHeaders }}
+                        try {
+                            const headersContainer = document.getElementById('log-headers-{{ .ID }}');
+                            const headersString = headersContainer.getAttribute('data-json');
+                            const headers = JSON.parse(headersString);
+                            headersContainer.innerHTML = syntaxHighlight(JSON.stringify(headers, null, 2));
+                        } catch (e) {
+                            const headersContainer = document.getElementById('log-headers-{{ .ID }}');
+                            headersContainer.innerHTML = 'Invalid JSON: ' + e.message;
+                        }
+                        {{ end }}
                     })();
                 </script>
                 {{ end }}
@@ -261,7 +296,16 @@
                         </div>
                         ${isError ? 
                             `<div class="error-message"><strong>❌ Ошибка:</strong> ${errorMessage || 'Unknown error'}</div>` :
-                            `<div class="json-viewer" id="log-${log.ID}"></div>`
+                            `<div>
+                                <div class="section-title">📦 Тело запроса:</div>
+                                <div class="json-viewer" id="log-body-${log.ID}"></div>
+                                ${log.request_headers || log.RequestHeaders ? 
+                                    `<div class="headers-section">
+                                        <div class="section-title">📋 Заголовки запроса:</div>
+                                        <div class="json-viewer" id="log-headers-${log.ID}"></div>
+                                    </div>` : ''
+                                }
+                            </div>`
                         }
                     </div>
                 `;
@@ -279,25 +323,38 @@
                     return;
                 }
                 
-                const logContainer = document.getElementById(`log-${log.ID}`);
-                if (!logContainer) {
-                    return;
+                // Отображаем тело запроса
+                const bodyContainer = document.getElementById(`log-body-${log.ID}`);
+                if (bodyContainer) {
+                    try {
+                        const requestBody = log.request_body || log.RequestBody;
+                        
+                        if (!requestBody) {
+                            bodyContainer.innerHTML = '<span style="color: var(--text-secondary);">Нет данных</span>';
+                        } else {
+                            const data = JSON.parse(requestBody);
+                            bodyContainer.innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
+                        }
+                    } catch (e) {
+                        bodyContainer.innerHTML = 'Invalid JSON: ' + e.message;
+                    }
                 }
                 
-                try {
-                    // API возвращает поля в snake_case (request_body, а не RequestBody)
-                    const requestBody = log.request_body || log.RequestBody;
-                    
-                    if (!requestBody) {
-                        logContainer.innerHTML = '<span style="color: var(--text-secondary);">Нет данных</span>';
-                        return;
+                // Отображаем заголовки
+                const headersContainer = document.getElementById(`log-headers-${log.ID}`);
+                if (headersContainer) {
+                    try {
+                        const requestHeaders = log.request_headers || log.RequestHeaders;
+                        
+                        if (!requestHeaders) {
+                            headersContainer.innerHTML = '<span style="color: var(--text-secondary);">Нет данных</span>';
+                        } else {
+                            const headers = JSON.parse(requestHeaders);
+                            headersContainer.innerHTML = syntaxHighlight(JSON.stringify(headers, null, 2));
+                        }
+                    } catch (e) {
+                        headersContainer.innerHTML = 'Invalid JSON: ' + e.message;
                     }
-                    
-                    // RequestBody уже является JSON строкой
-                    const data = JSON.parse(requestBody);
-                    logContainer.innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
-                } catch (e) {
-                    logContainer.innerHTML = 'Invalid JSON: ' + e.message;
                 }
             });
         }

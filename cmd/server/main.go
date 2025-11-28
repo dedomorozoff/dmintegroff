@@ -19,7 +19,7 @@ func main() {
 	logger.Log.Info("Starting dmIntegroff server...")
 
 	database.Connect()
-	database.Migrate(&models.User{}, &models.Integration{}, &models.RequestLog{})
+	database.Migrate(&models.User{}, &models.Project{}, &models.Integration{}, &models.RequestLog{})
 	database.SeedAdmin()
 
 	r := routes.SetupRouter()

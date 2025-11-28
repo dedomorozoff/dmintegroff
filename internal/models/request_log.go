@@ -10,6 +10,7 @@ type RequestLog struct {
 	Method        string `json:"method"`
 	URL           string `json:"url"`
 	RequestBody   string `gorm:"type:text" json:"request_body"`
+	RequestHeaders string `gorm:"type:text" json:"request_headers"`
 	ResponseBody  string `gorm:"type:text" json:"response_body"`
 	StatusCode    int    `json:"status_code"`
 	LogType       string `json:"log_type"` // "request", "error", "webhook"

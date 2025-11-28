@@ -15,7 +15,7 @@ import (
 
 func IntegrationList(c *gin.Context) {
 	var integrations []models.Integration
-	database.DB.Find(&integrations)
+	database.DB.Preload("Project").Find(&integrations)
 
 	c.HTML(http.StatusOK, "integrations.html", gin.H{
 		"title":        "Интеграции",
@@ -24,8 +24,12 @@ func IntegrationList(c *gin.Context) {
 }
 
 func IntegrationCreate(c *gin.Context) {
+	var projects []models.Project
+	database.DB.Find(&projects)
+
 	c.HTML(http.StatusOK, "integration_create.html", gin.H{
-		"title": "Создание интеграции",
+		"title":    "Создание интеграции",
+		"projects": projects,
 	})
 }
 
@@ -57,6 +61,16 @@ func IntegrationStore(c *gin.Context) {
 		TargetAPI:    c.PostForm("target_api"),
 		Mode:         "listening", // Start in listening mode
 		CreatedByID:  userID,
+	}
+
+	// Добавляем проект, если выбран
+	projectIDStr := c.PostForm("project_id")
+	if projectIDStr != "" {
+		projectID, err := strconv.ParseUint(projectIDStr, 10, 32)
+		if err == nil {
+			projectIDUint := uint(projectID)
+			integration.ProjectID = &projectIDUint
+		}
 	}
 
 	if err := database.DB.Create(&integration).Error; err != nil {

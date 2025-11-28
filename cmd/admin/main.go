@@ -143,6 +143,7 @@ func runMigration() {
 	// Выполняем миграцию через GORM
 	if err := database.DB.AutoMigrate(
 		&models.User{},
+		&models.Project{},
 		&models.Integration{},
 		&models.RequestLog{},
 	); err != nil {

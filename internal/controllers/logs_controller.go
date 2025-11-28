@@ -20,13 +20,17 @@ func TestEndpoint(c *gin.Context) {
 		return
 	}
 
-	// Сохраняем лог
+	// Сохраняем лог с заголовками
 	payloadJSON, _ := json.Marshal(payload)
+	headersJSON, _ := json.Marshal(c.Request.Header)
+	
 	log := models.RequestLog{
-		Method:      c.Request.Method,
-		URL:         c.Request.URL.Path,
-		RequestBody: string(payloadJSON),
-		StatusCode:  200,
+		Method:         c.Request.Method,
+		URL:            c.Request.URL.Path,
+		RequestBody:    string(payloadJSON),
+		RequestHeaders: string(headersJSON),
+		StatusCode:     200,
+		LogType:        "request",
 	}
 	database.DB.Create(&log)
 

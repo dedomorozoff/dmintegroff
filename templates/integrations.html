@@ -17,6 +17,7 @@
         <nav>
             <ul class="sidebar-nav">
                 <li><a href="/"><span class="icon">📊</span> Главная</a></li>
+                <li><a href="/projects"><span class="icon">📁</span> Проекты</a></li>
                 <li><a href="/integrations" class="active"><span class="icon">🔗</span> Интеграции</a></li>
                 <li><a href="/integrations/create"><span class="icon">➕</span> Создать</a></li>
                 <li><a href="/logs"><span class="icon">📝</span> Логи</a></li>
@@ -45,6 +46,7 @@
                     <thead>
                         <tr>
                             <th>Название</th>
+                            <th>Проект</th>
                             <th>Webhook URL</th>
                             <th>Статус</th>
                             <th>Target API</th>
@@ -56,6 +58,13 @@
                         {{ range .integrations }}
                         <tr>
                             <td><strong>{{ .Name }}</strong></td>
+                            <td>
+                                {{ if .Project }}
+                                <a href="/projects/{{ .Project.ID }}" style="color: var(--accent-primary);">📁 {{ .Project.Name }}</a>
+                                {{ else }}
+                                <span style="color: var(--text-secondary);">Без проекта</span>
+                                {{ end }}
+                            </td>
                             <td>
                                 <code style="font-size: 0.8rem;">/webhook/{{ .WebhookToken }}</code>
                                 <button onclick="copyToClipboard('http://localhost:8080/webhook/{{ .WebhookToken }}')" 
@@ -109,7 +118,7 @@
                         {{ end }}
                         {{ else }}
                         <tr>
-                            <td colspan="5" style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+                            <td colspan="6" style="text-align: center; padding: 3rem; color: var(--text-secondary);">
                                 <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
                                 <h3>Интеграций пока нет</h3>
                                 <p style="margin-top: 0.5rem;">Создайте первую интеграцию для начала работы</p>

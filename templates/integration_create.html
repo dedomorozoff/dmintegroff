@@ -17,6 +17,7 @@
         <nav>
             <ul class="sidebar-nav">
                 <li><a href="/"><span class="icon">📊</span> Главная</a></li>
+                <li><a href="/projects"><span class="icon">📁</span> Проекты</a></li>
                 <li><a href="/integrations"><span class="icon">🔗</span> Интеграции</a></li>
                 <li><a href="/integrations/create" class="active"><span class="icon">➕</span> Создать</a></li>
                 <li><a href="/logs"><span class="icon">📝</span> Логи</a></li>
@@ -56,6 +57,17 @@
                     <label>Source API (опционально)</label>
                     <input type="text" name="source_api" placeholder="https://source.example.com">
                     <small>Для документации, откуда ожидаются данные</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Проект (опционально)</label>
+                    <select name="project_id">
+                        <option value="">-- Без проекта --</option>
+                        {{ range .projects }}
+                        <option value="{{ .ID }}">{{ .Name }}</option>
+                        {{ end }}
+                    </select>
+                    <small>Выберите проект для группировки интеграций</small>
                 </div>
 
                 <div style="display: flex; gap: 1rem; margin-top: 2rem;">
