@@ -6,7 +6,7 @@
 
 ```bash
 # 1. Клонируйте репозиторий
-git clone https://github.com/yourusername/dmIntegroff.git
+git clone https://github.com/dedomorozoff/dmintegroff.git
 cd dmIntegroff
 
 # 2. Установите зависимости
@@ -184,10 +184,10 @@ go build -o dmIntegroff cmd/server/main.go
 
 ## 📞 Поддержка
 
-- 🐛 [Сообщить о баге](https://github.com/yourusername/dmIntegroff/issues)
-- 💡 [Предложить улучшение](https://github.com/yourusername/dmIntegroff/issues)
+- 🐛 [Сообщить о баге](https://github.com/dedomorozoff/dmintegroff/issues)
+- 💡 [Предложить улучшение](https://github.com/dedomorozoff/dmintegroff/issues)
 - 📖 [Документация](docs/)
-- 💬 [Обсуждения](https://github.com/yourusername/dmIntegroff/discussions)
+- 💬 [Обсуждения](https://github.com/dedomorozoff/dmintegroff/discussions)
 
 ---
 

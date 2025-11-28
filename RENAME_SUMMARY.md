@@ -35,7 +35,7 @@
 
 ### 🔗 GitHub ссылки
 - ✅ Все ссылки на репозиторий обновлены:
-  - `github.com/yourusername/gintegra` → `github.com/yourusername/dmintegroff`
+  - `github.com/yourusername/gintegra` → `github.com/dedomorozoff/dmintegroff`
 
 ## 🚀 Что нужно сделать дополнительно
 
@@ -84,7 +84,7 @@ upstream dmintegroff {
 ### 6. Обновить GitHub репозиторий
 ```bash
 # Если репозиторий уже создан
-git remote set-url origin https://github.com/yourusername/dmintegroff.git
+git remote set-url origin https://github.com/dedomorozoff/dmintegroff.git
 
 # Или создайте новый репозиторий на GitHub с именем dmintegroff
 ```

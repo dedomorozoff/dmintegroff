@@ -13,7 +13,7 @@
 
 ```bash
 # Клонирование репозитория
-git clone https://github.com/yourusername/dmIntegroff.git
+git clone https://github.com/dedomorozoff/dmintegroff.git
 cd dmIntegroff
 
 # Установка зависимостей

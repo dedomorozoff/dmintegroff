@@ -24,7 +24,7 @@
 
 ### 🐛 Сообщить о баге
 
-1. Проверьте, не был ли баг уже сообщен в [Issues](https://github.com/yourusername/dmIntegroff/issues)
+1. Проверьте, не был ли баг уже сообщен в [Issues](https://github.com/dedomorozoff/dmintegroff/issues)
 2. Если нет, создайте новый issue с:
    - Четким описанием проблемы
    - Шагами для воспроизведения
@@ -303,7 +303,7 @@ Fixes #456
 Если у вас есть вопросы:
 
 1. Проверьте [документацию](docs/)
-2. Поищите в [Issues](https://github.com/yourusername/dmIntegroff/issues)
+2. Поищите в [Issues](https://github.com/dedomorozoff/dmintegroff/issues)
 3. Создайте новый issue с тегом `question`
 
 ## Лицензия

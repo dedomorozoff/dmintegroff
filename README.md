@@ -49,7 +49,7 @@
 
 ```bash
 # Клонируйте репозиторий
-git clone https://github.com/yourusername/dmIntegroff.git
+git clone https://github.com/dedomorozoff/dmintegroff.git
 cd dmIntegroff
 
 # Установите зависимости
