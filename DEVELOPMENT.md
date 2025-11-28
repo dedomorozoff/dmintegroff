@@ -72,15 +72,15 @@ go build -o dmintegroff.exe cmd/server/main.go
 ### Тестирование
 ```bash
 # Тест логирования
-.\test_logs.ps1
-
-# Тест проектов
-.\test_projects.sh
+.\tests\test_logs.ps1
 
 # Отправка тестового запроса
 curl -X POST http://localhost:8080/test \
   -H "Content-Type: application/json" \
   -d '{"test": "data"}'
+
+# Проверка проектов
+start http://localhost:8080/projects
 ```
 
 ## Добавление новой функциональности

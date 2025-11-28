@@ -1,4 +1,10 @@
 # PowerShell скрипт для тестирования логирования запросов
+# 
+# Этот скрипт отправляет тестовый запрос на /test endpoint
+# для проверки отображения HTTP заголовков в логах
+#
+# Использование: .\test_logs.ps1
+# Результат: http://localhost:8080/logs
 
 Write-Host "Отправка тестового запроса на /test endpoint..." -ForegroundColor Green
 
