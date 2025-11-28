@@ -1,97 +1,118 @@
 <!DOCTYPE html>
 <html lang="ru">
-
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ .title }}</title>
-    <link rel="stylesheet" href="/static/css/common.css">
-    <style>
-        .webhook-url {
-            font-family: monospace;
-            font-size: 0.85rem;
-            background: #f8f9fa;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-        }
-
-        .copy-btn {
-            cursor: pointer;
-            margin-left: 0.5rem;
-            color: #007bff;
-        }
-
-        .delete-btn {
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.85rem;
-        }
-
-        .delete-btn:hover {
-            background: #c82333;
-        }
-    </style>
+    <link rel="stylesheet" href="/static/css/modern.css">
 </head>
-
 <body>
-    <div class="container">
-        <div class="card">
-            <h1>Интеграции</h1>
-            <a href="/integrations/create" class="btn">Создать новую</a>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Название</th>
-                        <th>Webhook URL</th>
-                        <th>Режим</th>
-                        <th>Target API</th>
-                        <th>Действия</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {{ range .integrations }}
-                    <tr>
-                        <td>{{ .Name }}</td>
-                        <td>
-                            <span class="webhook-url">/webhook/{{ .WebhookToken }}</span>
-                            <span class="copy-btn" onclick="copyToClipboard('/webhook/{{ .WebhookToken }}')">📋</span>
-                        </td>
-                        <td>
-                            {{ if eq .Mode "listening" }}
-                            <span class="badge badge-listening">🎧 Прослушивание</span>
-                            {{ else if eq .Mode "active" }}
-                            <span class="badge badge-active">✅ Активна</span>
-                            {{ else }}
-                            <span class="badge badge-inactive">⏸️ Неактивна</span>
-                            {{ end }}
-                        </td>
-                        <td>{{ .TargetAPI }}</td>
-                        <td>
-                            {{ if eq .Mode "listening" }}
-                            {{ if .SamplePayload }}
-                            <a href="/integrations/{{ .ID }}/configure">⚙️ Настроить</a>
-                            {{ else }}
-                            <span style="color: #999;">Ожидание данных...</span>
-                            {{ end }}
-                            {{ end }}
-                            <a href="/integrations/{{ .ID }}/edit">✏️ Изменить</a>
-                            <form method="POST" action="/integrations/{{ .ID }}/delete" style="display: inline;"
-                                onsubmit="return confirmDelete('Удалить интеграцию {{ .Name }}?');">
-                                <button type="submit" class="delete-btn">🗑️ Удалить</button>
-                            </form>
-                        </td>
-                    </tr>
-                    {{ end }}
-                </tbody>
-            </table>
-            <br>
-            <a href="/">На главную</a>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <span class="icon">🚀</span>
+            <h1>GIntegra</h1>
         </div>
-    </div>
-    <script src="/static/js/common.js"></script>
-</body>
+        
+        <nav>
+            <ul class="sidebar-nav">
+                <li><a href="/"><span class="icon">📊</span> Главная</a></li>
+                <li><a href="/integrations" class="active"><span class="icon">🔗</span> Интеграции</a></li>
+                <li><a href="/integrations/create"><span class="icon">➕</span> Создать</a></li>
+                <li><a href="/logs"><span class="icon">📝</span> Логи</a></li>
+            </ul>
+        </nav>
+    </aside>
 
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1>Интеграции</h1>
+                    <p>Управление всеми интеграциями</p>
+                </div>
+                <a href="/integrations/create" class="btn btn-success">
+                    <span>➕</span>
+                    Создать интеграцию
+                </a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Название</th>
+                            <th>Webhook URL</th>
+                            <th>Статус</th>
+                            <th>Target API</th>
+                            <th style="text-align: right;">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ if .integrations }}
+                        {{ range .integrations }}
+                        <tr>
+                            <td><strong>{{ .Name }}</strong></td>
+                            <td>
+                                <code style="font-size: 0.8rem;">/webhook/{{ .WebhookToken }}</code>
+                                <button onclick="copyToClipboard('http://localhost:8080/webhook/{{ .WebhookToken }}')" 
+                                        style="background: none; border: none; cursor: pointer; color: var(--accent-primary); margin-left: 0.5rem;">
+                                    📋
+                                </button>
+                            </td>
+                            <td>
+                                {{ if eq .Mode "listening" }}
+                                <span class="badge badge-warning">⏳ Прослушивание</span>
+                                {{ else if eq .Mode "active" }}
+                                <span class="badge badge-success">✅ Активна</span>
+                                {{ else }}
+                                <span class="badge badge-danger">⏸️ Неактивна</span>
+                                {{ end }}
+                            </td>
+                            <td>{{ if .TargetAPI }}{{ .TargetAPI }}{{ else }}<span style="color: var(--text-secondary);">-</span>{{ end }}</td>
+                            <td style="text-align: right;">
+                                <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                    {{ if eq .Mode "listening" }}
+                                    {{ if .SamplePayload }}
+                                    <a href="/integrations/{{ .ID }}/configure" class="btn btn-sm">⚙️ Настроить</a>
+                                    {{ else }}
+                                    <span style="color: var(--text-secondary); font-size: 0.85rem;">Ожидание данных...</span>
+                                    {{ end }}
+                                    {{ end }}
+                                    <a href="/integrations/{{ .ID }}/edit" class="btn btn-secondary btn-sm">✏️</a>
+                                    <form method="POST" action="/integrations/{{ .ID }}/delete" style="display: inline;"
+                                        onsubmit="return confirm('Удалить интеграцию {{ .Name }}?');">
+                                        <button type="submit" class="btn btn-danger btn-sm">🗑️</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {{ end }}
+                        {{ else }}
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+                                <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
+                                <h3>Интеграций пока нет</h3>
+                                <p style="margin-top: 0.5rem;">Создайте первую интеграцию для начала работы</p>
+                                <a href="/integrations/create" class="btn" style="margin-top: 1rem;">Создать интеграцию</a>
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Скопировано: ' + text);
+            });
+        }
+    </script>
+</body>
 </html>

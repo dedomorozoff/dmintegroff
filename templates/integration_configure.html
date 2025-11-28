@@ -1,58 +1,75 @@
 <!DOCTYPE html>
 <html lang="ru">
-
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ .title }}</title>
-    <link rel="stylesheet" href="/static/css/common.css">
-    <style>
-        .field-name {
-            font-family: monospace;
-            background: #e9ecef;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-        }
-
-        pre {
-            background: #2d2d2d;
-            color: #f8f8f2;
-            padding: 1rem;
-            border-radius: 4px;
-            overflow-x: auto;
-        }
-    </style>
+    <link rel="stylesheet" href="/static/css/modern.css">
 </head>
-
 <body>
-    <div class="container">
-        <div class="card">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <span class="icon">🚀</span>
+            <h1>GIntegra</h1>
+        </div>
+        
+        <nav>
+            <ul class="sidebar-nav">
+                <li><a href="/"><span class="icon">📊</span> Главная</a></li>
+                <li><a href="/integrations" class="active"><span class="icon">🔗</span> Интеграции</a></li>
+                <li><a href="/integrations/create"><span class="icon">➕</span> Создать</a></li>
+                <li><a href="/logs"><span class="icon">📝</span> Логи</a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
             <h1>Настройка маппинга полей</h1>
             <p><strong>Интеграция:</strong> {{ .integration.Name }}</p>
+        </div>
 
-            <div class="mb-2">
-                <h3>📥 Полученные данные (образец)</h3>
-                <pre>{{ .integration.SamplePayload }}</pre>
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">📥 Полученные данные (образец)</h2>
             </div>
+            <pre style="background: #1a1f2e; color: #abb2bf; padding: 1rem; border-radius: 8px; overflow-x: auto;">{{ .integration.SamplePayload }}</pre>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">🔀 Настройка маппинга</h2>
+            </div>
+            
+            <p style="margin-bottom: 1.5rem; color: var(--text-secondary);">
+                Укажите, как поля из входящих данных должны быть переименованы для Target API
+            </p>
 
             <form method="POST" action="/integrations/{{ .integration.ID }}/configure" id="mappingForm">
-                <div class="mb-2">
-                    <h3>🔀 Настройка маппинга</h3>
-                    <p>Укажите, как поля из входящих данных должны быть переименованы для Target API:</p>
+                <div class="table-container">
                     <table>
                         <thead>
                             <tr>
                                 <th>Поле из источника</th>
                                 <th>Новое имя для Target API</th>
-                                <th>Игнорировать</th>
+                                <th style="text-align: center;">Игнорировать</th>
                             </tr>
                         </thead>
                         <tbody>
                             {{ range $key, $value := .sampleData }}
                             <tr>
-                                <td><span class="field-name">{{ $key }}</span></td>
-                                <td><input type="text" name="field_{{ $key }}" value="{{ $key }}"
-                                        placeholder="Новое имя или оставьте как есть"></td>
-                                <td><input type="checkbox" name="ignore_{{ $key }}"></td>
+                                <td><code>{{ $key }}</code></td>
+                                <td>
+                                    <input type="text" name="field_{{ $key }}" value="{{ $key }}" 
+                                           placeholder="Новое имя или оставьте как есть"
+                                           style="width: 100%;">
+                                </td>
+                                <td style="text-align: center;">
+                                    <input type="checkbox" name="ignore_{{ $key }}" 
+                                           style="width: auto; cursor: pointer;">
+                                </td>
                             </tr>
                             {{ end }}
                         </tbody>
@@ -60,13 +77,17 @@
                 </div>
 
                 <input type="hidden" name="mapping_config" id="mappingConfig">
-                <button type="submit" class="btn btn-primary" onclick="generateMapping(event)">✅ Сохранить и
-                    активировать</button>
-                <a href="/integrations" class="btn btn-secondary">Отмена</a>
+                
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button type="submit" class="btn btn-success" onclick="generateMapping(event)">
+                        ✅ Сохранить и активировать
+                    </button>
+                    <a href="/integrations" class="btn btn-secondary">Отмена</a>
+                </div>
             </form>
         </div>
-    </div>
+    </main>
+
     <script src="/static/js/common.js"></script>
 </body>
-
 </html>

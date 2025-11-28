@@ -31,7 +31,17 @@ func IntegrationCreate(c *gin.Context) {
 
 func IntegrationStore(c *gin.Context) {
 	session := sessions.Default(c)
-	userID := session.Get("user_id").(uint)
+	userIDInterface := session.Get("user_id")
+	if userIDInterface == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	
+	userID, ok := userIDInterface.(uint)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user session"})
+		return
+	}
 
 	// Generate unique webhook token
 	token, err := utils.GenerateToken(16)

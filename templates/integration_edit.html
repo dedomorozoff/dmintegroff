@@ -1,47 +1,70 @@
 <!DOCTYPE html>
 <html lang="ru">
-
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ .title }}</title>
-    <link rel="stylesheet" href="/static/css/common.css">
+    <link rel="stylesheet" href="/static/css/modern.css">
 </head>
-
 <body>
-    <div class="container">
-        <div class="card">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <span class="icon">🚀</span>
+            <h1>GIntegra</h1>
+        </div>
+        
+        <nav>
+            <ul class="sidebar-nav">
+                <li><a href="/"><span class="icon">📊</span> Главная</a></li>
+                <li><a href="/integrations" class="active"><span class="icon">🔗</span> Интеграции</a></li>
+                <li><a href="/integrations/create"><span class="icon">➕</span> Создать</a></li>
+                <li><a href="/logs"><span class="icon">📝</span> Логи</a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
             <h1>Редактирование интеграции</h1>
+            <p>Изменение параметров интеграции</p>
+        </div>
 
-            <div class="warning-box">
-                ⚠️ <strong>Внимание:</strong> Изменение Target API может нарушить работу активной интеграции
-            </div>
+        <div class="warning-box">
+            ⚠️ <strong>Внимание:</strong> Изменение Target API может нарушить работу активной интеграции
+        </div>
 
-            <div
-                style="background: #f8f9fa; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; font-family: monospace;">
-                <strong>Webhook URL:</strong> /webhook/{{ .integration.WebhookToken }}<br>
-                <small>URL нельзя изменить. Для нового URL создайте новую интеграцию.</small>
-            </div>
+        <div class="info-box">
+            <strong>Webhook URL:</strong> <code>/webhook/{{ .integration.WebhookToken }}</code><br>
+            <small>URL нельзя изменить. Для нового URL создайте новую интеграцию.</small>
+        </div>
 
+        <div class="card">
             <form method="POST" action="/integrations/{{ .integration.ID }}/update">
                 <div class="form-group">
-                    <label>Название интеграции</label>
+                    <label>Название интеграции *</label>
                     <input type="text" name="name" value="{{ .integration.Name }}" required>
                 </div>
+
                 <div class="form-group">
-                    <label>Target API URL</label>
+                    <label>Target API URL *</label>
                     <input type="text" name="target_api" value="{{ .integration.TargetAPI }}" required>
                     <small>Куда будут отправляться преобразованные данные</small>
                 </div>
+
                 <div class="form-group">
                     <label>Source API (опционально)</label>
                     <input type="text" name="source_api" value="{{ .integration.SourceAPI }}">
                     <small>Для документации, откуда ожидаются данные</small>
                 </div>
-                <button type="submit" class="btn btn-primary">Сохранить изменения</button>
-                <a href="/integrations" class="btn btn-secondary">Отмена</a>
+
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button type="submit" class="btn btn-success">💾 Сохранить изменения</button>
+                    <a href="/integrations" class="btn btn-secondary">Отмена</a>
+                </div>
             </form>
         </div>
-    </div>
+    </main>
 </body>
-
 </html>

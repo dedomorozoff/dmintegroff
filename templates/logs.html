@@ -1,165 +1,147 @@
 <!DOCTYPE html>
 <html lang="ru">
-
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ .title }}</title>
-    <link rel="stylesheet" href="/static/css/common.css">
+    <link rel="stylesheet" href="/static/css/modern.css">
     <style>
         .log-entry {
-            background: white;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
             border-radius: 8px;
             padding: 1rem;
             margin-bottom: 1rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .log-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 0.5rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border);
         }
 
         .log-meta {
             font-size: 0.85rem;
-            color: #666;
+            color: var(--text-secondary);
         }
 
         .log-method {
             display: inline-block;
-            padding: 0.25rem 0.5rem;
-            background: #007bff;
+            padding: 0.25rem 0.75rem;
+            background: var(--accent-primary);
             color: white;
-            border-radius: 4px;
+            border-radius: 6px;
             font-weight: 600;
             font-size: 0.75rem;
         }
 
         .log-url {
             font-family: monospace;
-            background: #f8f9fa;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
+            background: var(--bg-secondary);
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
             margin-left: 0.5rem;
+            color: var(--text-primary);
         }
 
         .json-viewer {
-            background: #282c34;
+            background: #1a1f2e;
             color: #abb2bf;
             padding: 1rem;
-            border-radius: 4px;
+            border-radius: 8px;
             overflow-x: auto;
             font-family: 'Consolas', 'Monaco', monospace;
-            font-size: 0.9rem;
-            line-height: 1.5;
-        }
-
-        .json-key {
-            color: #e06c75;
-        }
-
-        .json-string {
-            color: #98c379;
-        }
-
-        .json-number {
-            color: #d19a66;
-        }
-
-        .json-boolean {
-            color: #56b6c2;
-        }
-
-        .json-null {
-            color: #c678dd;
-        }
-
-        .delete-log-btn {
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            cursor: pointer;
             font-size: 0.85rem;
+            line-height: 1.6;
         }
 
-        .delete-log-btn:hover {
-            background: #c82333;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 3rem;
-            color: #999;
-        }
-
-        .toolbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
+        .json-key { color: #e06c75; }
+        .json-string { color: #98c379; }
+        .json-number { color: #d19a66; }
+        .json-boolean { color: #56b6c2; }
+        .json-null { color: #c678dd; }
     </style>
 </head>
-
 <body>
-    <div class="container">
-        <div class="card">
-            <div class="toolbar">
-                <h1>Логи запросов</h1>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <span class="icon">🚀</span>
+            <h1>GIntegra</h1>
+        </div>
+        
+        <nav>
+            <ul class="sidebar-nav">
+                <li><a href="/"><span class="icon">📊</span> Главная</a></li>
+                <li><a href="/integrations"><span class="icon">🔗</span> Интеграции</a></li>
+                <li><a href="/integrations/create"><span class="icon">➕</span> Создать</a></li>
+                <li><a href="/logs" class="active"><span class="icon">📝</span> Логи</a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <div class="flex items-center justify-between">
                 <div>
-                    <span style="color: #666; margin-right: 1rem;">Всего: {{ len .logs }}</span>
+                    <h1>Логи запросов</h1>
+                    <p>Всего записей: {{ len .logs }}</p>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
                     <form method="POST" action="/logs/clear" style="display: inline;"
-                        onsubmit="return confirmDelete('Очистить все логи?');">
+                        onsubmit="return confirm('Очистить все логи?');">
                         <button type="submit" class="btn btn-danger">🗑️ Очистить все</button>
                     </form>
-                    <a href="/" class="btn btn-secondary">На главную</a>
                 </div>
             </div>
-
-            <div class="info-box">
-                <strong>💡 Тестовый endpoint:</strong> <code>POST http://localhost:8080/test</code><br>
-                Используйте этот URL в интеграциях для тестирования без отправки на реальные серверы.
-            </div>
-
-            {{ if .logs }}
-            {{ range .logs }}
-            <div class="log-entry">
-                <div class="log-header">
-                    <div>
-                        <span class="log-method">{{ .Method }}</span>
-                        <span class="log-url">{{ .URL }}</span>
-                        <span class="log-meta">{{ .CreatedAt.Format "2006-01-02 15:04:05" }}</span>
-                    </div>
-                    <form method="POST" action="/logs/{{ .ID }}/delete" style="display: inline;">
-                        <button type="submit" class="delete-log-btn">🗑️</button>
-                    </form>
-                </div>
-                <div class="json-viewer" id="log-{{ .ID }}"></div>
-                <script>
-                    (function () {
-                        const data = {{ .RequestBody }
-                    };
-                    const container = document.getElementById('log-{{ .ID }}');
-                    container.innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
-                        }) ();
-                </script>
-            </div>
-            {{ end }}
-            {{ else }}
-            <div class="empty-state">
-                <h3>📭 Логов пока нет</h3>
-                <p>Отправьте тестовый запрос на <code>POST /test</code></p>
-            </div>
-            {{ end }}
         </div>
-    </div>
 
-    <script src="/static/js/common.js"></script>
+        <div class="info-box">
+            <strong>💡 Тестовый endpoint:</strong> <code>POST http://localhost:8080/test</code><br>
+            Используйте этот URL в интеграциях для тестирования без отправки на реальные серверы.
+        </div>
+
+        {{ if .logs }}
+        {{ range .logs }}
+        <div class="log-entry">
+            <div class="log-header">
+                <div>
+                    <span class="log-method">{{ .Method }}</span>
+                    <span class="log-url">{{ .URL }}</span>
+                    <span class="log-meta" style="margin-left: 1rem;">{{ .CreatedAt.Format "2006-01-02 15:04:05" }}</span>
+                </div>
+                <form method="POST" action="/logs/{{ .ID }}/delete" style="display: inline;">
+                    <button type="submit" class="btn btn-danger btn-sm">🗑️</button>
+                </form>
+            </div>
+            <div class="json-viewer" id="log-{{ .ID }}"></div>
+            <script>
+                (function () {
+                    try {
+                        const jsonString = `{{ .RequestBody }}`;
+                        const data = JSON.parse(jsonString);
+                        const container = document.getElementById('log-{{ .ID }}');
+                        container.innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
+                    } catch (e) {
+                        const container = document.getElementById('log-{{ .ID }}');
+                        container.innerHTML = 'Invalid JSON: ' + e.message;
+                    }
+                })();
+            </script>
+        </div>
+        {{ end }}
+        {{ else }}
+        <div class="card" style="text-align: center; padding: 3rem;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
+            <h3>Логов пока нет</h3>
+            <p style="color: var(--text-secondary); margin-top: 0.5rem;">Отправьте тестовый запрос на <code>POST /test</code></p>
+        </div>
+        {{ end }}
+    </main>
     <script>
         function syntaxHighlight(json) {
             json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

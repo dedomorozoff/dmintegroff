@@ -1,44 +1,69 @@
 <!DOCTYPE html>
 <html lang="ru">
-
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ .title }}</title>
-    <link rel="stylesheet" href="/static/css/common.css">
+    <link rel="stylesheet" href="/static/css/modern.css">
 </head>
-
 <body>
-    <div class="container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <span class="icon">🚀</span>
+            <h1>GIntegra</h1>
+        </div>
+        
+        <nav>
+            <ul class="sidebar-nav">
+                <li><a href="/"><span class="icon">📊</span> Главная</a></li>
+                <li><a href="/integrations"><span class="icon">🔗</span> Интеграции</a></li>
+                <li><a href="/integrations/create" class="active"><span class="icon">➕</span> Создать</a></li>
+                <li><a href="/logs"><span class="icon">📝</span> Логи</a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <h1>Создание интеграции</h1>
+            <p>Настройте новую интеграцию между системами</p>
+        </div>
+
+        <div class="info-box">
+            <strong>ℹ️ Как это работает:</strong><br>
+            1. Создайте интеграцию и получите уникальный webhook URL<br>
+            2. Отправьте тестовый запрос на этот URL<br>
+            3. Настройте маппинг полей<br>
+            4. Активируйте интеграцию
+        </div>
+
         <div class="card">
-            <h1>Новая интеграция</h1>
-            <div class="info-box">
-                <strong>ℹ️ Как это работает:</strong><br>
-                1. Создайте интеграцию<br>
-                2. Получите уникальный webhook URL<br>
-                3. Отправьте тестовый запрос на этот URL<br>
-                4. Настройте маппинг полей<br>
-                5. Активируйте интеграцию
-            </div>
             <form method="POST" action="/integrations">
                 <div class="form-group">
-                    <label>Название интеграции</label>
-                    <input type="text" name="name" required placeholder="Например: Интеграция CRM -> Email">
+                    <label>Название интеграции *</label>
+                    <input type="text" name="name" required placeholder="Например: Интеграция CRM → Email">
                 </div>
+
                 <div class="form-group">
-                    <label>Target API URL</label>
+                    <label>Target API URL *</label>
                     <input type="text" name="target_api" required placeholder="https://api.example.com/endpoint">
                     <small>Куда будут отправляться преобразованные данные</small>
                 </div>
+
                 <div class="form-group">
                     <label>Source API (опционально)</label>
                     <input type="text" name="source_api" placeholder="https://source.example.com">
                     <small>Для документации, откуда ожидаются данные</small>
                 </div>
-                <button type="submit" class="btn btn-primary">Создать интеграцию</button>
-                <a href="/integrations" class="btn btn-secondary">Отмена</a>
+
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button type="submit" class="btn btn-success">✅ Создать интеграцию</button>
+                    <a href="/integrations" class="btn btn-secondary">Отмена</a>
+                </div>
             </form>
         </div>
-    </div>
+    </main>
 </body>
-
 </html>
