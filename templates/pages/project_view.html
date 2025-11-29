@@ -17,6 +17,12 @@
                     <a href="/projects/{{ .project.ID }}/edit" class="btn btn-secondary">
                         <i data-lucide="pencil"></i> Редактировать
                     </a>
+                    <form method="POST" action="/projects/{{ .project.ID }}/delete" style="display: inline;"
+                        onsubmit="return confirm('⚠️ ВНИМАНИЕ!\n\nУдалить проект {{ .project.Name }}?\n\nВсе интеграции проекта ({{ len .project.Integrations }}) также будут безвозвратно удалены!\n\nЭто действие нельзя отменить.');">
+                        <button type="submit" class="btn btn-danger">
+                            <i data-lucide="trash-2"></i> Удалить проект
+                        </button>
+                    </form>
                     <a href="/projects" class="btn">
                         <i data-lucide="arrow-left"></i> Назад
                     </a>

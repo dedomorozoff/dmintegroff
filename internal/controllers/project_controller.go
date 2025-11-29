@@ -193,11 +193,7 @@ func ProjectDelete(c *gin.Context) {
 	idStr := c.Param("id")
 	id, _ := strconv.ParseUint(idStr, 10, 32)
 
-	// Проверяем количество интеграций в проекте
-	var integrationCount int64
-	database.DB.Model(&models.Integration{}).Where("project_id = ?", uint(id)).Count(&integrationCount)
-
-	// Удаляем проект (интеграции удалятся автоматически благодаря ON DELETE CASCADE)
+	// Удаляем проект (все связанные интеграции удалятся автоматически благодаря ON DELETE CASCADE)
 	database.DB.Delete(&models.Project{}, uint(id))
 
 	c.Redirect(http.StatusFound, "/projects")

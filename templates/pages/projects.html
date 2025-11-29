@@ -46,8 +46,8 @@
                                         <i data-lucide="pencil"></i>
                                     </a>
                                     <form method="POST" action="/projects/{{ .ID }}/delete" style="display: inline;"
-                                        onsubmit="return confirm('Удалить проект {{ .Name }}? Все интеграции проекта ({{ len .Integrations }}) также будут удалены!');">
-                                        <button type="submit" class="btn btn-danger btn-sm" title="Удалить">
+                                        onsubmit="return confirm('⚠️ ВНИМАНИЕ!\n\nУдалить проект {{ .Name }}?\n\nВсе интеграции проекта ({{ len .Integrations }}) также будут безвозвратно удалены!\n\nЭто действие нельзя отменить.');">
+                                        <button type="submit" class="btn btn-danger btn-sm" title="Удалить проект и все его интеграции">
                                             <i data-lucide="trash-2"></i>
                                         </button>
                                     </form>
