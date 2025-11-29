@@ -100,7 +100,7 @@
                 <div class="stat-card-header">
                     <div>
                         <p class="stat-card-title">Обработано</p>
-                        <p class="stat-card-value">-</p>
+                        <p class="stat-card-value">{{ if .total_requests }}{{ .total_requests }}{{ else }}0{{ end }}</p>
                         <p class="stat-card-change">Всего запросов</p>
                     </div>
                     <div class="stat-card-icon" style="background: color-mix(in srgb, var(--primary) 10%, transparent); opacity: 0.7;">
@@ -192,46 +192,36 @@
                     <h2 class="card-title">Последняя активность</h2>
                 </div>
                 <div class="activity-list">
+                    {{ if .activities }}
+                        {{ range .activities }}
+                        <div class="activity-item">
+                            <div class="activity-content">
+                                <div class="activity-header">
+                                    {{ if eq .Status "success" }}
+                                    <span class="badge badge-success">OK</span>
+                                    {{ else if eq .Status "error" }}
+                                    <span class="badge badge-danger">Ошибка</span>
+                                    {{ else if eq .Status "warning" }}
+                                    <span class="badge badge-warning">Внимание</span>
+                                    {{ else }}
+                                    <span class="badge badge-secondary">Инфо</span>
+                                    {{ end }}
+                                    <span class="activity-integration">{{ .IntegrationName }}</span>
+                                </div>
+                                <p class="activity-message">{{ .Message }}</p>
+                            </div>
+                            <span class="activity-time">{{ .TimeAgo }}</span>
+                        </div>
+                        {{ end }}
+                    {{ else }}
                     <div class="activity-item">
                         <div class="activity-content">
-                            <div class="activity-header">
-                                <span class="badge badge-success">OK</span>
-                                <span class="activity-integration">CRM → Bitrix</span>
-                            </div>
-                            <p class="activity-message">Webhook получен от API Gateway</p>
+                            <p class="activity-message" style="color: var(--text-secondary); text-align: center; padding: 1rem;">
+                                Пока нет активности. Создайте интеграцию и отправьте первый запрос.
+                            </p>
                         </div>
-                        <span class="activity-time">2 мин назад</span>
                     </div>
-                    <div class="activity-item">
-                        <div class="activity-content">
-                            <div class="activity-header">
-                                <span class="badge badge-success">OK</span>
-                                <span class="activity-integration">Telegram → CRM</span>
-                            </div>
-                            <p class="activity-message">Данные успешно переданы</p>
-                        </div>
-                        <span class="activity-time">5 мин назад</span>
-                    </div>
-                    <div class="activity-item">
-                        <div class="activity-content">
-                            <div class="activity-header">
-                                <span class="badge badge-danger">Ошибка</span>
-                                <span class="activity-integration">1C → REST API</span>
-                            </div>
-                            <p class="activity-message">Ошибка подключения к API</p>
-                        </div>
-                        <span class="activity-time">12 мин назад</span>
-                    </div>
-                    <div class="activity-item">
-                        <div class="activity-content">
-                            <div class="activity-header">
-                                <span class="badge badge-warning">Внимание</span>
-                                <span class="activity-integration">Email → Webhook</span>
-                            </div>
-                            <p class="activity-message">Таймаут при обработке запроса</p>
-                        </div>
-                        <span class="activity-time">25 мин назад</span>
-                    </div>
+                    {{ end }}
                 </div>
             </div>
         </div>
@@ -240,6 +230,46 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script>
         lucide.createIcons();
+
+        // Автоматическое обновление активности каждые 30 секунд
+        function updateActivity() {
+            fetch('/api/activity')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.activities && data.activities.length > 0) {
+                        const activityList = document.querySelector('.activity-list');
+                        if (activityList) {
+                            activityList.innerHTML = '';
+                            data.activities.forEach(activity => {
+                                const statusClass = activity.status === 'success' ? 'badge-success' : 
+                                                   activity.status === 'error' ? 'badge-danger' : 
+                                                   activity.status === 'warning' ? 'badge-warning' : 'badge-secondary';
+                                const statusText = activity.status === 'success' ? 'OK' : 
+                                                  activity.status === 'error' ? 'Ошибка' : 
+                                                  activity.status === 'warning' ? 'Внимание' : 'Инфо';
+                                
+                                const item = document.createElement('div');
+                                item.className = 'activity-item';
+                                item.innerHTML = `
+                                    <div class="activity-content">
+                                        <div class="activity-header">
+                                            <span class="badge ${statusClass}">${statusText}</span>
+                                            <span class="activity-integration">${activity.integration_name}</span>
+                                        </div>
+                                        <p class="activity-message">${activity.message}</p>
+                                    </div>
+                                    <span class="activity-time">${activity.time_ago}</span>
+                                `;
+                                activityList.appendChild(item);
+                            });
+                        }
+                    }
+                })
+                .catch(error => console.error('Ошибка обновления активности:', error));
+        }
+
+        // Обновляем активность каждые 30 секунд
+        setInterval(updateActivity, 30000);
     </script>
 </body>
 </html>

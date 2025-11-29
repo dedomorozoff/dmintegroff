@@ -2,7 +2,6 @@ package routes
 
 import (
 	"dmintegroff/internal/controllers"
-	"dmintegroff/internal/database"
 	"dmintegroff/internal/logger"
 	"dmintegroff/internal/models"
 	"net/http"
@@ -49,22 +48,8 @@ func SetupRouter() *gin.Engine {
 	authorized := r.Group(appPath + "/")
 	authorized.Use(AuthRequired())
 	{
-		authorized.GET("/", func(c *gin.Context) {
-			session := sessions.Default(c)
-			role := session.Get("role")
-
-			var totalIntegrations int64
-			var activeIntegrations int64
-			database.DB.Model(&models.Integration{}).Count(&totalIntegrations)
-			database.DB.Model(&models.Integration{}).Where("status = ?", "active").Count(&activeIntegrations)
-
-			c.HTML(http.StatusOK, "dashboard.html", gin.H{
-				"title":               "Главная",
-				"role":                role,
-				"total_integrations":  totalIntegrations,
-				"active_integrations": activeIntegrations,
-			})
-		})
+		authorized.GET("/", controllers.DashboardPage)
+		authorized.GET("/api/activity", controllers.GetRecentActivity)
 
 		authorized.GET("/integrations", controllers.IntegrationList)
 		authorized.GET("/api/integrations", controllers.IntegrationsListAPI)

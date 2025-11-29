@@ -136,11 +136,25 @@ func WebhookHandler(c *gin.Context) {
 		return
 	}
 
+	payloadJSON, _ := json.Marshal(payload)
+	headersJSON, _ := json.Marshal(c.Request.Header)
+
 	// If in listening mode, save sample payload
 	if integration.Mode == "listening" {
-		payloadJSON, _ := json.Marshal(payload)
 		integration.SamplePayload = string(payloadJSON)
 		database.DB.Save(&integration)
+
+		// Логируем получение данных
+		log := models.RequestLog{
+			IntegrationID:  integration.ID,
+			Method:         c.Request.Method,
+			URL:            c.Request.URL.Path,
+			RequestBody:    string(payloadJSON),
+			RequestHeaders: string(headersJSON),
+			StatusCode:     200,
+			LogType:        "webhook",
+		}
+		CreateLogWithLimit(&log)
 
 		c.JSON(http.StatusOK, gin.H{
 			"status":  "captured",
@@ -152,14 +166,52 @@ func WebhookHandler(c *gin.Context) {
 	// If active, process the webhook
 	if integration.Mode == "active" {
 		if err := services.ProcessWebhook(integration.ID, payload); err != nil {
+			// Логируем ошибку
+			log := models.RequestLog{
+				IntegrationID:  integration.ID,
+				Method:         c.Request.Method,
+				URL:            c.Request.URL.Path,
+				RequestBody:    string(payloadJSON),
+				RequestHeaders: string(headersJSON),
+				StatusCode:     500,
+				LogType:        "webhook",
+				ErrorMessage:   err.Error(),
+			}
+			CreateLogWithLimit(&log)
+
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
+
+		// Логируем успешную обработку
+		log := models.RequestLog{
+			IntegrationID:  integration.ID,
+			Method:         c.Request.Method,
+			URL:            c.Request.URL.Path,
+			RequestBody:    string(payloadJSON),
+			RequestHeaders: string(headersJSON),
+			StatusCode:     200,
+			LogType:        "webhook",
+		}
+		CreateLogWithLimit(&log)
+
 		c.JSON(http.StatusOK, gin.H{"status": "success"})
 		return
 	}
 
 	// If inactive
+	log := models.RequestLog{
+		IntegrationID:  integration.ID,
+		Method:         c.Request.Method,
+		URL:            c.Request.URL.Path,
+		RequestBody:    string(payloadJSON),
+		RequestHeaders: string(headersJSON),
+		StatusCode:     200,
+		LogType:        "webhook",
+		ErrorMessage:   "Integration is inactive",
+	}
+	CreateLogWithLimit(&log)
+
 	c.JSON(http.StatusOK, gin.H{"status": "inactive", "message": "Integration is inactive"})
 }
 
