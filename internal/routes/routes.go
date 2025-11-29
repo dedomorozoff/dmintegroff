@@ -5,19 +5,20 @@ import (
 	"dmintegroff/internal/database"
 	"dmintegroff/internal/logger"
 	"dmintegroff/internal/models"
+	"net/http"
+	"os"
+
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
-	"net/http"
-	"os"
 )
 
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
-	
+
 	// Настройка доверенных прокси (только localhost для разработки)
 	r.SetTrustedProxies([]string{"127.0.0.1", "::1"})
-	
+
 	r.Use(logger.RequestLogger())
 	r.Use(ErrorLogger())
 	r.Use(PanicRecovery())
@@ -51,12 +52,12 @@ func SetupRouter() *gin.Engine {
 		authorized.GET("/", func(c *gin.Context) {
 			session := sessions.Default(c)
 			role := session.Get("role")
-			
+
 			var totalIntegrations int64
 			var activeIntegrations int64
 			database.DB.Model(&models.Integration{}).Count(&totalIntegrations)
 			database.DB.Model(&models.Integration{}).Where("status = ?", "active").Count(&activeIntegrations)
-			
+
 			c.HTML(http.StatusOK, "dashboard.html", gin.H{
 				"title":               "Главная",
 				"role":                role,
@@ -75,7 +76,7 @@ func SetupRouter() *gin.Engine {
 		authorized.POST("/integrations/:id/reconfigure", controllers.IntegrationReconfigure)
 		authorized.GET("/integrations/:id/configure", controllers.IntegrationConfigure)
 		authorized.POST("/integrations/:id/configure", controllers.IntegrationSaveMapping)
-		
+
 		// Projects
 		authorized.GET("/projects", controllers.ProjectList)
 		authorized.GET("/projects/create", controllers.ProjectCreate)
@@ -84,12 +85,12 @@ func SetupRouter() *gin.Engine {
 		authorized.GET("/projects/:id/edit", controllers.ProjectEdit)
 		authorized.POST("/projects/:id/update", controllers.ProjectUpdate)
 		authorized.POST("/projects/:id/delete", controllers.ProjectDelete)
-		
+
 		// Project integrations
 		authorized.GET("/projects/:id/integrations/create", controllers.ProjectCreateIntegration)
 		authorized.POST("/projects/:id/integrations", controllers.ProjectStoreIntegration)
 		authorized.POST("/projects/:id/integrations/:integration_id/delete", controllers.ProjectDeleteIntegration)
-		
+
 		// Logs
 		authorized.GET("/logs", controllers.LogsPage)
 		authorized.GET("/api/logs", controllers.LogsAPI)
@@ -124,37 +125,39 @@ func ErrorLogger() gin.HandlerFunc {
 
 		// Проверяем статус код после выполнения запроса
 		statusCode := c.Writer.Status()
-		
+
 		// Логируем только ошибки (4xx и 5xx)
 		if statusCode >= 400 {
 			errorMsg := ""
-			
+
 			// Пытаемся получить сообщение об ошибке из контекста
 			if len(c.Errors) > 0 {
 				errorMsg = c.Errors.String()
 			} else {
 				errorMsg = http.StatusText(statusCode)
 			}
-			
+
 			// Логируем в файл через logrus
 			logger.Log.WithFields(map[string]interface{}{
-				"method":      c.Request.Method,
-				"path":        c.Request.URL.Path,
-				"status":      statusCode,
-				"error":       errorMsg,
-				"ip":          c.ClientIP(),
-				"user_agent":  c.Request.UserAgent(),
+				"method":     c.Request.Method,
+				"path":       c.Request.URL.Path,
+				"status":     statusCode,
+				"error":      errorMsg,
+				"ip":         c.ClientIP(),
+				"user_agent": c.Request.UserAgent(),
 			}).Error("HTTP Error")
-			
-			// Сохраняем в БД
-			log := models.RequestLog{
-				Method:       c.Request.Method,
-				URL:          c.Request.URL.Path,
-				ErrorMessage: errorMsg,
-				StatusCode:   statusCode,
-				LogType:      "error",
+
+			// Сохраняем в БД только для /webhook/test
+			if c.Request.URL.Path == "/webhook/test" {
+				log := models.RequestLog{
+					Method:       c.Request.Method,
+					URL:          c.Request.URL.Path,
+					ErrorMessage: errorMsg,
+					StatusCode:   statusCode,
+					LogType:      "error",
+				}
+				controllers.CreateLogWithLimit(&log)
 			}
-			controllers.CreateLogWithLimit(&log)
 		}
 	}
 }
@@ -171,17 +174,25 @@ func PanicRecovery() gin.HandlerFunc {
 					"ip":     c.ClientIP(),
 					"panic":  err,
 				}).Error("PANIC recovered")
-				
-				// Сохраняем в БД
-				log := models.RequestLog{
-					Method:       c.Request.Method,
-					URL:          c.Request.URL.Path,
-					ErrorMessage: "PANIC: " + err.(string),
-					StatusCode:   500,
-					LogType:      "error",
+
+				// Сохраняем в БД только для /webhook/test
+				if c.Request.URL.Path == "/webhook/test" {
+					panicMsg := ""
+					if str, ok := err.(string); ok {
+						panicMsg = "PANIC: " + str
+					} else {
+						panicMsg = "PANIC: unknown error"
+					}
+					log := models.RequestLog{
+						Method:       c.Request.Method,
+						URL:          c.Request.URL.Path,
+						ErrorMessage: panicMsg,
+						StatusCode:   500,
+						LogType:      "error",
+					}
+					controllers.CreateLogWithLimit(&log)
 				}
-				controllers.CreateLogWithLimit(&log)
-				
+
 				// Возвращаем 500 ошибку
 				c.JSON(http.StatusInternalServerError, gin.H{
 					"error": "Internal Server Error",

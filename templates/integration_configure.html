@@ -33,10 +33,26 @@
         </div>
 
         <div class="card">
-            <div class="card-header">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
                 <h2 class="card-title">📥 Полученные данные (образец)</h2>
+                <button type="button" class="btn btn-secondary" onclick="toggleEditPayload()" id="editPayloadBtn">
+                    ✏️ Редактировать JSON
+                </button>
             </div>
-            <pre style="background: #1a1f2e; color: #abb2bf; padding: 1rem; border-radius: 8px; overflow-x: auto;">{{ .integration.SamplePayload }}</pre>
+            <div id="payloadView">
+                <pre style="background: #1a1f2e; color: #abb2bf; padding: 1rem; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;">{{ .integration.SamplePayload }}</pre>
+            </div>
+            <div id="payloadEdit" style="display: none;">
+                <form method="POST" action="/integrations/{{ .integration.ID }}/configure" id="payloadEditForm">
+                    <textarea name="sample_payload" id="samplePayloadTextarea" 
+                              style="width: 100%; min-height: 300px; font-family: 'Courier New', monospace; background: #1a1f2e; color: #abb2bf; padding: 1rem; border-radius: 8px; border: 1px solid #2d3748;"
+                              placeholder="Вставьте JSON здесь...">{{ .integration.SamplePayload }}</textarea>
+                    <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                        <button type="submit" class="btn btn-success">💾 Сохранить изменения</button>
+                        <button type="button" class="btn btn-secondary" onclick="toggleEditPayload()">Отмена</button>
+                    </div>
+                </form>
+            </div>
         </div>
 
         <div class="card">
@@ -45,33 +61,56 @@
             </div>
             
             <p style="margin-bottom: 1.5rem; color: var(--text-secondary);">
-                Укажите, как поля из входящих данных должны быть переименованы для Target API
+                Укажите, как поля из входящих данных должны быть переименованы для Target API. 
+                Система автоматически разбирает вложенные объекты и массивы.
             </p>
 
             <form method="POST" action="/integrations/{{ .integration.ID }}/configure" id="mappingForm">
+                <input type="hidden" name="sample_payload" value="{{ .integration.SamplePayload }}">
                 <div class="table-container">
                     <table>
                         <thead>
                             <tr>
-                                <th>Поле из источника</th>
+                                <th>Поле из источника (путь)</th>
+                                <th>Тип</th>
+                                <th>Значение</th>
                                 <th>Новое имя для Target API</th>
                                 <th style="text-align: center;">Игнорировать</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {{ range $key, $value := .sampleData }}
-                            <tr>
-                                <td><code>{{ $key }}</code></td>
-                                <td>
-                                    <input type="text" name="field_{{ $key }}" value="{{ $key }}" 
-                                           placeholder="Новое имя или оставьте как есть"
-                                           style="width: 100%;">
-                                </td>
-                                <td style="text-align: center;">
-                                    <input type="checkbox" name="ignore_{{ $key }}" 
-                                           style="width: auto; cursor: pointer;">
-                                </td>
-                            </tr>
+                            {{ if .fields }}
+                                {{ range .fields }}
+                                <tr>
+                                    <td><code style="color: #61afef;">{{ .Path }}</code></td>
+                                    <td><span style="color: #c678dd; font-size: 0.9em;">{{ .Type }}</span></td>
+                                    <td>
+                                        <span style="color: #98c379; font-size: 0.85em;">
+                                            {{ if eq .Type "string" }}"{{ .Value }}"{{ else }}{{ .Value }}{{ end }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <input type="text" 
+                                               name="field_{{ .Path }}" 
+                                               data-path="{{ .Path }}"
+                                               value="{{ .Path }}" 
+                                               placeholder="Новое имя или оставьте как есть"
+                                               style="width: 100%;">
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <input type="checkbox" 
+                                               name="ignore_{{ .Path }}" 
+                                               data-path="{{ .Path }}"
+                                               style="width: auto; cursor: pointer;">
+                                    </td>
+                                </tr>
+                                {{ end }}
+                            {{ else }}
+                                <tr>
+                                    <td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 2rem;">
+                                        Нет данных для отображения. Отправьте запрос на webhook для захвата данных.
+                                    </td>
+                                </tr>
                             {{ end }}
                         </tbody>
                     </table>
@@ -90,5 +129,49 @@
     </main>
 
     <script src="/static/js/common.js"></script>
+    <script>
+        function toggleEditPayload() {
+            const view = document.getElementById('payloadView');
+            const edit = document.getElementById('payloadEdit');
+            const btn = document.getElementById('editPayloadBtn');
+            
+            if (view.style.display === 'none') {
+                view.style.display = 'block';
+                edit.style.display = 'none';
+                btn.textContent = '✏️ Редактировать JSON';
+            } else {
+                view.style.display = 'none';
+                edit.style.display = 'block';
+                btn.textContent = '👁️ Просмотр';
+            }
+        }
+
+        // Обновленная функция для работы с вложенными полями
+        function generateMapping(event) {
+            event.preventDefault();
+            
+            const mapping = {};
+            const form = document.getElementById('mappingForm');
+            const inputs = form.querySelectorAll('input[type="text"][data-path]');
+            
+            inputs.forEach(input => {
+                const fieldPath = input.getAttribute('data-path');
+                const newName = input.value.trim();
+                const ignoreCheckbox = form.querySelector(`input[name="ignore_${fieldPath}"]`);
+                
+                if (!ignoreCheckbox.checked && newName) {
+                    mapping[newName] = fieldPath;
+                }
+            });
+            
+            document.getElementById('mappingConfig').value = JSON.stringify(mapping);
+            form.submit();
+        }
+
+        // Переопределяем функцию из common.js для этого шаблона
+        if (typeof window.generateMapping === 'function') {
+            window.generateMapping = generateMapping;
+        }
+    </script>
 </body>
 </html>

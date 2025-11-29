@@ -1,11 +1,12 @@
 package controllers
 
 import (
-	"encoding/json"
 	"dmintegroff/internal/database"
 	"dmintegroff/internal/models"
 	"dmintegroff/internal/services"
 	"dmintegroff/internal/utils"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -40,7 +41,7 @@ func IntegrationStore(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
-	
+
 	userID, ok := userIDInterface.(uint)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user session"})
@@ -94,7 +95,7 @@ func IntegrationStore(c *gin.Context) {
 
 func WebhookHandler(c *gin.Context) {
 	token := c.Param("token")
-	
+
 	var integration models.Integration
 	if err := database.DB.Where("webhook_token = ?", token).First(&integration).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Integration not found"})
@@ -112,7 +113,7 @@ func WebhookHandler(c *gin.Context) {
 		payloadJSON, _ := json.Marshal(payload)
 		integration.SamplePayload = string(payloadJSON)
 		database.DB.Save(&integration)
-		
+
 		c.JSON(http.StatusOK, gin.H{
 			"status":  "captured",
 			"message": "Sample data captured. Configure field mapping to activate integration.",
@@ -144,7 +145,18 @@ func IntegrationConfigure(c *gin.Context) {
 		return
 	}
 
-	// Parse sample payload to show fields
+	// Parse sample payload to show fields (recursive)
+	var fields []utils.FieldInfo
+	if integration.SamplePayload != "" {
+		var err error
+		fields, err = utils.ParseJSONString(integration.SamplePayload)
+		if err != nil {
+			// Если не удалось распарсить, показываем пустой список
+			fields = []utils.FieldInfo{}
+		}
+	}
+
+	// Также сохраняем оригинальные данные для отображения
 	var sampleData map[string]interface{}
 	if integration.SamplePayload != "" {
 		json.Unmarshal([]byte(integration.SamplePayload), &sampleData)
@@ -154,6 +166,7 @@ func IntegrationConfigure(c *gin.Context) {
 		"title":       "Настройка маппинга",
 		"integration": integration,
 		"sampleData":  sampleData,
+		"fields":      fields,
 	})
 }
 
@@ -165,6 +178,29 @@ func IntegrationSaveMapping(c *gin.Context) {
 	if err := database.DB.First(&integration, uint(id)).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Integration not found"})
 		return
+	}
+
+	// Проверяем, это обновление только payload или полное сохранение маппинга
+	if c.PostForm("mapping_config") == "" && c.PostForm("sample_payload") != "" {
+		// Обновляем только SamplePayload
+		newPayload := c.PostForm("sample_payload")
+		// Проверяем валидность JSON
+		var testData interface{}
+		if err := json.Unmarshal([]byte(newPayload), &testData); err == nil {
+			integration.SamplePayload = newPayload
+			database.DB.Save(&integration)
+		}
+		c.Redirect(http.StatusFound, fmt.Sprintf("/integrations/%d/configure", id))
+		return
+	}
+
+	// Обновляем SamplePayload, если он был изменен
+	if newPayload := c.PostForm("sample_payload"); newPayload != "" {
+		// Проверяем валидность JSON
+		var testData interface{}
+		if err := json.Unmarshal([]byte(newPayload), &testData); err == nil {
+			integration.SamplePayload = newPayload
+		}
 	}
 
 	// Get mapping config from form
@@ -262,7 +298,7 @@ func IntegrationReconfigure(c *gin.Context) {
 	// Переводим в режим прослушивания для получения новых данных
 	integration.Mode = "listening"
 	integration.SamplePayload = "" // Очищаем старые данные
-	
+
 	database.DB.Save(&integration)
 	c.Redirect(http.StatusFound, "/integrations")
 }

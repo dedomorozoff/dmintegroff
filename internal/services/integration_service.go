@@ -2,10 +2,11 @@ package services
 
 import (
 	"bytes"
-	"encoding/json"
 	"dmintegroff/internal/database"
 	"dmintegroff/internal/logger"
 	"dmintegroff/internal/models"
+	"dmintegroff/internal/utils"
+	"encoding/json"
 	"net/http"
 )
 
@@ -35,7 +36,23 @@ func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 	transformed := make(map[string]interface{})
 	if len(mapping) > 0 {
 		for targetField, sourceField := range mapping {
-			if val, ok := payload[sourceField]; ok {
+			// Поддерживаем как простые поля, так и вложенные пути
+			var val interface{}
+			var found bool
+
+			// Сначала пробуем как простое поле (для обратной совместимости)
+			if v, ok := payload[sourceField]; ok {
+				val = v
+				found = true
+			} else {
+				// Пробуем извлечь по пути (для вложенных полей)
+				if v, err := utils.GetValueByPath(payload, sourceField); err == nil {
+					val = v
+					found = true
+				}
+			}
+
+			if found {
 				transformed[targetField] = val
 			}
 		}
