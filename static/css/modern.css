@@ -63,27 +63,21 @@ body {
 .sidebar-logo {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    height: 64px;
-    padding: 0 1rem;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 2rem 1rem 1.5rem;
     border-bottom: 1px solid var(--sidebar-border);
 }
 
-.sidebar-logo-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: var(--radius);
-    background: color-mix(in srgb, var(--primary) 20%, transparent);
+.sidebar-logo-img {
+    width: 100%;
+    max-width: 180px;
+    height: auto;
 }
 
 .sidebar-logo h1 {
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: var(--sidebar-foreground);
-    letter-spacing: -0.025em;
+    display: none;
 }
 
 .sidebar-nav {
