@@ -109,6 +109,18 @@ func DashboardPage(c *gin.Context) {
 	var totalRequests int64
 	database.DB.Model(&models.RequestLog{}).Where("log_type = ?", "webhook").Count(&totalRequests)
 
+	// Определяем прогресс пользователя
+	progress := calculateProgress()
+	
+	// Подсчитываем количество завершенных шагов
+	completedSteps := 0
+	for _, step := range progress {
+		if step.Completed {
+			completedSteps++
+		}
+	}
+	progressPercentage := (completedSteps * 100) / 5
+
 	c.HTML(http.StatusOK, "dashboard.html", gin.H{
 		"title":               "Главная",
 		"role":                role,
@@ -116,7 +128,63 @@ func DashboardPage(c *gin.Context) {
 		"active_integrations": activeIntegrations,
 		"total_requests":      totalRequests,
 		"activities":          activities,
+		"progress":            progress,
+		"progress_completed":  completedSteps,
+		"progress_percentage": progressPercentage,
 	})
+}
+
+// ProgressStep представляет шаг в прогрессе пользователя
+type ProgressStep struct {
+	Completed bool   `json:"completed"`
+	Text      string `json:"text"`
+}
+
+// calculateProgress определяет прогресс пользователя
+func calculateProgress() map[string]ProgressStep {
+	progress := make(map[string]ProgressStep)
+
+	// Шаг 1: Создан ли хотя бы один проект
+	var projectCount int64
+	database.DB.Model(&models.Project{}).Count(&projectCount)
+	progress["step1"] = ProgressStep{
+		Completed: projectCount > 0,
+		Text:      "Создайте проект для группировки интеграций",
+	}
+
+	// Шаг 2: Создана ли хотя бы одна интеграция
+	var integrationCount int64
+	database.DB.Model(&models.Integration{}).Count(&integrationCount)
+	progress["step2"] = ProgressStep{
+		Completed: integrationCount > 0,
+		Text:      "Создайте интеграцию в проекте",
+	}
+
+	// Шаг 3: Получен ли хотя бы один webhook запрос
+	var webhookCount int64
+	database.DB.Model(&models.RequestLog{}).Where("log_type = ?", "webhook").Count(&webhookCount)
+	progress["step3"] = ProgressStep{
+		Completed: webhookCount > 0,
+		Text:      "Отправьте тестовый запрос на webhook URL",
+	}
+
+	// Шаг 4: Настроен ли маппинг хотя бы в одной интеграции
+	var mappedIntegrationCount int64
+	database.DB.Model(&models.Integration{}).Where("mapping_config != '' AND mapping_config IS NOT NULL").Count(&mappedIntegrationCount)
+	progress["step4"] = ProgressStep{
+		Completed: mappedIntegrationCount > 0,
+		Text:      "Настройте маппинг полей",
+	}
+
+	// Шаг 5: Активирована ли хотя бы одна интеграция
+	var activeCount int64
+	database.DB.Model(&models.Integration{}).Where("mode = ?", "active").Count(&activeCount)
+	progress["step5"] = ProgressStep{
+		Completed: activeCount > 0,
+		Text:      "Активируйте интеграцию",
+	}
+
+	return progress
 }
 
 // formatTimeAgo форматирует время в человекочитаемый формат "X минут назад"
