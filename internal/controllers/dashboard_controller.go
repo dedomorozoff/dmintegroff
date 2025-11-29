@@ -16,6 +16,7 @@ type ActivityItem struct {
 	Status         string    `json:"status"`          // "success", "error", "warning"
 	IntegrationName string   `json:"integration_name"`
 	Message        string    `json:"message"`
+	RequestURL     string    `json:"request_url"`
 	Time           time.Time `json:"time"`
 	TimeAgo        string    `json:"time_ago"`
 }
@@ -41,6 +42,7 @@ func DashboardPage(c *gin.Context) {
 		activity := ActivityItem{
 			Time:    log.CreatedAt,
 			TimeAgo: formatTimeAgo(log.CreatedAt),
+			RequestURL: log.URL,
 		}
 
 		// Получаем имя интеграции, если есть IntegrationID
@@ -250,6 +252,7 @@ func GetRecentActivity(c *gin.Context) {
 		activity := ActivityItem{
 			Time:    log.CreatedAt,
 			TimeAgo: formatTimeAgo(log.CreatedAt),
+			RequestURL: log.URL,
 		}
 
 		if log.IntegrationID > 0 {

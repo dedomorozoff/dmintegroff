@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,13 +11,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/modern.css">
 </head>
+
 <body>
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-logo">
             <img src="/static/img/logo.png" alt="dmIntegroff" class="sidebar-logo-img">
         </div>
-        
+
         <nav class="sidebar-nav">
             <ul>
                 <li><a href="/" class="active"><i data-lucide="layout-dashboard"></i> Обзор</a></li>
@@ -29,12 +31,12 @@
                 {{ end }}
             </ul>
         </nav>
-        
+
         <div class="sidebar-settings">
             <a href="/settings"><i data-lucide="settings"></i> Настройки</a>
             <a href="/help"><i data-lucide="help-circle"></i> Помощь</a>
         </div>
-        
+
         <div class="sidebar-user">
             <div class="sidebar-user-info">
                 <div class="sidebar-user-avatar">{{ if .role }}{{ slice .role 0 1 }}{{ else }}U{{ end }}</div>
@@ -62,10 +64,12 @@
                 <div class="stat-card-header">
                     <div>
                         <p class="stat-card-title">Всего интеграций</p>
-                        <p class="stat-card-value">{{ if .total_integrations }}{{ .total_integrations }}{{ else }}0{{ end }}</p>
+                        <p class="stat-card-value">{{ if .total_integrations }}{{ .total_integrations }}{{ else }}0{{
+                            end }}</p>
                         <p class="stat-card-change">Все созданные</p>
                     </div>
-                    <div class="stat-card-icon" style="background: color-mix(in srgb, var(--primary) 10%, transparent);">
+                    <div class="stat-card-icon"
+                        style="background: color-mix(in srgb, var(--primary) 10%, transparent);">
                         <i data-lucide="webhook" style="color: var(--primary);"></i>
                     </div>
                 </div>
@@ -75,10 +79,12 @@
                 <div class="stat-card-header">
                     <div>
                         <p class="stat-card-title">Активных</p>
-                        <p class="stat-card-value">{{ if .active_integrations }}{{ .active_integrations }}{{ else }}0{{ end }}</p>
+                        <p class="stat-card-value">{{ if .active_integrations }}{{ .active_integrations }}{{ else }}0{{
+                            end }}</p>
                         <p class="stat-card-change">Работают сейчас</p>
                     </div>
-                    <div class="stat-card-icon" style="background: color-mix(in srgb, var(--success) 10%, transparent);">
+                    <div class="stat-card-icon"
+                        style="background: color-mix(in srgb, var(--success) 10%, transparent);">
                         <i data-lucide="check-circle-2" style="color: var(--success);"></i>
                     </div>
                 </div>
@@ -91,7 +97,8 @@
                         <p class="stat-card-value">-</p>
                         <p class="stat-card-change">Требуют настройки</p>
                     </div>
-                    <div class="stat-card-icon" style="background: color-mix(in srgb, var(--warning) 10%, transparent);">
+                    <div class="stat-card-icon"
+                        style="background: color-mix(in srgb, var(--warning) 10%, transparent);">
                         <i data-lucide="clock" style="color: var(--warning);"></i>
                     </div>
                 </div>
@@ -104,7 +111,8 @@
                         <p class="stat-card-value">{{ if .total_requests }}{{ .total_requests }}{{ else }}0{{ end }}</p>
                         <p class="stat-card-change">Всего запросов</p>
                     </div>
-                    <div class="stat-card-icon" style="background: color-mix(in srgb, var(--primary) 10%, transparent); opacity: 0.7;">
+                    <div class="stat-card-icon"
+                        style="background: color-mix(in srgb, var(--primary) 10%, transparent); opacity: 0.7;">
                         <i data-lucide="activity" style="color: var(--primary);"></i>
                     </div>
                 </div>
@@ -116,7 +124,7 @@
             <div class="card-header">
                 <h2 class="card-title">Быстрые действия</h2>
             </div>
-            
+
             <div class="quick-actions-grid">
                 <a href="/projects/create" class="btn btn-success quick-action-btn">
                     <div class="quick-action-header">
@@ -165,98 +173,118 @@
                     </h2>
                 </div>
                 {{ if .progress_completed }}
-                    <div style="padding: 0 1.5rem 1rem 1.5rem;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                            <span style="font-size: 0.875rem; color: var(--text-secondary);">Прогресс</span>
-                            <span style="font-size: 0.875rem; font-weight: 600; color: var(--primary);">{{ .progress_completed }}/5</span>
-                        </div>
-                        <div style="width: 100%; height: 8px; background: var(--secondary); border-radius: 4px; overflow: hidden;">
-                            <div style="height: 100%; background: var(--primary); width: {{ .progress_percentage }}%; transition: width 0.3s ease;"></div>
+                <div style="padding: 0 1.5rem 1rem 1.5rem;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <span style="font-size: 0.875rem; color: var(--text-secondary);">Прогресс</span>
+                        <span style="font-size: 0.875rem; font-weight: 600; color: var(--primary);">{{
+                            .progress_completed }}/5</span>
+                    </div>
+                    <div
+                        style="width: 100%; height: 8px; background: var(--secondary); border-radius: 4px; overflow: hidden;">
+                        <div
+                            style="height: 100%; background: var(--primary); width: {{ .progress_percentage }}%; transition: width 0.3s ease;">
                         </div>
                     </div>
+                </div>
                 {{ end }}
                 <div class="steps-list">
                     {{ if .progress }}
-                        {{ $step1 := index .progress "step1" }}
-                        <div class="step-item" style="cursor: {{ if not $step1.Completed }}pointer{{ else }}default{{ end }};" onclick="{{ if not $step1.Completed }}window.location.href='/projects/create'{{ end }}">
-                            {{ if $step1.Completed }}
-                            <i data-lucide="check-circle-2" class="step-icon completed"></i>
-                            <span class="step-text completed">{{ $step1.Text }}</span>
-                            {{ else }}
-                            <i data-lucide="circle" class="step-icon pending"></i>
-                            <span class="step-text">{{ $step1.Text }}</span>
-                            <i data-lucide="arrow-right" style="margin-left: auto; width: 16px; height: 16px; color: var(--primary);"></i>
-                            {{ end }}
-                        </div>
-                        
-                        {{ $step2 := index .progress "step2" }}
-                        <div class="step-item" style="cursor: {{ if not $step2.Completed }}pointer{{ else }}default{{ end }};" onclick="{{ if not $step2.Completed }}window.location.href='/integrations/create'{{ end }}">
-                            {{ if $step2.Completed }}
-                            <i data-lucide="check-circle-2" class="step-icon completed"></i>
-                            <span class="step-text completed">{{ $step2.Text }}</span>
-                            {{ else }}
-                            <i data-lucide="circle" class="step-icon pending"></i>
-                            <span class="step-text">{{ $step2.Text }}</span>
-                            <i data-lucide="arrow-right" style="margin-left: auto; width: 16px; height: 16px; color: var(--primary);"></i>
-                            {{ end }}
-                        </div>
-                        
-                        {{ $step3 := index .progress "step3" }}
-                        <div class="step-item" style="cursor: {{ if not $step3.Completed }}pointer{{ else }}default{{ end }};" onclick="{{ if not $step3.Completed }}window.location.href='/integrations'{{ end }}">
-                            {{ if $step3.Completed }}
-                            <i data-lucide="check-circle-2" class="step-icon completed"></i>
-                            <span class="step-text completed">{{ $step3.Text }}</span>
-                            {{ else }}
-                            <i data-lucide="circle" class="step-icon pending"></i>
-                            <span class="step-text">{{ $step3.Text }}</span>
-                            <i data-lucide="arrow-right" style="margin-left: auto; width: 16px; height: 16px; color: var(--primary);"></i>
-                            {{ end }}
-                        </div>
-                        
-                        {{ $step4 := index .progress "step4" }}
-                        <div class="step-item" style="cursor: {{ if not $step4.Completed }}pointer{{ else }}default{{ end }};" onclick="{{ if not $step4.Completed }}window.location.href='/integrations'{{ end }}">
-                            {{ if $step4.Completed }}
-                            <i data-lucide="check-circle-2" class="step-icon completed"></i>
-                            <span class="step-text completed">{{ $step4.Text }}</span>
-                            {{ else }}
-                            <i data-lucide="circle" class="step-icon pending"></i>
-                            <span class="step-text">{{ $step4.Text }}</span>
-                            <i data-lucide="arrow-right" style="margin-left: auto; width: 16px; height: 16px; color: var(--primary);"></i>
-                            {{ end }}
-                        </div>
-                        
-                        {{ $step5 := index .progress "step5" }}
-                        <div class="step-item" style="cursor: {{ if not $step5.Completed }}pointer{{ else }}default{{ end }};" onclick="{{ if not $step5.Completed }}window.location.href='/integrations'{{ end }}">
-                            {{ if $step5.Completed }}
-                            <i data-lucide="check-circle-2" class="step-icon completed"></i>
-                            <span class="step-text completed">{{ $step5.Text }}</span>
-                            {{ else }}
-                            <i data-lucide="circle" class="step-icon pending"></i>
-                            <span class="step-text">{{ $step5.Text }}</span>
-                            <i data-lucide="arrow-right" style="margin-left: auto; width: 16px; height: 16px; color: var(--primary);"></i>
-                            {{ end }}
-                        </div>
+                    {{ $step1 := index .progress "step1" }}
+                    <div class="step-item"
+                        style="cursor: {{ if not $step1.Completed }}pointer{{ else }}default{{ end }};"
+                        onclick="{{ if not $step1.Completed }}window.location.href='/projects/create'{{ end }}">
+                        {{ if $step1.Completed }}
+                        <i data-lucide="check-circle-2" class="step-icon completed"></i>
+                        <span class="step-text completed">{{ $step1.Text }}</span>
+                        {{ else }}
+                        <i data-lucide="circle" class="step-icon pending"></i>
+                        <span class="step-text">{{ $step1.Text }}</span>
+                        <i data-lucide="arrow-right"
+                            style="margin-left: auto; width: 16px; height: 16px; color: var(--primary);"></i>
+                        {{ end }}
+                    </div>
+
+                    {{ $step2 := index .progress "step2" }}
+                    <div class="step-item"
+                        style="cursor: {{ if not $step2.Completed }}pointer{{ else }}default{{ end }};"
+                        onclick="{{ if not $step2.Completed }}window.location.href='/integrations/create'{{ end }}">
+                        {{ if $step2.Completed }}
+                        <i data-lucide="check-circle-2" class="step-icon completed"></i>
+                        <span class="step-text completed">{{ $step2.Text }}</span>
+                        {{ else }}
+                        <i data-lucide="circle" class="step-icon pending"></i>
+                        <span class="step-text">{{ $step2.Text }}</span>
+                        <i data-lucide="arrow-right"
+                            style="margin-left: auto; width: 16px; height: 16px; color: var(--primary);"></i>
+                        {{ end }}
+                    </div>
+
+                    {{ $step3 := index .progress "step3" }}
+                    <div class="step-item"
+                        style="cursor: {{ if not $step3.Completed }}pointer{{ else }}default{{ end }};"
+                        onclick="{{ if not $step3.Completed }}window.location.href='/integrations'{{ end }}">
+                        {{ if $step3.Completed }}
+                        <i data-lucide="check-circle-2" class="step-icon completed"></i>
+                        <span class="step-text completed">{{ $step3.Text }}</span>
+                        {{ else }}
+                        <i data-lucide="circle" class="step-icon pending"></i>
+                        <span class="step-text">{{ $step3.Text }}</span>
+                        <i data-lucide="arrow-right"
+                            style="margin-left: auto; width: 16px; height: 16px; color: var(--primary);"></i>
+                        {{ end }}
+                    </div>
+
+                    {{ $step4 := index .progress "step4" }}
+                    <div class="step-item"
+                        style="cursor: {{ if not $step4.Completed }}pointer{{ else }}default{{ end }};"
+                        onclick="{{ if not $step4.Completed }}window.location.href='/integrations'{{ end }}">
+                        {{ if $step4.Completed }}
+                        <i data-lucide="check-circle-2" class="step-icon completed"></i>
+                        <span class="step-text completed">{{ $step4.Text }}</span>
+                        {{ else }}
+                        <i data-lucide="circle" class="step-icon pending"></i>
+                        <span class="step-text">{{ $step4.Text }}</span>
+                        <i data-lucide="arrow-right"
+                            style="margin-left: auto; width: 16px; height: 16px; color: var(--primary);"></i>
+                        {{ end }}
+                    </div>
+
+                    {{ $step5 := index .progress "step5" }}
+                    <div class="step-item"
+                        style="cursor: {{ if not $step5.Completed }}pointer{{ else }}default{{ end }};"
+                        onclick="{{ if not $step5.Completed }}window.location.href='/integrations'{{ end }}">
+                        {{ if $step5.Completed }}
+                        <i data-lucide="check-circle-2" class="step-icon completed"></i>
+                        <span class="step-text completed">{{ $step5.Text }}</span>
+                        {{ else }}
+                        <i data-lucide="circle" class="step-icon pending"></i>
+                        <span class="step-text">{{ $step5.Text }}</span>
+                        <i data-lucide="arrow-right"
+                            style="margin-left: auto; width: 16px; height: 16px; color: var(--primary);"></i>
+                        {{ end }}
+                    </div>
                     {{ else }}
-                        <div class="step-item">
-                            <i data-lucide="circle" class="step-icon pending"></i>
-                            <span class="step-text">Создайте проект для группировки интеграций</span>
-                        </div>
-                        <div class="step-item">
-                            <i data-lucide="circle" class="step-icon pending"></i>
-                            <span class="step-text">Создайте интеграцию в проекте</span>
-                        </div>
-                        <div class="step-item">
-                            <i data-lucide="circle" class="step-icon pending"></i>
-                            <span class="step-text">Отправьте тестовый запрос на webhook URL</span>
-                        </div>
-                        <div class="step-item">
-                            <i data-lucide="circle" class="step-icon pending"></i>
-                            <span class="step-text">Настройте маппинг полей</span>
-                        </div>
-                        <div class="step-item">
-                            <i data-lucide="circle" class="step-icon pending"></i>
-                            <span class="step-text">Активируйте интеграцию</span>
-                        </div>
+                    <div class="step-item">
+                        <i data-lucide="circle" class="step-icon pending"></i>
+                        <span class="step-text">Создайте проект для группировки интеграций</span>
+                    </div>
+                    <div class="step-item">
+                        <i data-lucide="circle" class="step-icon pending"></i>
+                        <span class="step-text">Создайте интеграцию в проекте</span>
+                    </div>
+                    <div class="step-item">
+                        <i data-lucide="circle" class="step-icon pending"></i>
+                        <span class="step-text">Отправьте тестовый запрос на webhook URL</span>
+                    </div>
+                    <div class="step-item">
+                        <i data-lucide="circle" class="step-icon pending"></i>
+                        <span class="step-text">Настройте маппинг полей</span>
+                    </div>
+                    <div class="step-item">
+                        <i data-lucide="circle" class="step-icon pending"></i>
+                        <span class="step-text">Активируйте интеграцию</span>
+                    </div>
                     {{ end }}
                 </div>
             </div>
@@ -269,30 +297,36 @@
                 </div>
                 <div class="activity-list">
                     {{ if .activities }}
-                        {{ range .activities }}
-                        <div class="activity-item">
-                            <div class="activity-content">
-                                <div class="activity-header">
-                                    {{ if eq .Status "success" }}
-                                    <span class="badge badge-success">OK</span>
-                                    {{ else if eq .Status "error" }}
-                                    <span class="badge badge-danger">Ошибка</span>
-                                    {{ else if eq .Status "warning" }}
-                                    <span class="badge badge-warning">Внимание</span>
-                                    {{ else }}
-                                    <span class="badge badge-secondary">Инфо</span>
-                                    {{ end }}
-                                    <span class="activity-integration">{{ .IntegrationName }}</span>
-                                </div>
-                                <p class="activity-message">{{ .Message }}</p>
+                    {{ range .activities }}
+                    <div class="activity-item">
+                        <div class="activity-content">
+                            <div class="activity-header">
+                                {{ if eq .Status "success" }}
+                                <span class="badge badge-success">OK</span>
+                                {{ else if eq .Status "error" }}
+                                <span class="badge badge-danger">Ошибка</span>
+                                {{ else if eq .Status "warning" }}
+                                <span class="badge badge-warning">Внимание</span>
+                                {{ else }}
+                                <span class="badge badge-secondary">Инфо</span>
+                                {{ end }}
+                                <span class="activity-integration">{{ .IntegrationName }}</span>
                             </div>
-                            <span class="activity-time">{{ .TimeAgo }}</span>
+                            <p class="activity-message">{{ .Message }}</p>
+                            {{ if .RequestURL }}
+                            <p class="activity-url"
+                                style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem; font-family: monospace;">
+                                {{ .RequestURL }}</p>
+                            {{ end }}
                         </div>
-                        {{ end }}
+                        <span class="activity-time">{{ .TimeAgo }}</span>
+                    </div>
+                    {{ end }}
                     {{ else }}
                     <div class="activity-item">
                         <div class="activity-content">
-                            <p class="activity-message" style="color: var(--text-secondary); text-align: center; padding: 1rem;">
+                            <p class="activity-message"
+                                style="color: var(--text-secondary); text-align: center; padding: 1rem;">
                                 Пока нет активности. Создайте интеграцию и отправьте первый запрос.
                             </p>
                         </div>
@@ -311,7 +345,7 @@
             margin: -0.5rem;
             transition: all 0.2s ease;
         }
-        
+
         .step-item[style*="cursor: pointer"]:hover .step-text {
             color: var(--primary);
         }
@@ -331,13 +365,13 @@
                         if (activityList) {
                             activityList.innerHTML = '';
                             data.activities.forEach(activity => {
-                                const statusClass = activity.status === 'success' ? 'badge-success' : 
-                                                   activity.status === 'error' ? 'badge-danger' : 
-                                                   activity.status === 'warning' ? 'badge-warning' : 'badge-secondary';
-                                const statusText = activity.status === 'success' ? 'OK' : 
-                                                  activity.status === 'error' ? 'Ошибка' : 
-                                                  activity.status === 'warning' ? 'Внимание' : 'Инфо';
-                                
+                                const statusClass = activity.status === 'success' ? 'badge-success' :
+                                    activity.status === 'error' ? 'badge-danger' :
+                                        activity.status === 'warning' ? 'badge-warning' : 'badge-secondary';
+                                const statusText = activity.status === 'success' ? 'OK' :
+                                    activity.status === 'error' ? 'Ошибка' :
+                                        activity.status === 'warning' ? 'Внимание' : 'Инфо';
+
                                 const item = document.createElement('div');
                                 item.className = 'activity-item';
                                 item.innerHTML = `
@@ -347,6 +381,7 @@
                                             <span class="activity-integration">${activity.integration_name}</span>
                                         </div>
                                         <p class="activity-message">${activity.message}</p>
+                                        ${activity.request_url ? `<p class="activity-url" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem; font-family: monospace;">${activity.request_url}</p>` : ''}
                                     </div>
                                     <span class="activity-time">${activity.time_ago}</span>
                                 `;
@@ -362,4 +397,5 @@
         setInterval(updateActivity, 30000);
     </script>
 </body>
+
 </html>
