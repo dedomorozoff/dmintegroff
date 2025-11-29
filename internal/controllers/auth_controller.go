@@ -11,7 +11,7 @@ import (
 )
 
 func LoginPage(c *gin.Context) {
-	c.HTML(http.StatusOK, "login.html", gin.H{
+	c.HTML(http.StatusOK, "pages/login.html", gin.H{
 		"title": "Вход в систему",
 	})
 }

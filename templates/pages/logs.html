@@ -1,0 +1,92 @@
+{{ define "pages/logs.html" }}
+{{ template "partials/head.html" . }}
+    {{ template "partials/sidebar.html" . }}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <h1>Логи запросов</h1>
+            <p>История всех webhook запросов и ответов</p>
+        </div>
+
+        <!-- Filters -->
+        <div class="card">
+            <form method="GET" action="/logs" class="filter-form">
+                <input type="text" name="integration_id" placeholder="ID интеграции" value="{{ .filter_integration_id }}">
+                <select name="status">
+                    <option value="">Все статусы</option>
+                    <option value="success" {{ if eq .filter_status "success" }}selected{{ end }}>Успешные</option>
+                    <option value="error" {{ if eq .filter_status "error" }}selected{{ end }}>Ошибки</option>
+                </select>
+                <button type="submit" class="btn">
+                    <i data-lucide="filter"></i>
+                    Фильтровать
+                </button>
+                <a href="/logs" class="btn btn-secondary">
+                    <i data-lucide="x"></i>
+                    Сбросить
+                </a>
+            </form>
+        </div>
+
+        <!-- Logs -->
+        {{ if .logs }}
+        {{ range .logs }}
+        <div class="log-entry {{ if .ErrorMessage }}error-log{{ end }}">
+            <div class="log-header">
+                <div>
+                    <span class="log-method {{ .Method }}">{{ .Method }}</span>
+                    <span class="log-status {{ if .ErrorMessage }}error{{ else }}success{{ end }}">
+                        {{ if .ErrorMessage }}Ошибка{{ else }}Успешно{{ end }}
+                    </span>
+                    <span class="log-meta">
+                        <i data-lucide="calendar" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+                        {{ .CreatedAt.Format "02.01.2006 15:04:05" }}
+                    </span>
+                </div>
+                <div class="log-meta">
+                    <i data-lucide="webhook" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+                    Интеграция #{{ .IntegrationID }}
+                </div>
+            </div>
+
+            {{ if .ErrorMessage }}
+            <div class="log-section">
+                <div class="log-section-title">
+                    <i data-lucide="alert-circle" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+                    Ошибка
+                </div>
+                <div class="error-message">{{ .ErrorMessage }}</div>
+            </div>
+            {{ end }}
+
+            <div class="log-section">
+                <div class="log-section-title">
+                    <i data-lucide="arrow-down-circle" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+                    Входящий запрос
+                </div>
+                <div class="log-code">{{ .RequestBody }}</div>
+            </div>
+
+            {{ if .ResponseBody }}
+            <div class="log-section">
+                <div class="log-section-title">
+                    <i data-lucide="arrow-up-circle" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+                    Ответ API
+                </div>
+                <div class="log-code">{{ .ResponseBody }}</div>
+            </div>
+            {{ end }}
+        </div>
+        {{ end }}
+        {{ else }}
+        <div class="card" style="text-align: center; padding: 3rem; color: var(--muted-foreground);">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📝</div>
+            <h3 style="margin-bottom: 0.5rem;">Логов пока нет</h3>
+            <p>Логи появятся после первых webhook запросов</p>
+        </div>
+        {{ end }}
+    </main>
+
+    {{ template "partials/scripts.html" . }}
+{{ end }}

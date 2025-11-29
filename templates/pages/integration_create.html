@@ -1,56 +1,21 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ .title }}</title>
-    <link rel="icon" type="image/x-icon" href="/static/img/favicon.ico">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/modern.css">
-</head>
-<body>
-    <aside class="sidebar">
-        <div class="sidebar-logo">
-            <img src="/static/img/logo.png" alt="dmIntegroff" class="sidebar-logo-img">
-        </div>
-        
-        <nav class="sidebar-nav">
-            <ul>
-                <li><a href="/"><i data-lucide="layout-dashboard"></i> Обзор</a></li>
-                <li><a href="/projects" class="active"><i data-lucide="folder-kanban"></i> Проекты</a></li>
-                <li><a href="/integrations"><i data-lucide="webhook"></i> Интеграции</a></li>
-                <li><a href="/integrations/create"><i data-lucide="plus"></i> Создать</a></li>
-                <li><a href="/logs"><i data-lucide="file-text"></i> Логи</a></li>
-            </ul>
-        </nav>
-        
-        <div class="sidebar-settings">
-            <a href="/settings"><i data-lucide="settings"></i> Настройки</a>
-            <a href="/help"><i data-lucide="help-circle"></i> Помощь</a>
-        </div>
-        
-        <div class="sidebar-user">
-            <div class="sidebar-user-info">
-                <div class="sidebar-user-avatar">{{ if .role }}{{ slice .role 0 1 }}{{ else }}U{{ end }}</div>
-                <div class="sidebar-user-details">
-                    <h4>{{ if .role }}{{ .role }}{{ else }}Пользователь{{ end }}</h4>
-                    <p>Активен</p>
-                </div>
-                <a href="/logout" class="logout-btn" title="Выйти">
-                    <i data-lucide="log-out"></i>
-                </a>
-            </div>
-        </div>
-    </aside>
+{{ define "pages/integration_create.html" }}
+{{ template "partials/head.html" . }}
+    {{ template "partials/sidebar.html" . }}
 
+    <!-- Main Content -->
     <main class="main-content">
         <div class="page-header">
             <h1>Создание интеграции</h1>
-            <p>Проект: <strong>{{ .project.Name }}</strong></p>
+            <p>Настройте новую интеграцию между системами</p>
         </div>
 
+        {{ if not .projects }}
+        <div class="info-box" style="background: #fff3cd; border-color: #ffc107; color: #856404;">
+            <strong>⚠️ Внимание:</strong><br>
+            Для создания интеграции необходимо сначала создать проект.<br>
+            <a href="/projects/create" class="btn btn-success" style="margin-top: 1rem;">➕ Создать проект</a>
+        </div>
+        {{ else }}
         <div class="info-box">
             <strong>ℹ️ Как это работает:</strong><br>
             1. Создайте интеграцию и получите уникальный webhook URL<br>
@@ -58,9 +23,10 @@
             3. Настройте маппинг полей<br>
             4. Активируйте интеграцию
         </div>
+        {{ end }}
 
         <div class="card">
-            <form method="POST" action="/projects/{{ .project.ID }}/integrations">
+            <form method="POST" action="/integrations" {{ if not .projects }}onsubmit="return false;" style="opacity: 0.5; pointer-events: none;"{{ end }}>
                 <div class="form-group">
                     <label>Название интеграции *</label>
                     <input type="text" name="name" required placeholder="Например: Интеграция CRM → Email">
@@ -81,9 +47,20 @@
                     <small>Для документации, откуда ожидаются данные</small>
                 </div>
 
+                <div class="form-group">
+                    <label>Проект *</label>
+                    <select name="project_id" required>
+                        <option value="">-- Выберите проект --</option>
+                        {{ range .projects }}
+                        <option value="{{ .ID }}">{{ .Name }}</option>
+                        {{ end }}
+                    </select>
+                    <small>Проект обязателен для создания интеграции. <a href="/projects/create" style="color: var(--accent-primary);">Создать новый проект</a></small>
+                </div>
+
                 <div style="display: flex; gap: 1rem; margin-top: 2rem;">
                     <button type="submit" class="btn btn-success">✅ Создать интеграцию</button>
-                    <a href="/projects/{{ .project.ID }}" class="btn btn-secondary">Отмена</a>
+                    <a href="/integrations" class="btn btn-secondary">Отмена</a>
                 </div>
             </form>
         </div>
@@ -102,3 +79,4 @@
     </script>
 </body>
 </html>
+{{ end }}

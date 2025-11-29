@@ -1,0 +1,39 @@
+{{ define "partials/sidebar.html" }}
+<!-- Sidebar -->
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <img src="/static/img/logo.png" alt="dmIntegroff" class="sidebar-logo-img">
+    </div>
+
+    <nav class="sidebar-nav">
+        <ul>
+            <li><a href="/" {{ if eq .CurrentPage "dashboard" }}class="active"{{ end }}><i data-lucide="layout-dashboard"></i> Обзор</a></li>
+            <li><a href="/projects" {{ if eq .CurrentPage "projects" }}class="active"{{ end }}><i data-lucide="folder-kanban"></i> Проекты</a></li>
+            <li><a href="/integrations" {{ if eq .CurrentPage "integrations" }}class="active"{{ end }}><i data-lucide="webhook"></i> Интеграции</a></li>
+            <li><a href="/integrations/create" {{ if eq .CurrentPage "integration_create" }}class="active"{{ end }}><i data-lucide="plus"></i> Создать</a></li>
+            <li><a href="/logs" {{ if eq .CurrentPage "logs" }}class="active"{{ end }}><i data-lucide="file-text"></i> Логи</a></li>
+            {{ if eq .role "admin" }}
+            <li><a href="/users" {{ if eq .CurrentPage "users" }}class="active"{{ end }}><i data-lucide="users"></i> Пользователи</a></li>
+            {{ end }}
+        </ul>
+    </nav>
+
+    <div class="sidebar-settings">
+        <a href="/settings" {{ if eq .CurrentPage "settings" }}class="active"{{ end }}><i data-lucide="settings"></i> Настройки</a>
+        <a href="/help" {{ if eq .CurrentPage "help" }}class="active"{{ end }}><i data-lucide="help-circle"></i> Помощь</a>
+    </div>
+
+    <div class="sidebar-user">
+        <div class="sidebar-user-info">
+            <div class="sidebar-user-avatar">{{ if .role }}{{ slice .role 0 1 }}{{ else }}U{{ end }}</div>
+            <div class="sidebar-user-details">
+                <h4>{{ if .role }}{{ .role }}{{ else }}Пользователь{{ end }}</h4>
+                <p>Активен</p>
+            </div>
+            <a href="/logout" class="logout-btn" title="Выйти">
+                <i data-lucide="log-out"></i>
+            </a>
+        </div>
+    </div>
+</aside>
+{{ end }}

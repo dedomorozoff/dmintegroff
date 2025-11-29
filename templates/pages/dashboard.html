@@ -1,55 +1,6 @@
-<!DOCTYPE html>
-<html lang="ru">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ .title }}</title>
-    <link rel="icon" type="image/x-icon" href="/static/img/favicon.ico">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/modern.css">
-</head>
-
-<body>
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="sidebar-logo">
-            <img src="/static/img/logo.png" alt="dmIntegroff" class="sidebar-logo-img">
-        </div>
-
-        <nav class="sidebar-nav">
-            <ul>
-                <li><a href="/" class="active"><i data-lucide="layout-dashboard"></i> Обзор</a></li>
-                <li><a href="/projects"><i data-lucide="folder-kanban"></i> Проекты</a></li>
-                <li><a href="/integrations"><i data-lucide="webhook"></i> Интеграции</a></li>
-                <li><a href="/integrations/create"><i data-lucide="plus"></i> Создать</a></li>
-                <li><a href="/logs"><i data-lucide="file-text"></i> Логи</a></li>
-                {{ if eq .role "admin" }}
-                <li><a href="/users"><i data-lucide="users"></i> Пользователи</a></li>
-                {{ end }}
-            </ul>
-        </nav>
-
-        <div class="sidebar-settings">
-            <a href="/settings"><i data-lucide="settings"></i> Настройки</a>
-            <a href="/help"><i data-lucide="help-circle"></i> Помощь</a>
-        </div>
-
-        <div class="sidebar-user">
-            <div class="sidebar-user-info">
-                <div class="sidebar-user-avatar">{{ if .role }}{{ slice .role 0 1 }}{{ else }}U{{ end }}</div>
-                <div class="sidebar-user-details">
-                    <h4>{{ if .role }}{{ .role }}{{ else }}Пользователь{{ end }}</h4>
-                    <p>Активен</p>
-                </div>
-                <a href="/logout" class="logout-btn" title="Выйти">
-                    <i data-lucide="log-out"></i>
-                </a>
-            </div>
-        </div>
-    </aside>
+{{ define "pages/dashboard.html" }}
+{{ template "partials/head.html" . }}
+{{ template "partials/sidebar.html" . }}
 
     <!-- Main Content -->
     <main class="main-content">
@@ -351,51 +302,47 @@
         }
     </style>
 
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script>
-        lucide.createIcons();
+{{ template "partials/scripts.html" . }}
+<script>
+    // Автоматическое обновление активности каждые 30 секунд
+    function updateActivity() {
+        fetch('/api/activity')
+            .then(response => response.json())
+            .then(data => {
+                if (data.activities && data.activities.length > 0) {
+                    const activityList = document.querySelector('.activity-list');
+                    if (activityList) {
+                        activityList.innerHTML = '';
+                        data.activities.forEach(activity => {
+                            const statusClass = activity.status === 'success' ? 'badge-success' :
+                                activity.status === 'error' ? 'badge-danger' :
+                                    activity.status === 'warning' ? 'badge-warning' : 'badge-secondary';
+                            const statusText = activity.status === 'success' ? 'OK' :
+                                activity.status === 'error' ? 'Ошибка' :
+                                    activity.status === 'warning' ? 'Внимание' : 'Инфо';
 
-        // Автоматическое обновление активности каждые 30 секунд
-        function updateActivity() {
-            fetch('/api/activity')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.activities && data.activities.length > 0) {
-                        const activityList = document.querySelector('.activity-list');
-                        if (activityList) {
-                            activityList.innerHTML = '';
-                            data.activities.forEach(activity => {
-                                const statusClass = activity.status === 'success' ? 'badge-success' :
-                                    activity.status === 'error' ? 'badge-danger' :
-                                        activity.status === 'warning' ? 'badge-warning' : 'badge-secondary';
-                                const statusText = activity.status === 'success' ? 'OK' :
-                                    activity.status === 'error' ? 'Ошибка' :
-                                        activity.status === 'warning' ? 'Внимание' : 'Инфо';
-
-                                const item = document.createElement('div');
-                                item.className = 'activity-item';
-                                item.innerHTML = `
-                                    <div class="activity-content">
-                                        <div class="activity-header">
-                                            <span class="badge ${statusClass}">${statusText}</span>
-                                            <span class="activity-integration">${activity.integration_name}</span>
-                                        </div>
-                                        <p class="activity-message">${activity.message}</p>
-                                        ${activity.request_url ? `<p class="activity-url" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem; font-family: monospace;">${activity.request_url}</p>` : ''}
+                            const item = document.createElement('div');
+                            item.className = 'activity-item';
+                            item.innerHTML = `
+                                <div class="activity-content">
+                                    <div class="activity-header">
+                                        <span class="badge ${statusClass}">${statusText}</span>
+                                        <span class="activity-integration">${activity.integration_name}</span>
                                     </div>
-                                    <span class="activity-time">${activity.time_ago}</span>
-                                `;
-                                activityList.appendChild(item);
-                            });
-                        }
+                                    <p class="activity-message">${activity.message}</p>
+                                    ${activity.request_url ? `<p class="activity-url" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem; font-family: monospace;">${activity.request_url}</p>` : ''}
+                                </div>
+                                <span class="activity-time">${activity.time_ago}</span>
+                            `;
+                            activityList.appendChild(item);
+                        });
                     }
-                })
-                .catch(error => console.error('Ошибка обновления активности:', error));
-        }
+                }
+            })
+            .catch(error => console.error('Ошибка обновления активности:', error));
+    }
 
-        // Обновляем активность каждые 30 секунд
-        setInterval(updateActivity, 30000);
-    </script>
-</body>
-
-</html>
+    // Обновляем активность каждые 30 секунд
+    setInterval(updateActivity, 30000);
+</script>
+{{ end }}

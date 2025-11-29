@@ -15,15 +15,17 @@ func ProjectList(c *gin.Context) {
 	var projects []models.Project
 	database.DB.Preload("Integrations").Preload("CreatedBy").Find(&projects)
 
-	c.HTML(http.StatusOK, "projects.html", gin.H{
-		"title":    "Проекты",
-		"projects": projects,
+	c.HTML(http.StatusOK, "pages/projects.html", gin.H{
+		"title":       "Проекты",
+		"CurrentPage": "projects",
+		"projects":    projects,
 	})
 }
 
 func ProjectCreate(c *gin.Context) {
-	c.HTML(http.StatusOK, "project_create.html", gin.H{
-		"title": "Создание проекта",
+	c.HTML(http.StatusOK, "pages/project_create.html", gin.H{
+		"title":       "Создание проекта",
+		"CurrentPage": "projects",
 	})
 }
 
@@ -65,9 +67,10 @@ func ProjectView(c *gin.Context) {
 		return
 	}
 
-	c.HTML(http.StatusOK, "project_view.html", gin.H{
-		"title":   project.Name,
-		"project": project,
+	c.HTML(http.StatusOK, "pages/project_view.html", gin.H{
+		"title":       project.Name,
+		"CurrentPage": "projects",
+		"project":     project,
 	})
 }
 
@@ -82,9 +85,10 @@ func ProjectCreateIntegration(c *gin.Context) {
 		return
 	}
 
-	c.HTML(http.StatusOK, "project_integration_create.html", gin.H{
-		"title":   "Создание интеграции",
-		"project": project,
+	c.HTML(http.StatusOK, "pages/project_integration_create.html", gin.H{
+		"title":       "Создание интеграции",
+		"CurrentPage": "projects",
+		"project":     project,
 	})
 }
 
@@ -160,9 +164,10 @@ func ProjectEdit(c *gin.Context) {
 		return
 	}
 
-	c.HTML(http.StatusOK, "project_edit.html", gin.H{
-		"title":   "Редактирование проекта",
-		"project": project,
+	c.HTML(http.StatusOK, "pages/project_edit.html", gin.H{
+		"title":       "Редактирование проекта",
+		"CurrentPage": "projects",
+		"project":     project,
 	})
 }
 

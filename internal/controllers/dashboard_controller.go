@@ -123,9 +123,10 @@ func DashboardPage(c *gin.Context) {
 	}
 	progressPercentage := (completedSteps * 100) / 5
 
-	c.HTML(http.StatusOK, "dashboard.html", gin.H{
+	c.HTML(http.StatusOK, "pages/dashboard.html", gin.H{
 		"title":               "Главная",
 		"role":                role,
+		"CurrentPage":         "dashboard",
 		"total_integrations":  totalIntegrations,
 		"active_integrations": activeIntegrations,
 		"total_requests":      totalRequests,

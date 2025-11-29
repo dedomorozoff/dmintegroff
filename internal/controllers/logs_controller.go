@@ -56,9 +56,10 @@ func LogsPage(c *gin.Context) {
 	var logs []models.RequestLog
 	database.DB.Order("created_at desc").Limit(100).Find(&logs)
 
-	c.HTML(http.StatusOK, "logs.html", gin.H{
-		"title": "Логи запросов",
-		"logs":  logs,
+	c.HTML(http.StatusOK, "pages/logs.html", gin.H{
+		"title":       "Логи запросов",
+		"CurrentPage": "logs",
+		"logs":        logs,
 	})
 }
 

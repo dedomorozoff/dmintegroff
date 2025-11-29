@@ -18,8 +18,9 @@ func IntegrationList(c *gin.Context) {
 	var integrations []models.Integration
 	database.DB.Preload("Project").Find(&integrations)
 
-	c.HTML(http.StatusOK, "integrations.html", gin.H{
+	c.HTML(http.StatusOK, "pages/integrations.html", gin.H{
 		"title":        "Интеграции",
+		"CurrentPage":  "integrations",
 		"integrations": integrations,
 	})
 }
@@ -56,9 +57,10 @@ func IntegrationCreate(c *gin.Context) {
 	var projects []models.Project
 	database.DB.Find(&projects)
 
-	c.HTML(http.StatusOK, "integration_create.html", gin.H{
-		"title":    "Создание интеграции",
-		"projects": projects,
+	c.HTML(http.StatusOK, "pages/integration_create.html", gin.H{
+		"title":       "Создание интеграции",
+		"CurrentPage": "integration_create",
+		"projects":    projects,
 	})
 }
 
@@ -272,8 +274,9 @@ func IntegrationConfigure(c *gin.Context) {
 		json.Unmarshal([]byte(integration.MappingConfig), &currentMapping)
 	}
 
-	c.HTML(http.StatusOK, "integration_configure.html", gin.H{
+	c.HTML(http.StatusOK, "pages/integration_configure.html", gin.H{
 		"title":          "Настройка маппинга",
+		"CurrentPage":    "integrations",
 		"integration":    integration,
 		"sampleData":     sampleData,
 		"fields":         fields,
@@ -361,8 +364,9 @@ func IntegrationEdit(c *gin.Context) {
 		return
 	}
 
-	c.HTML(http.StatusOK, "integration_edit.html", gin.H{
+	c.HTML(http.StatusOK, "pages/integration_edit.html", gin.H{
 		"title":       "Редактирование интеграции",
+		"CurrentPage": "integrations",
 		"integration": integration,
 	})
 }

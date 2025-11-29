@@ -32,7 +32,7 @@ func SetupRouter() *gin.Engine {
 	// Serve static files
 	r.Static("/static", "./static")
 
-	r.LoadHTMLGlob("templates/*")
+	r.LoadHTMLGlob("templates/*/*")
 
 	// Get custom app path from env
 	appPath := os.Getenv("APP_PATH")

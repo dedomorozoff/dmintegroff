@@ -1,0 +1,31 @@
+{{ define "pages/login.html" }}
+{{ template "partials/head.html" . }}
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-logo">
+                <img src="/static/img/logo.png" alt="dmIntegroff" style="max-width: 280px; width: 100%; height: auto; margin-bottom: 1rem;">
+                <p>Система управления интеграциями</p>
+            </div>
+
+            {{ if .error }}
+            <div class="error-box">{{ .error }}</div>
+            {{ end }}
+
+            <form method="POST" action="/login">
+                <div class="form-group">
+                    <label for="username">Имя пользователя</label>
+                    <input type="text" id="username" name="username" required autofocus>
+                </div>
+                <div class="form-group">
+                    <label for="password">Пароль</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" class="btn" style="width: 100%; justify-content: center;">
+                    Войти в систему
+                </button>
+            </form>
+        </div>
+    </div>
+
+    {{ template "partials/scripts.html" . }}
+{{ end }}
