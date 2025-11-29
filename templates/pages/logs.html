@@ -5,15 +5,33 @@
     <!-- Main Content -->
     <main class="main-content">
         <div class="page-header">
-            <h1>Логи запросов</h1>
-            <p>История всех webhook запросов и ответов</p>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>Тесты интеграций</h1>
+                    <p>История тестовых запросов и ответов интеграций</p>
+                </div>
+                {{ if .logs }}
+                <form method="POST" action="/logs/clear" style="margin: 0;" onsubmit="return confirm('Вы уверены, что хотите удалить все тесты?')">
+                    <button type="submit" class="btn btn-danger">
+                        <i data-lucide="trash-2"></i>
+                        Очистить все
+                    </button>
+                </form>
+                {{ end }}
+            </div>
         </div>
 
         <!-- Filters -->
         <div class="card">
             <form method="GET" action="/logs" class="filter-form">
-                <input type="text" name="integration_id" placeholder="ID интеграции" value="{{ .filter_integration_id }}">
-                <select name="status">
+                <input type="text" name="search" placeholder="Поиск по ID или названию интеграции" value="{{ .filter_search }}" style="flex: 2;">
+                <select name="project_id" style="flex: 1;">
+                    <option value="">Все проекты</option>
+                    {{ range .projects }}
+                    <option value="{{ .ID }}" {{ if eq $.filter_project (printf "%d" .ID) }}selected{{ end }}>{{ .Name }}</option>
+                    {{ end }}
+                </select>
+                <select name="status" style="flex: 1;">
                     <option value="">Все статусы</option>
                     <option value="success" {{ if eq .filter_status "success" }}selected{{ end }}>Успешные</option>
                     <option value="error" {{ if eq .filter_status "error" }}selected{{ end }}>Ошибки</option>
@@ -45,8 +63,20 @@
                     </span>
                 </div>
                 <div class="log-meta">
+                    {{ if .Integration }}
+                    <i data-lucide="webhook" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+                    <strong>{{ .Integration.Name }}</strong>
+                    {{ if .Integration.Project }}
+                    <span style="margin: 0 8px;">•</span>
+                    <i data-lucide="folder-kanban" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+                    {{ .Integration.Project.Name }}
+                    {{ end }}
+                    <span style="margin: 0 8px;">•</span>
+                    ID: {{ .IntegrationID }}
+                    {{ else }}
                     <i data-lucide="webhook" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
                     Интеграция #{{ .IntegrationID }}
+                    {{ end }}
                 </div>
             </div>
 
@@ -62,31 +92,70 @@
 
             <div class="log-section">
                 <div class="log-section-title">
+                    {{ if eq .LogType "incoming" }}
                     <i data-lucide="arrow-down-circle" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
-                    Входящий запрос
+                    Входящий webhook
+                    {{ else }}
+                    <i data-lucide="arrow-up-circle" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+                    Исходящий запрос к Target API
+                    {{ end }}
                 </div>
-                <div class="log-code">{{ .RequestBody }}</div>
+                <pre class="log-code json-highlight"><code>{{ .RequestBody }}</code></pre>
             </div>
 
             {{ if .ResponseBody }}
             <div class="log-section">
                 <div class="log-section-title">
-                    <i data-lucide="arrow-up-circle" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
-                    Ответ API
+                    <i data-lucide="check-circle" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+                    Ответ от Target API
                 </div>
-                <div class="log-code">{{ .ResponseBody }}</div>
+                <pre class="log-code json-highlight"><code>{{ .ResponseBody }}</code></pre>
             </div>
             {{ end }}
         </div>
         {{ end }}
         {{ else }}
         <div class="card" style="text-align: center; padding: 3rem; color: var(--muted-foreground);">
-            <div style="font-size: 3rem; margin-bottom: 1rem;">📝</div>
-            <h3 style="margin-bottom: 0.5rem;">Логов пока нет</h3>
-            <p>Логи появятся после первых webhook запросов</p>
+            <div style="font-size: 3rem; margin-bottom: 1rem;">
+                <i data-lucide="flask-conical" style="width: 64px; height: 64px; stroke-width: 1.5;"></i>
+            </div>
+            <h3 style="margin-bottom: 0.5rem;">Тестов пока нет</h3>
+            <p>Тесты появятся после первых запросов к интеграциям</p>
         </div>
         {{ end }}
     </main>
 
     {{ template "partials/scripts.html" . }}
+    <script>
+        // Подсветка JSON
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.json-highlight code').forEach(function(block) {
+                try {
+                    const json = JSON.parse(block.textContent);
+                    block.innerHTML = syntaxHighlight(JSON.stringify(json, null, 2));
+                } catch(e) {
+                    // Если не JSON, оставляем как есть
+                }
+            });
+        });
+
+        function syntaxHighlight(json) {
+            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                var cls = 'json-number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'json-key';
+                    } else {
+                        cls = 'json-string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'json-boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'json-null';
+                }
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+        }
+    </script>
 {{ end }}

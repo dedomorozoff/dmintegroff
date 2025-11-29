@@ -70,11 +70,43 @@ func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 			"target_api":     integration.TargetAPI,
 			"error":          err.Error(),
 		}).Error("Failed to send webhook to target API")
+		
+		// Логируем ошибку отправки
+		log := models.RequestLog{
+			IntegrationID: integrationID,
+			Method:        "POST",
+			URL:           integration.TargetAPI,
+			RequestBody:   string(jsonData),
+			StatusCode:    500,
+			LogType:       "outgoing",
+			ErrorMessage:  err.Error(),
+		}
+		database.DB.Create(&log)
+		
 		return err
 	}
 	defer resp.Body.Close()
 
-	// Логируем успешную отправку
+	// Читаем ответ от целевого API
+	var responseBody []byte
+	if resp.Body != nil {
+		buf := new(bytes.Buffer)
+		buf.ReadFrom(resp.Body)
+		responseBody = buf.Bytes()
+	}
+
+	// Логируем успешную отправку к target API
+	log := models.RequestLog{
+		IntegrationID: integrationID,
+		Method:        "POST",
+		URL:           integration.TargetAPI,
+		RequestBody:   string(jsonData),
+		ResponseBody:  string(responseBody),
+		StatusCode:    resp.StatusCode,
+		LogType:       "outgoing",
+	}
+	database.DB.Create(&log)
+
 	logger.Log.WithFields(map[string]interface{}{
 		"integration_id": integrationID,
 		"target_api":     integration.TargetAPI,

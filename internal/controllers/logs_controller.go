@@ -53,13 +53,44 @@ func TestEndpoint(c *gin.Context) {
 
 // LogsPage - страница с логами
 func LogsPage(c *gin.Context) {
+	query := database.DB.Preload("Integration").Preload("Integration.Project").Order("created_at desc")
+
+	// Фильтры
+	if integrationID := c.Query("integration_id"); integrationID != "" {
+		query = query.Where("integration_id = ?", integrationID)
+	}
+	if projectID := c.Query("project_id"); projectID != "" {
+		query = query.Joins("JOIN integrations ON integrations.id = request_logs.integration_id").
+			Where("integrations.project_id = ?", projectID)
+	}
+	if search := c.Query("search"); search != "" {
+		query = query.Joins("JOIN integrations ON integrations.id = request_logs.integration_id").
+			Where("integrations.name LIKE ? OR request_logs.id = ?", "%"+search+"%", search)
+	}
+	if status := c.Query("status"); status != "" {
+		if status == "error" {
+			query = query.Where("error_message != '' AND error_message IS NOT NULL")
+		} else if status == "success" {
+			query = query.Where("error_message = '' OR error_message IS NULL")
+		}
+	}
+
 	var logs []models.RequestLog
-	database.DB.Order("created_at desc").Limit(100).Find(&logs)
+	query.Limit(100).Find(&logs)
+
+	// Получаем список проектов для фильтра
+	var projects []models.Project
+	database.DB.Order("name").Find(&projects)
 
 	c.HTML(http.StatusOK, "pages/logs.html", gin.H{
-		"title":       "Логи запросов",
-		"CurrentPage": "logs",
-		"logs":        logs,
+		"title":              "Тесты интеграций",
+		"CurrentPage":        "logs",
+		"logs":               logs,
+		"projects":           projects,
+		"filter_integration": c.Query("integration_id"),
+		"filter_project":     c.Query("project_id"),
+		"filter_search":      c.Query("search"),
+		"filter_status":      c.Query("status"),
 	})
 }
 
