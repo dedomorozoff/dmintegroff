@@ -9,7 +9,7 @@
             <p><strong>Интеграция:</strong> {{ .integration.Name }}</p>
             {{ if and (not .integration.SamplePayload) (eq .integration.Mode "active") }}
             <div class="warning-box" style="margin-top: 1rem;">
-                ⚠️ <strong>Внимание:</strong> Редактирование маппинга без образца данных. Текущий маппинг восстановлен из конфигурации.
+                <i data-lucide="alert-triangle"></i> <strong>Внимание:</strong> Редактирование маппинга без образца данных. Текущий маппинг восстановлен из конфигурации.
             </div>
             {{ end }}
         </div>
@@ -30,7 +30,7 @@
                               style="width: 100%; min-height: 300px; font-family: 'Courier New', monospace; background: #1a1f2e; color: #abb2bf; padding: 1rem; border-radius: 8px; border: 1px solid #2d3748;"
                               placeholder="Вставьте JSON здесь...">{{ .integration.SamplePayload }}</textarea>
                     <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-                        <button type="submit" class="btn btn-success">💾 Сохранить изменения</button>
+                        <button type="submit" class="btn btn-success"><i data-lucide="save"></i> Сохранить изменения</button>
                         <button type="button" class="btn btn-secondary" onclick="toggleEditPayload()">Отмена</button>
                     </div>
                 </form>
@@ -99,7 +99,7 @@
                                 <tr>
                                     <td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 2rem;">
                                         {{ if eq .integration.Mode "active" }}
-                                        Нет образца данных. Маппинг можно редактировать, но рекомендуется сначала получить образец данных через кнопку "🔄 Переопределить маппинг".
+                                        Нет образца данных. Маппинг можно редактировать, но рекомендуется сначала получить образец данных через кнопку "<i data-lucide="refresh-cw"></i> Переопределить маппинг".
                                         {{ else }}
                                         Нет данных для отображения. Отправьте запрос на webhook для захвата данных.
                                         {{ end }}

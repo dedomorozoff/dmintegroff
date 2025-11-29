@@ -10,7 +10,7 @@
         </div>
 
         <div class="warning-box">
-            ⚠️ <strong>Внимание:</strong> Изменение Target API может нарушить работу активной интеграции
+            <i data-lucide="alert-triangle"></i> <strong>Внимание:</strong> Изменение Target API может нарушить работу активной интеграции
         </div>
 
         <div class="info-box">
@@ -22,13 +22,13 @@
                             class="btn btn-secondary btn-sm" 
                             style="padding: 0.25rem 0.5rem; font-size: 0.85rem;"
                             title="Копировать URL">
-                        📋
+                        <i data-lucide="copy"></i>
                     </button>
                 </div>
                 <form method="POST" action="/integrations/{{ .integration.ID }}/regenerate-token" 
                       style="display: inline;"
                       onsubmit="return confirm('⚠️ Внимание! Генерация нового URL сделает старый URL недействительным. Продолжить?');">
-                    <button type="submit" class="btn btn-secondary btn-sm">🔄 Сгенерировать новый URL</button>
+                    <button type="submit" class="btn btn-secondary btn-sm"><i data-lucide="refresh-cw"></i> Сгенерировать новый URL</button>
                 </form>
             </div>
             <small style="display: block; margin-top: 0.5rem;">После генерации нового URL старый URL перестанет работать</small>
@@ -45,7 +45,7 @@
                     <label>Target API URL *</label>
                     <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
                         <input type="text" id="target_api" name="target_api" value="{{ .integration.TargetAPI }}" required style="flex: 1;">
-                        <button type="button" class="btn btn-secondary" onclick="fillTestUrl()" style="white-space: nowrap;">🧪 Тестовый URL</button>
+                        <button type="button" class="btn btn-secondary" onclick="fillTestUrl()" style="white-space: nowrap;"><i data-lucide="flask"></i> Тестовый URL</button>
                     </div>
                     <small>Куда будут отправляться преобразованные данные</small>
                 </div>
@@ -57,7 +57,7 @@
                 </div>
 
                 <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-                    <button type="submit" class="btn btn-success">💾 Сохранить изменения</button>
+                    <button type="submit" class="btn btn-success"><i data-lucide="save"></i> Сохранить изменения</button>
                     <a href="/integrations" class="btn btn-secondary">Отмена</a>
                 </div>
             </form>

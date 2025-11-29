@@ -11,13 +11,13 @@
 
         {{ if not .projects }}
         <div class="info-box" style="background: #fff3cd; border-color: #ffc107; color: #856404;">
-            <strong>⚠️ Внимание:</strong><br>
+            <strong><i data-lucide="alert-triangle"></i> Внимание:</strong><br>
             Для создания интеграции необходимо сначала создать проект.<br>
             <a href="/projects/create" class="btn btn-success" style="margin-top: 1rem;">➕ Создать проект</a>
         </div>
         {{ else }}
         <div class="info-box">
-            <strong>ℹ️ Как это работает:</strong><br>
+            <strong><i data-lucide="info"></i> Как это работает:</strong><br>
             1. Создайте интеграцию и получите уникальный webhook URL<br>
             2. Отправьте тестовый запрос на этот URL<br>
             3. Настройте маппинг полей<br>
@@ -36,7 +36,7 @@
                     <label>Target API URL *</label>
                     <div style="display: flex; gap: 0.5rem;">
                         <input type="text" id="target_api" name="target_api" required placeholder="https://api.example.com/endpoint" style="flex: 1;">
-                        <button type="button" onclick="fillTestUrl()" class="btn btn-secondary" style="white-space: nowrap;">🧪 Тестовый URL</button>
+                        <button type="button" onclick="fillTestUrl()" class="btn btn-secondary" style="white-space: nowrap;"><i data-lucide="flask"></i> Тестовый URL</button>
                     </div>
                     <small>Куда будут отправляться преобразованные данные</small>
                 </div>

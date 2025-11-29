@@ -1,39 +1,8 @@
 {{ define "pages/project_edit.html" }}
 {{ template "partials/head.html" . }}
-    <aside class="sidebar">
-        <div class="sidebar-logo">
-            <img src="/static/img/logo.png" alt="dmIntegroff" class="sidebar-logo-img">
-        </div>
-        
-        <nav class="sidebar-nav">
-            <ul>
-                <li><a href="/"><i data-lucide="layout-dashboard"></i> Обзор</a></li>
-                <li><a href="/projects" class="active"><i data-lucide="folder-kanban"></i> Проекты</a></li>
-                <li><a href="/integrations"><i data-lucide="webhook"></i> Интеграции</a></li>
-                <li><a href="/integrations/create"><i data-lucide="plus"></i> Создать</a></li>
-                <li><a href="/logs"><i data-lucide="file-text"></i> Логи</a></li>
-            </ul>
-        </nav>
-        
-        <div class="sidebar-settings">
-            <a href="/settings"><i data-lucide="settings"></i> Настройки</a>
-            <a href="/help"><i data-lucide="help-circle"></i> Помощь</a>
-        </div>
-        
-        <div class="sidebar-user">
-            <div class="sidebar-user-info">
-                <div class="sidebar-user-avatar">{{ if .role }}{{ slice .role 0 1 }}{{ else }}U{{ end }}</div>
-                <div class="sidebar-user-details">
-                    <h4>{{ if .role }}{{ .role }}{{ else }}Пользователь{{ end }}</h4>
-                    <p>Активен</p>
-                </div>
-                <a href="/logout" class="logout-btn" title="Выйти">
-                    <i data-lucide="log-out"></i>
-                </a>
-            </div>
-        </div>
-    </aside>
+{{ template "partials/sidebar.html" . }}
 
+    <!-- Main Content -->
     <main class="main-content">
         <div class="page-header">
             <h1>Редактирование проекта</h1>
