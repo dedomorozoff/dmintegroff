@@ -67,6 +67,7 @@ func SetupRouter() *gin.Engine {
 		})
 
 		authorized.GET("/integrations", controllers.IntegrationList)
+		authorized.GET("/api/integrations", controllers.IntegrationsListAPI)
 		authorized.GET("/integrations/create", controllers.IntegrationCreate)
 		authorized.POST("/integrations", controllers.IntegrationStore)
 		authorized.GET("/integrations/:id/edit", controllers.IntegrationEdit)
@@ -76,6 +77,7 @@ func SetupRouter() *gin.Engine {
 		authorized.POST("/integrations/:id/reconfigure", controllers.IntegrationReconfigure)
 		authorized.GET("/integrations/:id/configure", controllers.IntegrationConfigure)
 		authorized.POST("/integrations/:id/configure", controllers.IntegrationSaveMapping)
+		authorized.GET("/api/integrations/:id/check", controllers.IntegrationCheckUpdate)
 
 		// Projects
 		authorized.GET("/projects", controllers.ProjectList)

@@ -56,7 +56,7 @@
                     <tbody>
                         {{ if .integrations }}
                         {{ range .integrations }}
-                        <tr>
+                        <tr data-integration-id="{{ .ID }}" data-integration-mode="{{ .Mode }}" data-has-payload="{{ if .SamplePayload }}true{{ else }}false{{ end }}">
                             <td><strong>{{ .Name }}</strong></td>
                             <td>
                                 <a href="/projects/{{ .Project.ID }}" style="color: var(--accent-primary);">📁 {{ .Project.Name }}</a>
@@ -79,12 +79,12 @@
                             </td>
                             <td>{{ if .TargetAPI }}{{ .TargetAPI }}{{ else }}<span style="color: var(--text-secondary);">-</span>{{ end }}</td>
                             <td style="text-align: right;">
-                                <div style="display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap;">
+                                <div style="display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap;" data-actions-cell>
                                     {{ if eq .Mode "listening" }}
                                         {{ if .SamplePayload }}
-                                        <a href="/integrations/{{ .ID }}/configure" class="btn btn-success btn-sm">⚙️ Настроить</a>
+                                        <a href="/integrations/{{ .ID }}/configure" class="btn btn-success btn-sm" data-configure-btn>⚙️ Настроить</a>
                                         {{ else }}
-                                        <span style="color: var(--text-secondary); font-size: 0.85rem;">Ожидание данных...</span>
+                                        <span style="color: var(--text-secondary); font-size: 0.85rem;" data-waiting-text>Ожидание данных...</span>
                                         {{ end }}
                                     {{ else if eq .Mode "active" }}
                                         <form method="POST" action="/integrations/{{ .ID }}/toggle" style="display: inline;">
@@ -133,6 +133,57 @@
             navigator.clipboard.writeText(text).then(() => {
                 alert('Скопировано: ' + text);
             });
+        }
+
+        // Автоматическое обновление статусов интеграций в режиме прослушивания
+        function updateIntegrationStatuses() {
+            fetch('/api/integrations')
+                .then(response => response.json())
+                .then(data => {
+                    data.integrations.forEach(integration => {
+                        const row = document.querySelector(`tr[data-integration-id="${integration.id}"]`);
+                        if (!row) return;
+
+                        const currentMode = row.getAttribute('data-integration-mode');
+                        const currentHasPayload = row.getAttribute('data-has-payload') === 'true';
+                        const actionsCell = row.querySelector('[data-actions-cell]');
+
+                        // Обновляем только если интеграция в режиме listening и изменился статус payload
+                        if (currentMode === 'listening' && integration.has_payload && !currentHasPayload) {
+                            // Обновляем атрибут
+                            row.setAttribute('data-has-payload', 'true');
+
+                            // Удаляем текст "Ожидание данных..."
+                            const waitingText = row.querySelector('[data-waiting-text]');
+                            if (waitingText) {
+                                waitingText.remove();
+                            }
+
+                            // Добавляем кнопку "Настроить", если её еще нет
+                            const existingBtn = row.querySelector('[data-configure-btn]');
+                            if (!existingBtn && actionsCell) {
+                                const configureBtn = document.createElement('a');
+                                configureBtn.href = `/integrations/${integration.id}/configure`;
+                                configureBtn.className = 'btn btn-success btn-sm';
+                                configureBtn.setAttribute('data-configure-btn', '');
+                                configureBtn.textContent = '⚙️ Настроить';
+                                actionsCell.insertBefore(configureBtn, actionsCell.firstChild);
+                            }
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Ошибка при обновлении статусов:', error);
+                });
+        }
+
+        // Запускаем обновление каждые 2 секунды, если есть интеграции в режиме listening
+        const listeningRows = document.querySelectorAll('tr[data-integration-mode="listening"][data-has-payload="false"]');
+        if (listeningRows.length > 0) {
+            // Первая проверка сразу
+            updateIntegrationStatuses();
+            // Затем каждые 2 секунды
+            setInterval(updateIntegrationStatuses, 2000);
         }
     </script>
 </body>

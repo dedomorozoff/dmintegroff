@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"bufio"
-	"encoding/json"
 	"dmintegroff/internal/database"
 	"dmintegroff/internal/models"
+	"encoding/json"
 	"net/http"
 	"os"
 	"strconv"
@@ -23,7 +23,7 @@ func TestEndpoint(c *gin.Context) {
 	// Сохраняем лог с заголовками
 	payloadJSON, _ := json.Marshal(payload)
 	headersJSON, _ := json.Marshal(c.Request.Header)
-	
+
 	log := models.RequestLog{
 		Method:         c.Request.Method,
 		URL:            c.Request.URL.Path,
@@ -34,10 +34,20 @@ func TestEndpoint(c *gin.Context) {
 	}
 	CreateLogWithLimit(&log)
 
+	// Обновляем все интеграции в режиме прослушивания, которые еще не имеют данных
+	var integrations []models.Integration
+	database.DB.Where("mode = ? AND (sample_payload = '' OR sample_payload IS NULL)", "listening").Find(&integrations)
+
+	for _, integration := range integrations {
+		integration.SamplePayload = string(payloadJSON)
+		database.DB.Save(&integration)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"status":  "success",
-		"message": "Test request received",
-		"data":    payload,
+		"status":               "success",
+		"message":              "Test request received",
+		"data":                 payload,
+		"updated_integrations": len(integrations),
 	})
 }
 
@@ -62,7 +72,7 @@ func ClearLogs(c *gin.Context) {
 func DeleteLog(c *gin.Context) {
 	idStr := c.Param("id")
 	id, _ := strconv.ParseUint(idStr, 10, 32)
-	
+
 	database.DB.Delete(&models.RequestLog{}, uint(id))
 	c.Redirect(http.StatusFound, "/logs")
 }
@@ -92,11 +102,11 @@ func LogError(method, url, errorMsg string, statusCode int) {
 // CreateLogWithLimit - создает лог и удаляет старые, если их больше 50
 func CreateLogWithLimit(log *models.RequestLog) {
 	database.DB.Create(log)
-	
+
 	// Подсчитываем количество логов
 	var count int64
 	database.DB.Model(&models.RequestLog{}).Count(&count)
-	
+
 	// Если больше 50, удаляем самые старые
 	if count > 50 {
 		database.DB.Exec("DELETE FROM request_logs WHERE id IN (SELECT id FROM request_logs ORDER BY created_at ASC LIMIT ?)", count-50)
@@ -107,7 +117,7 @@ func CreateLogWithLimit(log *models.RequestLog) {
 func ServerLogsAPI(c *gin.Context) {
 	// Читаем последние 100 строк из лог-файла
 	logFile := "dmIntegroff.log"
-	
+
 	file, err := os.Open(logFile)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
@@ -128,7 +138,7 @@ func ServerLogsAPI(c *gin.Context) {
 	if len(lines) > 100 {
 		start = len(lines) - 100
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"logs": lines[start:],
 	})

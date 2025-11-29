@@ -24,6 +24,34 @@ func IntegrationList(c *gin.Context) {
 	})
 }
 
+// IntegrationsListAPI - API endpoint для получения списка интеграций в JSON
+func IntegrationsListAPI(c *gin.Context) {
+	var integrations []models.Integration
+	database.DB.Preload("Project").Find(&integrations)
+
+	// Возвращаем только необходимые данные для обновления статуса
+	type IntegrationStatus struct {
+		ID            uint   `json:"id"`
+		Mode          string `json:"mode"`
+		HasPayload    bool   `json:"has_payload"`
+		SamplePayload string `json:"sample_payload"`
+	}
+
+	statuses := make([]IntegrationStatus, len(integrations))
+	for i, integration := range integrations {
+		statuses[i] = IntegrationStatus{
+			ID:            integration.ID,
+			Mode:          integration.Mode,
+			HasPayload:    integration.SamplePayload != "",
+			SamplePayload: integration.SamplePayload,
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"integrations": statuses,
+	})
+}
+
 func IntegrationCreate(c *gin.Context) {
 	var projects []models.Project
 	database.DB.Find(&projects)
@@ -162,11 +190,42 @@ func IntegrationConfigure(c *gin.Context) {
 		json.Unmarshal([]byte(integration.SamplePayload), &sampleData)
 	}
 
+	// Подготавливаем payload для JavaScript (экранируем JSON)
+	var payloadJSON string
+	if integration.SamplePayload != "" {
+		payloadBytes, _ := json.Marshal(integration.SamplePayload)
+		payloadJSON = string(payloadBytes)
+	} else {
+		payloadJSON = "null"
+	}
+
 	c.HTML(http.StatusOK, "integration_configure.html", gin.H{
 		"title":       "Настройка маппинга",
 		"integration": integration,
 		"sampleData":  sampleData,
 		"fields":      fields,
+		"payloadJSON": payloadJSON,
+	})
+}
+
+// IntegrationCheckUpdate - API endpoint для проверки обновлений интеграции
+func IntegrationCheckUpdate(c *gin.Context) {
+	idStr := c.Param("id")
+	id, _ := strconv.ParseUint(idStr, 10, 32)
+
+	var integration models.Integration
+	if err := database.DB.First(&integration, uint(id)).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Integration not found"})
+		return
+	}
+
+	// Возвращаем информацию о том, есть ли SamplePayload
+	hasPayload := integration.SamplePayload != ""
+
+	c.JSON(http.StatusOK, gin.H{
+		"has_payload":    hasPayload,
+		"mode":           integration.Mode,
+		"sample_payload": integration.SamplePayload,
 	})
 }
 

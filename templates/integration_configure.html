@@ -130,6 +130,12 @@
 
     <script src="/static/js/common.js"></script>
     <script>
+        const integrationId = {{ .integration.ID }};
+        const currentMode = "{{ .integration.Mode }}";
+        const hasPayload = {{ if .integration.SamplePayload }}true{{ else }}false{{ end }};
+        const initialPayload = {{ .payloadJSON }};
+        let checkInterval = null;
+
         function toggleEditPayload() {
             const view = document.getElementById('payloadView');
             const edit = document.getElementById('payloadEdit');
@@ -167,6 +173,170 @@
             document.getElementById('mappingConfig').value = JSON.stringify(mapping);
             form.submit();
         }
+
+        // Функция для проверки обновлений интеграции
+        let lastPayloadLength = hasPayload ? (initialPayload && initialPayload !== 'null' && initialPayload !== '""' ? initialPayload.length : 0) : 0;
+        let isUpdating = false; // Флаг для предотвращения множественных обновлений
+        
+        function checkIntegrationUpdate() {
+            // Если уже обновляемся, не проверяем снова
+            if (isUpdating) {
+                return;
+            }
+            
+            fetch(`/api/integrations/${integrationId}/check`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const currentPayload = data.sample_payload || '';
+                    const currentLength = currentPayload.length;
+                    
+                    // Если пришли данные и их раньше не было, обновляем страницу только один раз
+                    if (data.has_payload && currentLength > 0 && currentLength !== lastPayloadLength && !hasPayload) {
+                        // Устанавливаем флаг обновления
+                        isUpdating = true;
+                        
+                        // Останавливаем интервал проверки
+                        if (checkInterval) {
+                            clearInterval(checkInterval);
+                            checkInterval = null;
+                        }
+                        
+                        // Удаляем индикатор ожидания, если есть
+                        const waitingIndicator = document.getElementById('waitingIndicator');
+                        if (waitingIndicator) {
+                            waitingIndicator.remove();
+                        }
+                        
+                        // Показываем уведомление
+                        showNotification('📥 Получены новые данные! Обновление страницы...', 'success');
+                        
+                        // Обновляем страницу через небольшую задержку
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else if (data.has_payload && currentLength > 0) {
+                        // Если данные уже есть, обновляем длину, но не обновляем страницу
+                        lastPayloadLength = currentLength;
+                    } else if (!data.has_payload && lastPayloadLength > 0) {
+                        // Если данных нет, но раньше были - сбрасываем
+                        lastPayloadLength = 0;
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка при проверке обновлений:', error);
+                    // Не показываем ошибку пользователю, чтобы не мешать
+                });
+        }
+
+        // Функция для показа уведомления
+        function showNotification(message, type) {
+            // Удаляем предыдущее уведомление, если есть
+            const existing = document.getElementById('updateNotification');
+            if (existing) {
+                existing.remove();
+            }
+
+            const notification = document.createElement('div');
+            notification.id = 'updateNotification';
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#10b981' : '#ef4444'};
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 8px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                z-index: 10000;
+                animation: slideIn 0.3s ease-out;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            // Удаляем уведомление через 3 секунды
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+
+        // Запускаем проверку обновлений, если интеграция в режиме прослушивания и нет данных
+        if (currentMode === 'listening' && !hasPayload) {
+            // Проверяем каждые 2 секунды
+            checkInterval = setInterval(checkIntegrationUpdate, 2000);
+            
+            // Первая проверка сразу
+            checkIntegrationUpdate();
+            
+            // Показываем индикатор ожидания
+            const pageHeader = document.querySelector('.page-header');
+            if (pageHeader) {
+                const waitingIndicator = document.createElement('div');
+                waitingIndicator.id = 'waitingIndicator';
+                waitingIndicator.style.cssText = `
+                    background: #3b82f6;
+                    color: white;
+                    padding: 0.75rem 1.5rem;
+                    border-radius: 8px;
+                    margin-top: 1rem;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                `;
+                waitingIndicator.innerHTML = `
+                    <span style="animation: pulse 2s infinite;">⏳</span>
+                    <span>Ожидание данных... Страница будет автоматически обновлена при получении webhook</span>
+                `;
+                pageHeader.appendChild(waitingIndicator);
+            }
+        }
+
+        // Останавливаем проверку при уходе со страницы
+        window.addEventListener('beforeunload', () => {
+            if (checkInterval) {
+                clearInterval(checkInterval);
+            }
+        });
+
+        // Добавляем CSS анимации
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            @keyframes slideOut {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+            }
+            @keyframes pulse {
+                0%, 100% {
+                    opacity: 1;
+                }
+                50% {
+                    opacity: 0.5;
+                }
+            }
+        `;
+        document.head.appendChild(style);
 
         // Переопределяем функцию из common.js для этого шаблона
         if (typeof window.generateMapping === 'function') {
