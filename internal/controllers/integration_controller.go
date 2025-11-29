@@ -173,21 +173,36 @@ func IntegrationConfigure(c *gin.Context) {
 		return
 	}
 
-	// Parse sample payload to show fields (recursive)
+	// Если нет SamplePayload, но есть MappingConfig, пытаемся использовать его для отображения
+	// Это позволяет редактировать маппинг даже если нет свежих данных
 	var fields []utils.FieldInfo
+	var sampleData map[string]interface{}
+
 	if integration.SamplePayload != "" {
+		// Parse sample payload to show fields (recursive)
 		var err error
 		fields, err = utils.ParseJSONString(integration.SamplePayload)
 		if err != nil {
-			// Если не удалось распарсить, показываем пустой список
 			fields = []utils.FieldInfo{}
 		}
-	}
 
-	// Также сохраняем оригинальные данные для отображения
-	var sampleData map[string]interface{}
-	if integration.SamplePayload != "" {
+		// Также сохраняем оригинальные данные для отображения
 		json.Unmarshal([]byte(integration.SamplePayload), &sampleData)
+	} else if integration.MappingConfig != "" {
+		// Если нет SamplePayload, но есть MappingConfig, пытаемся восстановить структуру из маппинга
+		// Это позволяет редактировать маппинг активной интеграции
+		var mapping map[string]string
+		if err := json.Unmarshal([]byte(integration.MappingConfig), &mapping); err == nil {
+			// Создаем поля из маппинга (обратный маппинг)
+			for _, sourceField := range mapping {
+				fields = append(fields, utils.FieldInfo{
+					Path:     sourceField,
+					Value:    nil,
+					Type:     "unknown",
+					FullPath: sourceField,
+				})
+			}
+		}
 	}
 
 	// Подготавливаем payload для JavaScript (экранируем JSON)
@@ -199,12 +214,19 @@ func IntegrationConfigure(c *gin.Context) {
 		payloadJSON = "null"
 	}
 
+	// Загружаем текущий маппинг для отображения в форме
+	var currentMapping map[string]string
+	if integration.MappingConfig != "" {
+		json.Unmarshal([]byte(integration.MappingConfig), &currentMapping)
+	}
+
 	c.HTML(http.StatusOK, "integration_configure.html", gin.H{
-		"title":       "Настройка маппинга",
-		"integration": integration,
-		"sampleData":  sampleData,
-		"fields":      fields,
-		"payloadJSON": payloadJSON,
+		"title":          "Настройка маппинга",
+		"integration":    integration,
+		"sampleData":     sampleData,
+		"fields":         fields,
+		"payloadJSON":    payloadJSON,
+		"currentMapping": currentMapping,
 	})
 }
 
@@ -265,7 +287,12 @@ func IntegrationSaveMapping(c *gin.Context) {
 	// Get mapping config from form
 	mappingConfig := c.PostForm("mapping_config")
 	integration.MappingConfig = mappingConfig
-	integration.Mode = "active" // Activate integration
+
+	// Активируем интеграцию только если она была в режиме listening или inactive
+	// Если уже active, оставляем active
+	if integration.Mode == "listening" || integration.Mode == "inactive" {
+		integration.Mode = "active"
+	}
 
 	database.DB.Save(&integration)
 
@@ -305,6 +332,34 @@ func IntegrationUpdate(c *gin.Context) {
 	database.DB.Save(&integration)
 
 	c.Redirect(http.StatusFound, "/integrations")
+}
+
+// IntegrationRegenerateToken - генерация нового webhook токена
+func IntegrationRegenerateToken(c *gin.Context) {
+	idStr := c.Param("id")
+	id, _ := strconv.ParseUint(idStr, 10, 32)
+
+	var integration models.Integration
+	if err := database.DB.First(&integration, uint(id)).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Integration not found"})
+		return
+	}
+
+	// Генерируем новый токен
+	newToken, err := utils.GenerateToken(16)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		return
+	}
+
+	// Обновляем токен
+	integration.WebhookToken = newToken
+	if err := database.DB.Save(&integration).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update token"})
+		return
+	}
+
+	c.Redirect(http.StatusFound, fmt.Sprintf("/integrations/%d/edit", id))
 }
 
 func IntegrationDelete(c *gin.Context) {
@@ -357,6 +412,24 @@ func IntegrationReconfigure(c *gin.Context) {
 	// Переводим в режим прослушивания для получения новых данных
 	integration.Mode = "listening"
 	integration.SamplePayload = "" // Очищаем старые данные
+
+	database.DB.Save(&integration)
+	c.Redirect(http.StatusFound, "/integrations")
+}
+
+// IntegrationCancelListening - отмена режима прослушивания
+func IntegrationCancelListening(c *gin.Context) {
+	idStr := c.Param("id")
+	id, _ := strconv.ParseUint(idStr, 10, 32)
+
+	var integration models.Integration
+	if err := database.DB.First(&integration, uint(id)).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Integration not found"})
+		return
+	}
+
+	// Переводим в режим неактивна
+	integration.Mode = "inactive"
 
 	database.DB.Save(&integration)
 	c.Redirect(http.StatusFound, "/integrations")

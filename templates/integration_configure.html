@@ -30,6 +30,11 @@
         <div class="page-header">
             <h1>Настройка маппинга полей</h1>
             <p><strong>Интеграция:</strong> {{ .integration.Name }}</p>
+            {{ if and (not .integration.SamplePayload) (eq .integration.Mode "active") }}
+            <div class="warning-box" style="margin-top: 1rem;">
+                ⚠️ <strong>Внимание:</strong> Редактирование маппинга без образца данных. Текущий маппинг восстановлен из конфигурации.
+            </div>
+            {{ end }}
         </div>
 
         <div class="card">
@@ -80,27 +85,35 @@
                         </thead>
                         <tbody>
                             {{ if .fields }}
-                                {{ range .fields }}
+                                {{ range $field := .fields }}
                                 <tr>
-                                    <td><code style="color: #61afef;">{{ .Path }}</code></td>
-                                    <td><span style="color: #c678dd; font-size: 0.9em;">{{ .Type }}</span></td>
+                                    <td><code style="color: #61afef;">{{ $field.Path }}</code></td>
+                                    <td><span style="color: #c678dd; font-size: 0.9em;">{{ $field.Type }}</span></td>
                                     <td>
                                         <span style="color: #98c379; font-size: 0.85em;">
-                                            {{ if eq .Type "string" }}"{{ .Value }}"{{ else }}{{ .Value }}{{ end }}
+                                            {{ if eq $field.Type "string" }}"{{ $field.Value }}"{{ else }}{{ $field.Value }}{{ end }}
                                         </span>
                                     </td>
                                     <td>
+                                        {{ $currentValue := $field.Path }}
+                                        {{ if $.currentMapping }}
+                                            {{ range $target, $source := $.currentMapping }}
+                                                {{ if eq $source $field.Path }}
+                                                    {{ $currentValue = $target }}
+                                                {{ end }}
+                                            {{ end }}
+                                        {{ end }}
                                         <input type="text" 
-                                               name="field_{{ .Path }}" 
-                                               data-path="{{ .Path }}"
-                                               value="{{ .Path }}" 
+                                               name="field_{{ $field.Path }}" 
+                                               data-path="{{ $field.Path }}"
+                                               value="{{ $currentValue }}" 
                                                placeholder="Новое имя или оставьте как есть"
                                                style="width: 100%;">
                                     </td>
                                     <td style="text-align: center;">
                                         <input type="checkbox" 
-                                               name="ignore_{{ .Path }}" 
-                                               data-path="{{ .Path }}"
+                                               name="ignore_{{ $field.Path }}" 
+                                               data-path="{{ $field.Path }}"
                                                style="width: auto; cursor: pointer;">
                                     </td>
                                 </tr>
@@ -108,7 +121,11 @@
                             {{ else }}
                                 <tr>
                                     <td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 2rem;">
+                                        {{ if eq .integration.Mode "active" }}
+                                        Нет образца данных. Маппинг можно редактировать, но рекомендуется сначала получить образец данных через кнопку "🔄 Переопределить маппинг".
+                                        {{ else }}
                                         Нет данных для отображения. Отправьте запрос на webhook для захвата данных.
+                                        {{ end }}
                                     </td>
                                 </tr>
                             {{ end }}
@@ -120,7 +137,11 @@
                 
                 <div style="display: flex; gap: 1rem; margin-top: 2rem;">
                     <button type="submit" class="btn btn-success" onclick="generateMapping(event)">
+                        {{ if eq .integration.Mode "active" }}
+                        ✅ Сохранить изменения
+                        {{ else }}
                         ✅ Сохранить и активировать
+                        {{ end }}
                     </button>
                     <a href="/integrations" class="btn btn-secondary">Отмена</a>
                 </div>
@@ -130,16 +151,16 @@
 
     <script src="/static/js/common.js"></script>
     <script>
-        const integrationId = {{ .integration.ID }};
-        const currentMode = "{{ .integration.Mode }}";
-        const hasPayload = {{ if .integration.SamplePayload }}true{{ else }}false{{ end }};
-        const initialPayload = {{ .payloadJSON }};
-        let checkInterval = null;
-
+        // Определяем функции в глобальной области видимости сразу
         function toggleEditPayload() {
             const view = document.getElementById('payloadView');
             const edit = document.getElementById('payloadEdit');
             const btn = document.getElementById('editPayloadBtn');
+            
+            if (!view || !edit || !btn) {
+                console.error('Elements not found for toggleEditPayload');
+                return;
+            }
             
             if (view.style.display === 'none') {
                 view.style.display = 'block';
@@ -173,6 +194,13 @@
             document.getElementById('mappingConfig').value = JSON.stringify(mapping);
             form.submit();
         }
+
+        // Определяем переменные
+        const integrationId = {{ .integration.ID }};
+        const currentMode = "{{ .integration.Mode }}";
+        const hasPayload = {{ if .integration.SamplePayload }}true{{ else }}false{{ end }};
+        const initialPayload = {{ .payloadJSON }};
+        let checkInterval = null;
 
         // Функция для проверки обновлений интеграции
         let lastPayloadLength = hasPayload ? (initialPayload && initialPayload !== 'null' && initialPayload !== '""' ? initialPayload.length : 0) : 0;

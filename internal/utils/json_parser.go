@@ -27,45 +27,46 @@ func FlattenJSON(data interface{}, prefix string) []FieldInfo {
 				path = prefix + "." + key
 			}
 
-			fieldInfo := FieldInfo{
-				Path:     path,
-				Value:    value,
-				Type:     getType(value),
-				FullPath: path,
-			}
-
-			// Если значение - объект или массив, рекурсивно обрабатываем
+			// Если значение - объект или массив, рекурсивно обрабатываем его поля
 			if isComplexType(value) {
-				fields = append(fields, fieldInfo)
 				fields = append(fields, FlattenJSON(value, path)...)
 			} else {
-				fields = append(fields, fieldInfo)
+				// Для простых типов создаем поле
+				fields = append(fields, FieldInfo{
+					Path:     path,
+					Value:    value,
+					Type:     getType(value),
+					FullPath: path,
+				})
 			}
 		}
 
 	case []interface{}:
-		// Обрабатываем массив - показываем только первый элемент как пример
+		// Обрабатываем массив - показываем первый элемент как пример для структуры
 		if len(v) > 0 {
-			// Используем путь без индекса для маппинга (например, "items" вместо "items[0]")
-			path := prefix
+			// Определяем путь для первого элемента массива
+			var path string
 			if prefix == "" {
 				path = "[0]" // Для корневого массива
+			} else {
+				// Если массив внутри объекта, используем путь с индексом [0]
+				path = prefix + "[0]"
 			}
 
 			item := v[0]
-			fieldInfo := FieldInfo{
-				Path:     path,
-				Value:    item,
-				Type:     getType(item),
-				FullPath: path,
-			}
 
-			// Если элемент - объект или массив, рекурсивно обрабатываем
+			// Если элемент - объект или массив, рекурсивно обрабатываем его поля
 			if isComplexType(item) {
-				fields = append(fields, fieldInfo)
+				// Для сложных типов обрабатываем вложенные поля
 				fields = append(fields, FlattenJSON(item, path)...)
 			} else {
-				fields = append(fields, fieldInfo)
+				// Для простых типов создаем поле с путем массива с индексом
+				fields = append(fields, FieldInfo{
+					Path:     path,
+					Value:    item,
+					Type:     getType(item),
+					FullPath: path,
+				})
 			}
 		}
 
@@ -122,16 +123,32 @@ func isComplexType(v interface{}) bool {
 	return isMap || isArray
 }
 
-// deduplicateFields удаляет дубликаты полей (например, когда объект и его поля оба в списке)
+// deduplicateFields удаляет дубликаты полей
 func deduplicateFields(fields []FieldInfo) []FieldInfo {
 	seen := make(map[string]bool)
 	var result []FieldInfo
 
 	for _, field := range fields {
-		// Пропускаем сложные типы, оставляем только их поля
-		if field.Type == "object" || field.Type == "array" {
+		// Пропускаем только объекты (их поля уже обработаны рекурсивно)
+		if field.Type == "object" {
 			continue
 		}
+		// Пропускаем массивы, которые содержат сложные типы (их элементы уже обработаны рекурсивно)
+		// Но оставляем массивы с простыми значениями
+		if field.Type == "array" {
+			// Проверяем, содержит ли массив сложные типы
+			if arr, ok := field.Value.([]interface{}); ok && len(arr) > 0 {
+				if isComplexType(arr[0]) {
+					// Массив содержит объекты/массивы - пропускаем, т.к. их поля уже обработаны
+					continue
+				}
+				// Массив содержит простые значения - оставляем
+			} else {
+				// Пустой массив или не массив - пропускаем
+				continue
+			}
+		}
+		// Добавляем поле, если его еще не было
 		if !seen[field.Path] {
 			seen[field.Path] = true
 			result = append(result, field)

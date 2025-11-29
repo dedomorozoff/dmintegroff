@@ -83,16 +83,26 @@
                                     {{ if eq .Mode "listening" }}
                                         {{ if .SamplePayload }}
                                         <a href="/integrations/{{ .ID }}/configure" class="btn btn-success btn-sm" data-configure-btn>⚙️ Настроить</a>
+                                        {{ if .MappingConfig }}
+                                        <form method="POST" action="/integrations/{{ .ID }}/toggle" style="display: inline;">
+                                            <button type="submit" class="btn btn-success btn-sm" title="Активировать интеграцию">▶️ Активировать</button>
+                                        </form>
+                                        {{ end }}
                                         {{ else }}
                                         <span style="color: var(--text-secondary); font-size: 0.85rem;" data-waiting-text>Ожидание данных...</span>
                                         {{ end }}
+                                        <form method="POST" action="/integrations/{{ .ID }}/cancel-listening" style="display: inline;"
+                                            onsubmit="return confirm('Отменить прослушивание? Интеграция будет деактивирована.');">
+                                            <button type="submit" class="btn btn-secondary btn-sm" title="Отменить прослушивание">❌ Отменить</button>
+                                        </form>
                                     {{ else if eq .Mode "active" }}
+                                        <a href="/integrations/{{ .ID }}/configure" class="btn btn-success btn-sm" title="Редактировать маппинг">⚙️ Редактировать</a>
                                         <form method="POST" action="/integrations/{{ .ID }}/toggle" style="display: inline;">
                                             <button type="submit" class="btn btn-secondary btn-sm" title="Деактивировать">⏸️</button>
                                         </form>
                                         <form method="POST" action="/integrations/{{ .ID }}/reconfigure" style="display: inline;"
-                                            onsubmit="return confirm('Переопределить маппинг? Интеграция будет деактивирована.');">
-                                            <button type="submit" class="btn btn-sm" title="Переопределить маппинг">🔄</button>
+                                            onsubmit="return confirm('Переопределить маппинг с новыми данными? Интеграция будет переведена в режим прослушивания.');">
+                                            <button type="submit" class="btn btn-sm" title="Переопределить маппинг с новыми данными">🔄</button>
                                         </form>
                                     {{ else }}
                                         <form method="POST" action="/integrations/{{ .ID }}/toggle" style="display: inline;">

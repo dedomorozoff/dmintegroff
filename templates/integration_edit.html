@@ -37,8 +37,24 @@
         </div>
 
         <div class="info-box">
-            <strong>Webhook URL:</strong> <code>/webhook/{{ .integration.WebhookToken }}</code><br>
-            <small>URL нельзя изменить. Для нового URL создайте новую интеграцию.</small>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <strong>Webhook URL:</strong> 
+                    <code id="webhook-url">/webhook/{{ .integration.WebhookToken }}</code>
+                    <button onclick="copyWebhookUrl()" 
+                            class="btn btn-secondary btn-sm" 
+                            style="padding: 0.25rem 0.5rem; font-size: 0.85rem;"
+                            title="Копировать URL">
+                        📋
+                    </button>
+                </div>
+                <form method="POST" action="/integrations/{{ .integration.ID }}/regenerate-token" 
+                      style="display: inline;"
+                      onsubmit="return confirm('⚠️ Внимание! Генерация нового URL сделает старый URL недействительным. Продолжить?');">
+                    <button type="submit" class="btn btn-secondary btn-sm">🔄 Сгенерировать новый URL</button>
+                </form>
+            </div>
+            <small style="display: block; margin-top: 0.5rem;">После генерации нового URL старый URL перестанет работать</small>
         </div>
 
         <div class="card">
@@ -77,6 +93,16 @@
             const testUrl = window.location.protocol + '//' + window.location.host + '/webhook/test';
             input.value = testUrl;
             input.focus();
+        }
+
+        function copyWebhookUrl() {
+            const urlElement = document.getElementById('webhook-url');
+            const fullUrl = window.location.protocol + '//' + window.location.host + urlElement.textContent;
+            navigator.clipboard.writeText(fullUrl).then(() => {
+                alert('URL скопирован: ' + fullUrl);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
         }
     </script>
 </body>
