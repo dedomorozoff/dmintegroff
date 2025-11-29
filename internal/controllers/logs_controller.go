@@ -30,7 +30,7 @@ func TestEndpoint(c *gin.Context) {
 		RequestBody:    string(payloadJSON),
 		RequestHeaders: string(headersJSON),
 		StatusCode:     200,
-		LogType:        "request",
+		LogType:        "test",
 	}
 	CreateLogWithLimit(&log)
 

@@ -149,9 +149,9 @@ func WebhookHandler(c *gin.Context) {
 		RequestBody:    string(payloadJSON),
 		RequestHeaders: string(headersJSON),
 		StatusCode:     200,
-		LogType:        "incoming",
+		LogType:        "webhook",
 	}
-	database.DB.Create(&incomingLog)
+	CreateLogWithLimit(&incomingLog)
 
 	// If in listening mode, save sample payload
 	if integration.Mode == "listening" {

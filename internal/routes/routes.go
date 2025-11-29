@@ -50,6 +50,7 @@ func SetupRouter() *gin.Engine {
 	{
 		authorized.GET("/", controllers.DashboardPage)
 		authorized.GET("/api/activity", controllers.GetRecentActivity)
+		authorized.GET("/api/stats", controllers.GetRequestStats)
 
 		authorized.GET("/integrations", controllers.IntegrationList)
 		authorized.GET("/api/integrations", controllers.IntegrationsListAPI)
@@ -88,6 +89,10 @@ func SetupRouter() *gin.Engine {
 
 		// Help
 		authorized.GET("/help", controllers.HelpPage)
+
+		// Settings
+		authorized.GET("/settings", controllers.SettingsPage)
+		authorized.POST("/settings/change-password", controllers.ChangePassword)
 	}
 
 	// Public endpoints

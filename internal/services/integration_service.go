@@ -10,6 +10,20 @@ import (
 	"net/http"
 )
 
+// CreateLogWithLimit - создает лог и удаляет старые, если их больше 50
+func CreateLogWithLimit(log *models.RequestLog) {
+	database.DB.Create(log)
+
+	// Подсчитываем количество логов
+	var count int64
+	database.DB.Model(&models.RequestLog{}).Count(&count)
+
+	// Если больше 50, удаляем самые старые
+	if count > 50 {
+		database.DB.Exec("DELETE FROM request_logs WHERE id IN (SELECT id FROM request_logs ORDER BY created_at ASC LIMIT ?)", count-50)
+	}
+}
+
 func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 	var integration models.Integration
 	if err := database.DB.First(&integration, integrationID).Error; err != nil {
@@ -78,10 +92,10 @@ func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 			URL:           integration.TargetAPI,
 			RequestBody:   string(jsonData),
 			StatusCode:    500,
-			LogType:       "outgoing",
+			LogType:       "webhook",
 			ErrorMessage:  err.Error(),
 		}
-		database.DB.Create(&log)
+		CreateLogWithLimit(&log)
 		
 		return err
 	}
@@ -103,9 +117,9 @@ func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 		RequestBody:   string(jsonData),
 		ResponseBody:  string(responseBody),
 		StatusCode:    resp.StatusCode,
-		LogType:       "outgoing",
+		LogType:       "webhook",
 	}
-	database.DB.Create(&log)
+	CreateLogWithLimit(&log)
 
 	logger.Log.WithFields(map[string]interface{}{
 		"integration_id": integrationID,

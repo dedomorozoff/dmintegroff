@@ -1,0 +1,105 @@
+{{ define "pages/settings.html" }}
+{{ template "partials/head.html" . }}
+{{ template "partials/sidebar.html" . }}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <h1>Настройки</h1>
+            <p>Управление профилем пользователя</p>
+        </div>
+
+        {{ if .success }}
+        <div class="alert alert-success" style="margin-bottom: 1.5rem;">
+            <i data-lucide="check-circle-2"></i>
+            <span>{{ .success }}</span>
+        </div>
+        {{ end }}
+
+        {{ if .error }}
+        <div class="alert alert-danger" style="margin-bottom: 1.5rem;">
+            <i data-lucide="alert-circle"></i>
+            <span>{{ .error }}</span>
+        </div>
+        {{ end }}
+
+        <!-- User Info Card -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-header">
+                <h2 class="card-title">Информация о пользователе</h2>
+            </div>
+            <div style="padding: 1.5rem;">
+                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                    <div style="width: 64px; height: 64px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 600; color: var(--primary-foreground); text-transform: uppercase;">
+                        {{ if .username }}{{ slice .username 0 1 }}{{ else }}U{{ end }}
+                    </div>
+                    <div>
+                        <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.25rem;">{{ .username }}</h3>
+                        <p style="color: var(--text-secondary); margin: 0;">
+                            <span style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0.75rem; background: var(--secondary); border-radius: 4px; font-size: 0.875rem;">
+                                <i data-lucide="shield" style="width: 14px; height: 14px;"></i>
+                                {{ if eq .role "admin" }}Администратор{{ else }}Специалист{{ end }}
+                            </span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Change Password Form -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Смена пароля</h2>
+            </div>
+
+            <form method="POST" action="/settings/change-password" style="padding: 1.5rem;">
+                <div class="form-group">
+                    <label for="current_password">Текущий пароль</label>
+                    <input type="password" id="current_password" name="current_password" class="form-control" 
+                           placeholder="Введите текущий пароль" required>
+                    <small style="color: var(--text-secondary); font-size: 0.875rem;">Для подтверждения введите ваш текущий пароль</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="new_password">Новый пароль</label>
+                    <input type="password" id="new_password" name="new_password" class="form-control" 
+                           placeholder="Введите новый пароль" required minlength="6">
+                    <small style="color: var(--text-secondary); font-size: 0.875rem;">Минимум 6 символов</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirm_password">Подтверждение пароля</label>
+                    <input type="password" id="confirm_password" name="confirm_password" class="form-control" 
+                           placeholder="Повторите новый пароль" required minlength="6">
+                    <small style="color: var(--text-secondary); font-size: 0.875rem;">Введите новый пароль еще раз</small>
+                </div>
+
+                <div style="display: flex; gap: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                    <button type="submit" class="btn btn-primary">
+                        <i data-lucide="key"></i>
+                        Изменить пароль
+                    </button>
+                    <a href="/" class="btn btn-secondary">
+                        <i data-lucide="x"></i>
+                        Отмена
+                    </a>
+                </div>
+            </form>
+        </div>
+    </main>
+
+{{ template "partials/scripts.html" . }}
+<script>
+    // Проверка совпадения паролей
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const newPassword = document.getElementById('new_password').value;
+        const confirmPassword = document.getElementById('confirm_password').value;
+        
+        if (newPassword !== confirmPassword) {
+            e.preventDefault();
+            alert('Пароли не совпадают!');
+            return false;
+        }
+    });
+</script>
+{{ end }}

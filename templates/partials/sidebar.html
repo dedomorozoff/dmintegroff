@@ -12,9 +12,6 @@
             <li><a href="/integrations" {{ if eq .CurrentPage "integrations" }}class="active"{{ end }}><i data-lucide="webhook"></i> Интеграции</a></li>
             <li><a href="/integrations/create" {{ if eq .CurrentPage "integration_create" }}class="active"{{ end }}><i data-lucide="plus"></i> Создать</a></li>
             <li><a href="/logs" {{ if eq .CurrentPage "logs" }}class="active"{{ end }}><i data-lucide="flask-conical"></i> Тесты интеграций</a></li>
-            {{ if eq .role "admin" }}
-            <li><a href="/users" {{ if eq .CurrentPage "users" }}class="active"{{ end }}><i data-lucide="users"></i> Пользователи</a></li>
-            {{ end }}
         </ul>
     </nav>
 

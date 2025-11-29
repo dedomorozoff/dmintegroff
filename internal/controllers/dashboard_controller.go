@@ -76,19 +76,19 @@ func DashboardPage(c *gin.Context) {
 				activity.Status = "success"
 				activity.Message = "Webhook обработан"
 			}
-		case "request":
+		case "test":
 			if log.StatusCode >= 200 && log.StatusCode < 300 {
 				activity.Status = "success"
-				activity.Message = "Запрос успешно обработан"
+				activity.Message = "Тестовый запрос успешно обработан"
 			} else if log.StatusCode >= 400 && log.StatusCode < 500 {
 				activity.Status = "warning"
-				activity.Message = "Ошибка в запросе"
+				activity.Message = "Ошибка в тестовом запросе"
 			} else if log.StatusCode >= 500 {
 				activity.Status = "error"
-				activity.Message = "Ошибка сервера"
+				activity.Message = "Ошибка сервера при тестовом запросе"
 			} else {
 				activity.Status = "success"
-				activity.Message = "Запрос обработан"
+				activity.Message = "Тестовый запрос обработан"
 			}
 		default:
 			activity.Status = "success"
@@ -243,6 +243,56 @@ func formatInt(n int) string {
 	return fmt.Sprintf("%d", n)
 }
 
+// GetRequestStats - API endpoint для получения статистики запросов по дням
+func GetRequestStats(c *gin.Context) {
+	// Получаем статистику за последние 30 дней
+	type DayStats struct {
+		Date  string `json:"date"`
+		Count int    `json:"count"`
+	}
+
+	var stats []DayStats
+	
+	// SQL запрос для группировки по дням
+	query := `
+		SELECT 
+			DATE(created_at) as date,
+			COUNT(*) as count
+		FROM request_logs
+		WHERE log_type = 'webhook'
+		AND created_at >= datetime('now', '-30 days')
+		GROUP BY DATE(created_at)
+		ORDER BY date ASC
+	`
+	
+	rows, err := database.DB.Raw(query).Rows()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var stat DayStats
+		if err := rows.Scan(&stat.Date, &stat.Count); err != nil {
+			continue
+		}
+		stats = append(stats, stat)
+	}
+
+	// Если нет данных, возвращаем пустой массив
+	if stats == nil {
+		stats = []DayStats{}
+	}
+
+	// Логируем для отладки
+	fmt.Printf("Stats API: found %d records\n", len(stats))
+
+	c.JSON(http.StatusOK, gin.H{
+		"stats": stats,
+	})
+}
+
 // GetRecentActivity - API endpoint для получения последней активности
 func GetRecentActivity(c *gin.Context) {
 	var logs []models.RequestLog
@@ -282,13 +332,13 @@ func GetRecentActivity(c *gin.Context) {
 				activity.Status = "error"
 				activity.Message = "Ошибка сервера при обработке webhook"
 			}
-		case "request":
+		case "test":
 			if log.StatusCode >= 200 && log.StatusCode < 300 {
 				activity.Status = "success"
-				activity.Message = "Запрос успешно обработан"
+				activity.Message = "Тестовый запрос успешно обработан"
 			} else {
 				activity.Status = "error"
-				activity.Message = "Ошибка при обработке запроса"
+				activity.Message = "Ошибка при обработке тестового запроса"
 			}
 		}
 
