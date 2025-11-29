@@ -4,35 +4,68 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ .title }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/modern.css">
 </head>
 <body>
     <aside class="sidebar">
         <div class="sidebar-logo">
-            <span class="icon">🚀</span>
+            <div class="sidebar-logo-icon">
+                <i data-lucide="zap"></i>
+            </div>
             <h1>dmIntegroff</h1>
         </div>
         
-        <nav>
-            <ul class="sidebar-nav">
-                <li><a href="/"><span class="icon">📊</span> Главная</a></li>
-                <li><a href="/projects" class="active"><span class="icon">📁</span> Проекты</a></li>
-                <li><a href="/integrations"><span class="icon">🔗</span> Интеграции</a></li>
-                <li><a href="/logs"><span class="icon">📝</span> Логи</a></li>
+        <nav class="sidebar-nav">
+            <ul>
+                <li><a href="/"><i data-lucide="layout-dashboard"></i> Обзор</a></li>
+                <li><a href="/projects" class="active"><i data-lucide="folder-kanban"></i> Проекты</a></li>
+                <li><a href="/integrations"><i data-lucide="webhook"></i> Интеграции</a></li>
+                <li><a href="/integrations/create"><i data-lucide="plus"></i> Создать</a></li>
+                <li><a href="/logs"><i data-lucide="file-text"></i> Логи</a></li>
+                {{ if eq .role "admin" }}
+                <li><a href="/users"><i data-lucide="users"></i> Пользователи</a></li>
+                {{ end }}
             </ul>
         </nav>
+        
+        <div class="sidebar-settings">
+            <a href="/settings"><i data-lucide="settings"></i> Настройки</a>
+        </div>
+        
+        <div class="sidebar-user">
+            <div class="sidebar-user-info">
+                <div class="sidebar-user-avatar">{{ if .role }}{{ slice .role 0 1 }}{{ else }}U{{ end }}</div>
+                <div class="sidebar-user-details">
+                    <h4>{{ if .role }}{{ .role }}{{ else }}Пользователь{{ end }}</h4>
+                    <p>Активен</p>
+                </div>
+                <a href="/logout" class="logout-btn" title="Выйти">
+                    <i data-lucide="log-out"></i>
+                </a>
+            </div>
+        </div>
     </aside>
 
     <main class="main-content">
         <div class="page-header">
             <div class="flex items-center justify-between">
                 <div>
-                    <h1>📁 {{ .project.Name }}</h1>
+                    <h1 style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i data-lucide="folder" style="width: 28px; height: 28px;"></i>
+                        {{ .project.Name }}
+                    </h1>
                     <p>{{ if .project.Description }}{{ .project.Description }}{{ else }}Без описания{{ end }}</p>
                 </div>
                 <div style="display: flex; gap: 0.5rem;">
-                    <a href="/projects/{{ .project.ID }}/edit" class="btn btn-secondary">✏️ Редактировать</a>
-                    <a href="/projects" class="btn">← Назад</a>
+                    <a href="/projects/{{ .project.ID }}/edit" class="btn btn-secondary">
+                        <i data-lucide="pencil"></i> Редактировать
+                    </a>
+                    <a href="/projects" class="btn">
+                        <i data-lucide="arrow-left"></i> Назад
+                    </a>
                 </div>
             </div>
         </div>
@@ -40,8 +73,10 @@
         <!-- Интеграции в проекте -->
         <div class="card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h2>Интеграции в проекте</h2>
-                <a href="/projects/{{ .project.ID }}/integrations/create" class="btn btn-success">➕ Создать интеграцию</a>
+                <h2 class="card-title">Интеграции в проекте</h2>
+                <a href="/projects/{{ .project.ID }}/integrations/create" class="btn btn-success">
+                    <i data-lucide="plus"></i> Создать интеграцию
+                </a>
             </div>
             
             {{ if .project.Integrations }}
@@ -61,47 +96,35 @@
                         <tr>
                             <td><strong>{{ .Name }}</strong></td>
                             <td>
-                                <code style="font-size: 0.8rem;">/webhook/{{ .WebhookToken }}</code>
+                                <code style="font-size: 0.75rem;">/webhook/{{ .WebhookToken }}</code>
                                 <button onclick="copyToClipboard('http://localhost:8080/webhook/{{ .WebhookToken }}')" 
-                                        style="background: none; border: none; cursor: pointer; color: var(--accent-primary); margin-left: 0.5rem;">
-                                    📋
+                                        style="background: none; border: none; cursor: pointer; color: var(--primary); margin-left: 0.5rem; padding: 0.25rem;">
+                                    <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
                                 </button>
                             </td>
                             <td>
                                 {{ if eq .Mode "listening" }}
-                                <span class="badge badge-warning">⏳ Прослушивание</span>
+                                <span class="badge badge-warning"><i data-lucide="clock" style="width: 12px; height: 12px; margin-right: 0.25rem;"></i> Прослушивание</span>
                                 {{ else if eq .Mode "active" }}
-                                <span class="badge badge-success">✅ Активна</span>
+                                <span class="badge badge-success"><i data-lucide="check-circle-2" style="width: 12px; height: 12px; margin-right: 0.25rem;"></i> Активна</span>
                                 {{ else }}
-                                <span class="badge badge-danger">⏸️ Неактивна</span>
+                                <span class="badge badge-danger"><i data-lucide="pause-circle" style="width: 12px; height: 12px; margin-right: 0.25rem;"></i> Неактивна</span>
                                 {{ end }}
                             </td>
-                            <td>{{ if .TargetAPI }}{{ .TargetAPI }}{{ else }}<span style="color: var(--text-secondary);">-</span>{{ end }}</td>
+                            <td>{{ if .TargetAPI }}{{ .TargetAPI }}{{ else }}<span style="color: var(--muted-foreground);">-</span>{{ end }}</td>
                             <td style="text-align: right;">
-                                <div style="display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap;">
-                                    {{ if eq .Mode "listening" }}
-                                        {{ if .SamplePayload }}
-                                        <a href="/integrations/{{ .ID }}/configure" class="btn btn-success btn-sm">⚙️ Настроить</a>
-                                        {{ else }}
-                                        <span style="color: var(--text-secondary); font-size: 0.85rem;">Ожидание данных...</span>
-                                        {{ end }}
-                                    {{ else if eq .Mode "active" }}
-                                        <form method="POST" action="/integrations/{{ .ID }}/toggle" style="display: inline;">
-                                            <button type="submit" class="btn btn-secondary btn-sm" title="Деактивировать">⏸️</button>
-                                        </form>
-                                        <form method="POST" action="/integrations/{{ .ID }}/reconfigure" style="display: inline;"
-                                            onsubmit="return confirm('Переопределить маппинг? Интеграция будет деактивирована.');">
-                                            <button type="submit" class="btn btn-sm" title="Переопределить маппинг">🔄</button>
-                                        </form>
-                                    {{ else }}
-                                        <form method="POST" action="/integrations/{{ .ID }}/toggle" style="display: inline;">
-                                            <button type="submit" class="btn btn-success btn-sm" title="Активировать">▶️</button>
-                                        </form>
-                                    {{ end }}
-                                    <a href="/integrations/{{ .ID }}/edit" class="btn btn-secondary btn-sm" title="Редактировать">✏️</a>
+                                <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                    <a href="/integrations/{{ .ID }}/configure" class="btn btn-success btn-sm" title="Настроить">
+                                        <i data-lucide="settings"></i>
+                                    </a>
+                                    <a href="/integrations/{{ .ID }}/edit" class="btn btn-secondary btn-sm" title="Редактировать">
+                                        <i data-lucide="pencil"></i>
+                                    </a>
                                     <form method="POST" action="/projects/{{ $.project.ID }}/integrations/{{ .ID }}/delete" style="display: inline;"
                                         onsubmit="return confirm('Удалить интеграцию {{ .Name }}?');">
-                                        <button type="submit" class="btn btn-danger btn-sm" title="Удалить">🗑️</button>
+                                        <button type="submit" class="btn btn-danger btn-sm" title="Удалить">
+                                            <i data-lucide="trash-2"></i>
+                                        </button>
                                     </form>
                                 </div>
                             </td>
@@ -111,17 +134,22 @@
                 </table>
             </div>
             {{ else }}
-            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+            <div style="text-align: center; padding: 3rem; color: var(--muted-foreground);">
                 <div style="font-size: 3rem; margin-bottom: 1rem;">🔗</div>
-                <h3>В проекте пока нет интеграций</h3>
-                <p style="margin-top: 0.5rem;">Создайте первую интеграцию для этого проекта</p>
-                <a href="/projects/{{ .project.ID }}/integrations/create" class="btn btn-success" style="margin-top: 1rem;">➕ Создать интеграцию</a>
+                <h3 style="margin-bottom: 0.5rem;">Интеграций в проекте пока нет</h3>
+                <p style="margin-top: 0.5rem; margin-bottom: 1rem;">Создайте первую интеграцию для этого проекта</p>
+                <a href="/projects/{{ .project.ID }}/integrations/create" class="btn btn-success">
+                    <i data-lucide="plus"></i> Создать интеграцию
+                </a>
             </div>
             {{ end }}
         </div>
     </main>
 
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script>
+        lucide.createIcons();
+        
         function copyToClipboard(text) {
             navigator.clipboard.writeText(text).then(() => {
                 alert('Скопировано: ' + text);

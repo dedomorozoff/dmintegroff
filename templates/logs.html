@@ -4,31 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ .title }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/modern.css">
     <style>
         .log-entry {
-            background: var(--bg-tertiary);
+            background: var(--card);
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: var(--radius);
             padding: 1rem;
             margin-bottom: 1rem;
         }
 
         .log-entry.error-log {
-            border-color: var(--danger);
-            background: rgba(239, 68, 68, 0.1);
+            border-color: var(--destructive);
+            background: color-mix(in srgb, var(--destructive) 5%, transparent);
         }
 
         .error-message {
             padding: 1rem;
-            background: rgba(239, 68, 68, 0.2);
-            border-radius: 6px;
-            color: var(--danger);
-            font-family: monospace;
-        }
-
-        .error-status {
-            background: var(--danger) !important;
+            background: color-mix(in srgb, var(--destructive) 10%, transparent);
+            border-radius: var(--radius);
+            color: var(--destructive);
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
         }
 
         .log-header {
@@ -41,57 +41,69 @@
         }
 
         .log-meta {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
+            font-size: 0.8125rem;
+            color: var(--muted-foreground);
         }
 
         .log-method {
             display: inline-block;
             padding: 0.25rem 0.75rem;
-            background: var(--accent-primary);
-            color: white;
-            border-radius: 6px;
-            font-weight: 600;
+            border-radius: calc(var(--radius) - 2px);
             font-size: 0.75rem;
-        }
-
-        .log-url {
-            font-family: monospace;
-            background: var(--bg-secondary);
-            padding: 0.25rem 0.75rem;
-            border-radius: 6px;
-            margin-left: 0.5rem;
-            color: var(--text-primary);
-        }
-
-        .json-viewer {
-            background: #1a1f2e;
-            color: #abb2bf;
-            padding: 1rem;
-            border-radius: 8px;
-            overflow-x: auto;
-            font-family: 'Consolas', 'Monaco', monospace;
-            font-size: 0.85rem;
-            line-height: 1.6;
-        }
-
-        .json-key { color: #e06c75; }
-        .json-string { color: #98c379; }
-        .json-number { color: #d19a66; }
-        .json-boolean { color: #56b6c2; }
-        .json-null { color: #c678dd; }
-
-        .headers-section {
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--border);
-        }
-
-        .section-title {
             font-weight: 600;
-            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+        }
+
+        .log-method.POST { background: color-mix(in srgb, var(--success) 20%, transparent); color: var(--success); }
+        .log-method.GET { background: color-mix(in srgb, var(--primary) 20%, transparent); color: var(--primary); }
+        .log-method.PUT { background: color-mix(in srgb, var(--warning) 20%, transparent); color: var(--warning); }
+        .log-method.DELETE { background: color-mix(in srgb, var(--destructive) 20%, transparent); color: var(--destructive); }
+
+        .log-status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: calc(var(--radius) - 2px);
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .log-status.success { background: color-mix(in srgb, var(--success) 20%, transparent); color: var(--success); }
+        .log-status.error { background: color-mix(in srgb, var(--destructive) 20%, transparent); color: var(--destructive); }
+
+        .log-section {
+            margin-top: 0.75rem;
+        }
+
+        .log-section-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--muted-foreground);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
             margin-bottom: 0.5rem;
-            font-size: 0.9rem;
+        }
+
+        .log-code {
+            background: var(--muted);
+            padding: 0.75rem;
+            border-radius: var(--radius);
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8125rem;
+            line-height: 1.5;
+        }
+
+        .filter-form {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-form input,
+        .filter-form select {
+            flex: 1;
+            min-width: 200px;
         }
     </style>
 </head>
@@ -99,321 +111,132 @@
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-logo">
-            <span class="icon">🚀</span>
+            <div class="sidebar-logo-icon">
+                <i data-lucide="zap"></i>
+            </div>
             <h1>dmIntegroff</h1>
         </div>
         
-        <nav>
-            <ul class="sidebar-nav">
-                <li><a href="/"><span class="icon">📊</span> Главная</a></li>
-                <li><a href="/projects"><span class="icon">📁</span> Проекты</a></li>
-                <li><a href="/integrations"><span class="icon">🔗</span> Интеграции</a></li>
-                <li><a href="/integrations/create"><span class="icon">➕</span> Создать</a></li>
-                <li><a href="/logs" class="active"><span class="icon">📝</span> Логи</a></li>
+        <nav class="sidebar-nav">
+            <ul>
+                <li><a href="/"><i data-lucide="layout-dashboard"></i> Обзор</a></li>
+                <li><a href="/projects"><i data-lucide="folder-kanban"></i> Проекты</a></li>
+                <li><a href="/integrations"><i data-lucide="webhook"></i> Интеграции</a></li>
+                <li><a href="/integrations/create"><i data-lucide="plus"></i> Создать</a></li>
+                <li><a href="/logs" class="active"><i data-lucide="file-text"></i> Логи</a></li>
+                {{ if eq .role "admin" }}
+                <li><a href="/users"><i data-lucide="users"></i> Пользователи</a></li>
+                {{ end }}
             </ul>
         </nav>
+        
+        <div class="sidebar-settings">
+            <a href="/settings"><i data-lucide="settings"></i> Настройки</a>
+        </div>
+        
+        <div class="sidebar-user">
+            <div class="sidebar-user-info">
+                <div class="sidebar-user-avatar">{{ if .role }}{{ slice .role 0 1 }}{{ else }}U{{ end }}</div>
+                <div class="sidebar-user-details">
+                    <h4>{{ if .role }}{{ .role }}{{ else }}Пользователь{{ end }}</h4>
+                    <p>Активен</p>
+                </div>
+                <a href="/logout" class="logout-btn" title="Выйти">
+                    <i data-lucide="log-out"></i>
+                </a>
+            </div>
+        </div>
     </aside>
 
     <!-- Main Content -->
     <main class="main-content">
         <div class="page-header">
-            <div class="flex items-center justify-between">
+            <h1>Логи запросов</h1>
+            <p>История всех webhook запросов и ответов</p>
+        </div>
+
+        <!-- Filters -->
+        <div class="card">
+            <form method="GET" action="/logs" class="filter-form">
+                <input type="text" name="integration_id" placeholder="ID интеграции" value="{{ .filter_integration_id }}">
+                <select name="status">
+                    <option value="">Все статусы</option>
+                    <option value="success" {{ if eq .filter_status "success" }}selected{{ end }}>Успешные</option>
+                    <option value="error" {{ if eq .filter_status "error" }}selected{{ end }}>Ошибки</option>
+                </select>
+                <button type="submit" class="btn">
+                    <i data-lucide="filter"></i>
+                    Фильтровать
+                </button>
+                <a href="/logs" class="btn btn-secondary">
+                    <i data-lucide="x"></i>
+                    Сбросить
+                </a>
+            </form>
+        </div>
+
+        <!-- Logs -->
+        {{ if .logs }}
+        {{ range .logs }}
+        <div class="log-entry {{ if .Error }}error-log{{ end }}">
+            <div class="log-header">
                 <div>
-                    <h1>Логи запросов</h1>
-                    <p>Всего записей: <span id="logs-count">{{ len .logs }}</span> 
-                       <span id="auto-refresh-status" style="color: var(--success); margin-left: 1rem;">
-                           🔄 Автообновление: <span id="countdown">15</span>с
-                       </span>
-                    </p>
+                    <span class="log-method {{ .Method }}">{{ .Method }}</span>
+                    <span class="log-status {{ if .Error }}error{{ else }}success{{ end }}">
+                        {{ if .Error }}Ошибка{{ else }}Успешно{{ end }}
+                    </span>
+                    <span class="log-meta">
+                        <i data-lucide="calendar" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+                        {{ .CreatedAt.Format "02.01.2006 15:04:05" }}
+                    </span>
                 </div>
-                <div style="display: flex; gap: 0.5rem; align-items: center;">
-                    <button id="toggle-refresh" class="btn btn-secondary btn-sm" onclick="toggleAutoRefresh()">
-                        ⏸️ Пауза
-                    </button>
-                    <form method="POST" action="/logs/clear" style="display: inline;"
-                        onsubmit="return confirm('Очистить все логи?');">
-                        <button type="submit" class="btn btn-danger">🗑️ Очистить все</button>
-                    </form>
+                <div class="log-meta">
+                    <i data-lucide="webhook" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+                    Интеграция #{{ .IntegrationID }}
                 </div>
             </div>
-        </div>
 
-        <div class="info-box">
-            <strong>💡 Тестовый endpoint:</strong> <code>POST http://localhost:8080/webhook/test</code><br>
-            Используйте этот URL в интеграциях для тестирования без отправки на реальные серверы.
-        </div>
-
-        <script>
-            // Функция для подсветки JSON синтаксиса (должна быть определена ДО использования)
-            function syntaxHighlight(json) {
-                json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
-                    let cls = 'json-number';
-                    if (/^"/.test(match)) {
-                        if (/:$/.test(match)) {
-                            cls = 'json-key';
-                        } else {
-                            cls = 'json-string';
-                        }
-                    } else if (/true|false/.test(match)) {
-                        cls = 'json-boolean';
-                    } else if (/null/.test(match)) {
-                        cls = 'json-null';
-                    }
-                    return '<span class="' + cls + '">' + match + '</span>';
-                });
-            }
-        </script>
-
-        <div id="logs-container">
-            {{ if .logs }}
-            {{ range .logs }}
-            <div class="log-entry {{ if eq .LogType "error" }}error-log{{ end }}">
-                <div class="log-header">
-                    <div>
-                        <span class="log-method {{ if ge .StatusCode 400 }}error-status{{ end }}">{{ .Method }}</span>
-                        <span class="log-url">{{ .URL }}</span>
-                        {{ if eq .LogType "error" }}
-                        <span class="badge badge-danger" style="margin-left: 0.5rem;">{{ .StatusCode }} ERROR</span>
-                        {{ end }}
-                        <span class="log-meta" style="margin-left: 1rem;">{{ .CreatedAt.Format "2006-01-02 15:04:05" }}</span>
-                    </div>
-                    <form method="POST" action="/logs/{{ .ID }}/delete" style="display: inline;">
-                        <button type="submit" class="btn btn-danger btn-sm">🗑️</button>
-                    </form>
+            {{ if .Error }}
+            <div class="log-section">
+                <div class="log-section-title">
+                    <i data-lucide="alert-circle" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+                    Ошибка
                 </div>
-                {{ if eq .LogType "error" }}
-                <div class="error-message">
-                    <strong>❌ Ошибка:</strong> {{ .ErrorMessage }}
-                </div>
-                {{ else }}
-                <div class="section-title">📦 Тело запроса:</div>
-                <div class="json-viewer" id="log-body-{{ .ID }}" data-json="{{ .RequestBody }}"></div>
-                
-                {{ if .RequestHeaders }}
-                <div class="headers-section">
-                    <div class="section-title">📋 Заголовки запроса:</div>
-                    <div class="json-viewer" id="log-headers-{{ .ID }}" data-json="{{ .RequestHeaders }}"></div>
-                </div>
-                {{ end }}
-                
-                <script>
-                    (function () {
-                        try {
-                            const bodyContainer = document.getElementById('log-body-{{ .ID }}');
-                            const jsonString = bodyContainer.getAttribute('data-json');
-                            const data = JSON.parse(jsonString);
-                            bodyContainer.innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
-                        } catch (e) {
-                            const bodyContainer = document.getElementById('log-body-{{ .ID }}');
-                            bodyContainer.innerHTML = 'Invalid JSON: ' + e.message;
-                        }
-
-                        {{ if .RequestHeaders }}
-                        try {
-                            const headersContainer = document.getElementById('log-headers-{{ .ID }}');
-                            const headersString = headersContainer.getAttribute('data-json');
-                            const headers = JSON.parse(headersString);
-                            headersContainer.innerHTML = syntaxHighlight(JSON.stringify(headers, null, 2));
-                        } catch (e) {
-                            const headersContainer = document.getElementById('log-headers-{{ .ID }}');
-                            headersContainer.innerHTML = 'Invalid JSON: ' + e.message;
-                        }
-                        {{ end }}
-                    })();
-                </script>
-                {{ end }}
+                <div class="error-message">{{ .Error }}</div>
             </div>
             {{ end }}
-            {{ else }}
-            <div class="card" style="text-align: center; padding: 3rem;">
-                <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
-                <h3>Логов пока нет</h3>
-                <p style="color: var(--text-secondary); margin-top: 0.5rem;">Отправьте тестовый запрос на <code>POST /test</code></p>
+
+            <div class="log-section">
+                <div class="log-section-title">
+                    <i data-lucide="arrow-down-circle" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+                    Входящий запрос
+                </div>
+                <div class="log-code">{{ .RequestBody }}</div>
+            </div>
+
+            {{ if .ResponseBody }}
+            <div class="log-section">
+                <div class="log-section-title">
+                    <i data-lucide="arrow-up-circle" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+                    Ответ API
+                </div>
+                <div class="log-code">{{ .ResponseBody }}</div>
             </div>
             {{ end }}
         </div>
+        {{ end }}
+        {{ else }}
+        <div class="card" style="text-align: center; padding: 3rem; color: var(--muted-foreground);">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📝</div>
+            <h3 style="margin-bottom: 0.5rem;">Логов пока нет</h3>
+            <p>Логи появятся после первых webhook запросов</p>
+        </div>
+        {{ end }}
     </main>
 
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script>
-        // Автообновление логов
-        let autoRefreshEnabled = true;
-        let refreshInterval = null;
-        let countdownInterval = null;
-        let secondsLeft = 15;
-
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            const hours = String(date.getHours()).padStart(2, '0');
-            const minutes = String(date.getMinutes()).padStart(2, '0');
-            const seconds = String(date.getSeconds()).padStart(2, '0');
-            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-        }
-
-        function renderLogs(logs) {
-            const container = document.getElementById('logs-container');
-            
-            if (logs.length === 0) {
-                container.innerHTML = `
-                    <div class="card" style="text-align: center; padding: 3rem;">
-                        <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
-                        <h3>Логов пока нет</h3>
-                        <p style="color: var(--text-secondary); margin-top: 0.5rem;">Отправьте тестовый запрос на <code>POST /test</code></p>
-                    </div>
-                `;
-                return;
-            }
-
-            let html = '';
-            logs.forEach(log => {
-                // API возвращает поля в snake_case
-                const method = log.method || log.Method;
-                const url = log.url || log.URL;
-                const createdAt = log.CreatedAt || log.created_at;
-                const logType = log.log_type || log.LogType || 'request';
-                const statusCode = log.status_code || log.StatusCode;
-                const errorMessage = log.error_message || log.ErrorMessage;
-                
-                const isError = logType === 'error' || statusCode >= 400;
-                const errorClass = isError ? 'error-log' : '';
-                const statusClass = statusCode >= 400 ? 'error-status' : '';
-                
-                html += `
-                    <div class="log-entry ${errorClass}">
-                        <div class="log-header">
-                            <div>
-                                <span class="log-method ${statusClass}">${method}</span>
-                                <span class="log-url">${url}</span>
-                                ${isError ? `<span class="badge badge-danger" style="margin-left: 0.5rem;">${statusCode} ERROR</span>` : ''}
-                                <span class="log-meta" style="margin-left: 1rem;">${formatDate(createdAt)}</span>
-                            </div>
-                            <form method="POST" action="/logs/${log.ID}/delete" style="display: inline;">
-                                <button type="submit" class="btn btn-danger btn-sm">🗑️</button>
-                            </form>
-                        </div>
-                        ${isError ? 
-                            `<div class="error-message"><strong>❌ Ошибка:</strong> ${errorMessage || 'Unknown error'}</div>` :
-                            `<div>
-                                <div class="section-title">📦 Тело запроса:</div>
-                                <div class="json-viewer" id="log-body-${log.ID}"></div>
-                                ${log.request_headers || log.RequestHeaders ? 
-                                    `<div class="headers-section">
-                                        <div class="section-title">📋 Заголовки запроса:</div>
-                                        <div class="json-viewer" id="log-headers-${log.ID}"></div>
-                                    </div>` : ''
-                                }
-                            </div>`
-                        }
-                    </div>
-                `;
-            });
-
-            container.innerHTML = html;
-
-            // Применяем подсветку синтаксиса сразу после вставки HTML (только для не-ошибок)
-            logs.forEach(log => {
-                const logType = log.log_type || log.LogType || 'request';
-                const statusCode = log.status_code || log.StatusCode;
-                
-                // Пропускаем ошибки - для них уже отображается сообщение
-                if (logType === 'error' || statusCode >= 400) {
-                    return;
-                }
-                
-                // Отображаем тело запроса
-                const bodyContainer = document.getElementById(`log-body-${log.ID}`);
-                if (bodyContainer) {
-                    try {
-                        const requestBody = log.request_body || log.RequestBody;
-                        
-                        if (!requestBody) {
-                            bodyContainer.innerHTML = '<span style="color: var(--text-secondary);">Нет данных</span>';
-                        } else {
-                            const data = JSON.parse(requestBody);
-                            bodyContainer.innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
-                        }
-                    } catch (e) {
-                        bodyContainer.innerHTML = 'Invalid JSON: ' + e.message;
-                    }
-                }
-                
-                // Отображаем заголовки
-                const headersContainer = document.getElementById(`log-headers-${log.ID}`);
-                if (headersContainer) {
-                    try {
-                        const requestHeaders = log.request_headers || log.RequestHeaders;
-                        
-                        if (!requestHeaders) {
-                            headersContainer.innerHTML = '<span style="color: var(--text-secondary);">Нет данных</span>';
-                        } else {
-                            const headers = JSON.parse(requestHeaders);
-                            headersContainer.innerHTML = syntaxHighlight(JSON.stringify(headers, null, 2));
-                        }
-                    } catch (e) {
-                        headersContainer.innerHTML = 'Invalid JSON: ' + e.message;
-                    }
-                }
-            });
-        }
-
-        async function refreshLogs() {
-            try {
-                const response = await fetch('/api/logs', {
-                    credentials: 'same-origin'
-                });
-                const data = await response.json();
-                
-                console.log('Получено логов:', data.logs.length);
-                console.log('syntaxHighlight доступна:', typeof syntaxHighlight === 'function');
-                
-                renderLogs(data.logs);
-                document.getElementById('logs-count').textContent = data.logs.length;
-                
-                // Сброс таймера
-                secondsLeft = 15;
-            } catch (error) {
-                console.error('Ошибка при обновлении логов:', error);
-            }
-        }
-
-        function updateCountdown() {
-            if (autoRefreshEnabled) {
-                secondsLeft--;
-                document.getElementById('countdown').textContent = secondsLeft;
-                
-                if (secondsLeft <= 0) {
-                    refreshLogs();
-                }
-            }
-        }
-
-        function toggleAutoRefresh() {
-            autoRefreshEnabled = !autoRefreshEnabled;
-            const button = document.getElementById('toggle-refresh');
-            const status = document.getElementById('auto-refresh-status');
-            
-            if (autoRefreshEnabled) {
-                button.innerHTML = '⏸️ Пауза';
-                status.style.color = 'var(--success)';
-                status.innerHTML = '🔄 Автообновление: <span id="countdown">' + secondsLeft + '</span>с';
-                secondsLeft = 15;
-            } else {
-                button.innerHTML = '▶️ Возобновить';
-                status.style.color = 'var(--text-secondary)';
-                status.innerHTML = '⏸️ Автообновление приостановлено';
-            }
-        }
-
-        // Запуск автообновления
-        countdownInterval = setInterval(updateCountdown, 1000);
-
-        // Очистка при уходе со страницы
-        window.addEventListener('beforeunload', () => {
-            if (countdownInterval) clearInterval(countdownInterval);
-        });
+        lucide.createIcons();
     </script>
 </body>
 </html>

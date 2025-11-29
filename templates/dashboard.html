@@ -4,28 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ .title }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/modern.css">
 </head>
 <body>
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-logo">
-            <span class="icon">🚀</span>
+            <div class="sidebar-logo-icon">
+                <i data-lucide="zap"></i>
+            </div>
             <h1>dmIntegroff</h1>
         </div>
         
-        <nav>
-            <ul class="sidebar-nav">
-                <li><a href="/" class="active"><span class="icon">📊</span> Главная</a></li>
-                <li><a href="/projects"><span class="icon">📁</span> Проекты</a></li>
-                <li><a href="/integrations"><span class="icon">🔗</span> Интеграции</a></li>
-                <li><a href="/integrations/create"><span class="icon">➕</span> Создать</a></li>
-                <li><a href="/logs"><span class="icon">📝</span> Логи</a></li>
+        <nav class="sidebar-nav">
+            <ul>
+                <li><a href="/" class="active"><i data-lucide="layout-dashboard"></i> Обзор</a></li>
+                <li><a href="/projects"><i data-lucide="folder-kanban"></i> Проекты</a></li>
+                <li><a href="/integrations"><i data-lucide="webhook"></i> Интеграции</a></li>
+                <li><a href="/integrations/create"><i data-lucide="plus"></i> Создать</a></li>
+                <li><a href="/logs"><i data-lucide="file-text"></i> Логи</a></li>
                 {{ if eq .role "admin" }}
-                <li><a href="/users"><span class="icon">👥</span> Пользователи</a></li>
+                <li><a href="/users"><i data-lucide="users"></i> Пользователи</a></li>
                 {{ end }}
             </ul>
         </nav>
+        
+        <div class="sidebar-settings">
+            <a href="/settings"><i data-lucide="settings"></i> Настройки</a>
+        </div>
         
         <div class="sidebar-user">
             <div class="sidebar-user-info">
@@ -34,8 +43,10 @@
                     <h4>{{ if .role }}{{ .role }}{{ else }}Пользователь{{ end }}</h4>
                     <p>Активен</p>
                 </div>
+                <a href="/logout" class="logout-btn" title="Выйти">
+                    <i data-lucide="log-out"></i>
+                </a>
             </div>
-            <a href="/logout" class="logout-btn">Выйти</a>
         </div>
     </aside>
 
@@ -50,38 +61,54 @@
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-card-header">
-                    <span class="stat-card-title">Всего интеграций</span>
-                    <span class="stat-card-icon">🔗</span>
+                    <div>
+                        <p class="stat-card-title">Всего интеграций</p>
+                        <p class="stat-card-value">{{ if .total_integrations }}{{ .total_integrations }}{{ else }}0{{ end }}</p>
+                        <p class="stat-card-change">Все созданные</p>
+                    </div>
+                    <div class="stat-card-icon" style="background: color-mix(in srgb, var(--primary) 10%, transparent);">
+                        <i data-lucide="webhook" style="color: var(--primary);"></i>
+                    </div>
                 </div>
-                <div class="stat-card-value">{{ if .total_integrations }}{{ .total_integrations }}{{ else }}0{{ end }}</div>
-                <div class="stat-card-change">Все созданные</div>
             </div>
 
             <div class="stat-card">
                 <div class="stat-card-header">
-                    <span class="stat-card-title">Активных</span>
-                    <span class="stat-card-icon">✅</span>
+                    <div>
+                        <p class="stat-card-title">Активных</p>
+                        <p class="stat-card-value">{{ if .active_integrations }}{{ .active_integrations }}{{ else }}0{{ end }}</p>
+                        <p class="stat-card-change">Работают сейчас</p>
+                    </div>
+                    <div class="stat-card-icon" style="background: color-mix(in srgb, var(--success) 10%, transparent);">
+                        <i data-lucide="check-circle-2" style="color: var(--success);"></i>
+                    </div>
                 </div>
-                <div class="stat-card-value">{{ if .active_integrations }}{{ .active_integrations }}{{ else }}0{{ end }}</div>
-                <div class="stat-card-change">Работают сейчас</div>
             </div>
 
             <div class="stat-card">
                 <div class="stat-card-header">
-                    <span class="stat-card-title">В режиме ожидания</span>
-                    <span class="stat-card-icon">⏳</span>
+                    <div>
+                        <p class="stat-card-title">В режиме ожидания</p>
+                        <p class="stat-card-value">-</p>
+                        <p class="stat-card-change">Требуют настройки</p>
+                    </div>
+                    <div class="stat-card-icon" style="background: color-mix(in srgb, var(--warning) 10%, transparent);">
+                        <i data-lucide="clock" style="color: var(--warning);"></i>
+                    </div>
                 </div>
-                <div class="stat-card-value">-</div>
-                <div class="stat-card-change">Требуют настройки</div>
             </div>
 
             <div class="stat-card">
                 <div class="stat-card-header">
-                    <span class="stat-card-title">Обработано</span>
-                    <span class="stat-card-icon">📈</span>
+                    <div>
+                        <p class="stat-card-title">Обработано</p>
+                        <p class="stat-card-value">-</p>
+                        <p class="stat-card-change">Всего запросов</p>
+                    </div>
+                    <div class="stat-card-icon" style="background: color-mix(in srgb, var(--primary) 10%, transparent); opacity: 0.7;">
+                        <i data-lucide="activity" style="color: var(--primary);"></i>
+                    </div>
                 </div>
-                <div class="stat-card-value">-</div>
-                <div class="stat-card-change">Всего запросов</div>
             </div>
         </div>
 
@@ -91,35 +118,130 @@
                 <h2 class="card-title">Быстрые действия</h2>
             </div>
             
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-                <a href="/projects/create" class="btn btn-success" style="justify-content: center; padding: 1.5rem;">
-                    <span style="font-size: 1.5rem;">📁</span>
-                    <span>Создать проект</span>
+            <div class="quick-actions-grid">
+                <a href="/projects/create" class="btn btn-success quick-action-btn">
+                    <div class="quick-action-header">
+                        <i data-lucide="plus"></i>
+                        <span>Создать проект</span>
+                        <span class="quick-action-arrow"><i data-lucide="arrow-right"></i></span>
+                    </div>
+                    <span class="quick-action-desc">Новый проект для группировки интеграций</span>
                 </a>
-                <a href="/projects" class="btn" style="justify-content: center; padding: 1.5rem;">
-                    <span style="font-size: 1.5rem;">📁</span>
-                    <span>Все проекты</span>
+                <a href="/projects" class="btn btn-secondary quick-action-btn">
+                    <div class="quick-action-header">
+                        <i data-lucide="folder-kanban"></i>
+                        <span>Все проекты</span>
+                        <span class="quick-action-arrow"><i data-lucide="arrow-right"></i></span>
+                    </div>
+                    <span class="quick-action-desc">Управление существующими проектами</span>
                 </a>
-                <a href="/integrations" class="btn" style="justify-content: center; padding: 1.5rem;">
-                    <span style="font-size: 1.5rem;">📋</span>
-                    <span>Все интеграции</span>
+                <a href="/integrations" class="btn btn-secondary quick-action-btn">
+                    <div class="quick-action-header">
+                        <i data-lucide="webhook"></i>
+                        <span>Интеграции</span>
+                        <span class="quick-action-arrow"><i data-lucide="arrow-right"></i></span>
+                    </div>
+                    <span class="quick-action-desc">Просмотр всех интеграций</span>
                 </a>
-                <a href="/logs" class="btn btn-secondary" style="justify-content: center; padding: 1.5rem;">
-                    <span style="font-size: 1.5rem;">📝</span>
-                    <span>Просмотр логов</span>
+                <a href="/logs" class="btn btn-secondary quick-action-btn">
+                    <div class="quick-action-header">
+                        <i data-lucide="file-text"></i>
+                        <span>Просмотр логов</span>
+                        <span class="quick-action-arrow"><i data-lucide="arrow-right"></i></span>
+                    </div>
+                    <span class="quick-action-desc">История запросов и ответов</span>
                 </a>
             </div>
         </div>
 
-        <!-- Info -->
-        <div class="info-box">
-            <strong>💡 Как начать работу:</strong><br>
-            1. Создайте проект для группировки интеграций<br>
-            2. Создайте интеграцию в проекте<br>
-            3. Отправьте тестовый запрос на webhook URL<br>
-            4. Настройте маппинг полей<br>
-            5. Активируйте интеграцию
+        <!-- Bottom Grid -->
+        <div class="bottom-grid">
+            <!-- Getting Started -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 1.125rem;">💡</span>
+                        Как начать работу
+                    </h2>
+                </div>
+                <div class="steps-list">
+                    <div class="step-item">
+                        <i data-lucide="check-circle-2" class="step-icon completed"></i>
+                        <span class="step-text completed">Создайте проект для группировки интеграций</span>
+                    </div>
+                    <div class="step-item">
+                        <i data-lucide="check-circle-2" class="step-icon completed"></i>
+                        <span class="step-text completed">Создайте интеграцию в проекте</span>
+                    </div>
+                    <div class="step-item">
+                        <i data-lucide="circle" class="step-icon pending"></i>
+                        <span class="step-text">Отправьте тестовый запрос на webhook URL</span>
+                    </div>
+                    <div class="step-item">
+                        <i data-lucide="circle" class="step-icon pending"></i>
+                        <span class="step-text">Настройте маппинг полей</span>
+                    </div>
+                    <div class="step-item">
+                        <i data-lucide="circle" class="step-icon pending"></i>
+                        <span class="step-text">Активируйте интеграцию</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Последняя активность</h2>
+                </div>
+                <div class="activity-list">
+                    <div class="activity-item">
+                        <div class="activity-content">
+                            <div class="activity-header">
+                                <span class="badge badge-success">OK</span>
+                                <span class="activity-integration">CRM → Bitrix</span>
+                            </div>
+                            <p class="activity-message">Webhook получен от API Gateway</p>
+                        </div>
+                        <span class="activity-time">2 мин назад</span>
+                    </div>
+                    <div class="activity-item">
+                        <div class="activity-content">
+                            <div class="activity-header">
+                                <span class="badge badge-success">OK</span>
+                                <span class="activity-integration">Telegram → CRM</span>
+                            </div>
+                            <p class="activity-message">Данные успешно переданы</p>
+                        </div>
+                        <span class="activity-time">5 мин назад</span>
+                    </div>
+                    <div class="activity-item">
+                        <div class="activity-content">
+                            <div class="activity-header">
+                                <span class="badge badge-danger">Ошибка</span>
+                                <span class="activity-integration">1C → REST API</span>
+                            </div>
+                            <p class="activity-message">Ошибка подключения к API</p>
+                        </div>
+                        <span class="activity-time">12 мин назад</span>
+                    </div>
+                    <div class="activity-item">
+                        <div class="activity-content">
+                            <div class="activity-header">
+                                <span class="badge badge-warning">Внимание</span>
+                                <span class="activity-integration">Email → Webhook</span>
+                            </div>
+                            <p class="activity-message">Таймаут при обработке запроса</p>
+                        </div>
+                        <span class="activity-time">25 мин назад</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </main>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        lucide.createIcons();
+    </script>
 </body>
 </html>

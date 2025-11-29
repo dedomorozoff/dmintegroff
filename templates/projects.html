@@ -4,24 +4,50 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ .title }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/modern.css">
 </head>
 <body>
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-logo">
-            <span class="icon">🚀</span>
+            <div class="sidebar-logo-icon">
+                <i data-lucide="zap"></i>
+            </div>
             <h1>dmIntegroff</h1>
         </div>
         
-        <nav>
-            <ul class="sidebar-nav">
-                <li><a href="/"><span class="icon">📊</span> Главная</a></li>
-                <li><a href="/projects" class="active"><span class="icon">📁</span> Проекты</a></li>
-                <li><a href="/integrations"><span class="icon">🔗</span> Интеграции</a></li>
-                <li><a href="/logs"><span class="icon">📝</span> Логи</a></li>
+        <nav class="sidebar-nav">
+            <ul>
+                <li><a href="/"><i data-lucide="layout-dashboard"></i> Обзор</a></li>
+                <li><a href="/projects" class="active"><i data-lucide="folder-kanban"></i> Проекты</a></li>
+                <li><a href="/integrations"><i data-lucide="webhook"></i> Интеграции</a></li>
+                <li><a href="/integrations/create"><i data-lucide="plus"></i> Создать</a></li>
+                <li><a href="/logs"><i data-lucide="file-text"></i> Логи</a></li>
+                {{ if eq .role "admin" }}
+                <li><a href="/users"><i data-lucide="users"></i> Пользователи</a></li>
+                {{ end }}
             </ul>
         </nav>
+        
+        <div class="sidebar-settings">
+            <a href="/settings"><i data-lucide="settings"></i> Настройки</a>
+        </div>
+        
+        <div class="sidebar-user">
+            <div class="sidebar-user-info">
+                <div class="sidebar-user-avatar">{{ if .role }}{{ slice .role 0 1 }}{{ else }}U{{ end }}</div>
+                <div class="sidebar-user-details">
+                    <h4>{{ if .role }}{{ .role }}{{ else }}Пользователь{{ end }}</h4>
+                    <p>Активен</p>
+                </div>
+                <a href="/logout" class="logout-btn" title="Выйти">
+                    <i data-lucide="log-out"></i>
+                </a>
+            </div>
+        </div>
     </aside>
 
     <!-- Main Content -->
@@ -33,7 +59,7 @@
                     <p>Группировка интеграций по проектам</p>
                 </div>
                 <a href="/projects/create" class="btn btn-success">
-                    <span>➕</span>
+                    <i data-lucide="plus"></i>
                     Создать проект
                 </a>
             </div>
@@ -55,17 +81,23 @@
                         {{ if .projects }}
                         {{ range .projects }}
                         <tr>
-                            <td><strong><a href="/projects/{{ .ID }}" style="color: var(--accent-primary);">{{ .Name }}</a></strong></td>
-                            <td>{{ if .Description }}{{ .Description }}{{ else }}<span style="color: var(--text-secondary);">-</span>{{ end }}</td>
-                            <td><span class="badge">{{ len .Integrations }}</span></td>
+                            <td><strong><a href="/projects/{{ .ID }}" style="color: var(--primary);">{{ .Name }}</a></strong></td>
+                            <td>{{ if .Description }}{{ .Description }}{{ else }}<span style="color: var(--muted-foreground);">-</span>{{ end }}</td>
+                            <td><span class="badge badge-info">{{ len .Integrations }}</span></td>
                             <td>{{ .CreatedBy.Username }}</td>
                             <td style="text-align: right;">
                                 <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-                                    <a href="/projects/{{ .ID }}" class="btn btn-sm" title="Просмотр">👁️</a>
-                                    <a href="/projects/{{ .ID }}/edit" class="btn btn-secondary btn-sm" title="Редактировать">✏️</a>
+                                    <a href="/projects/{{ .ID }}" class="btn btn-sm" title="Просмотр">
+                                        <i data-lucide="eye"></i>
+                                    </a>
+                                    <a href="/projects/{{ .ID }}/edit" class="btn btn-secondary btn-sm" title="Редактировать">
+                                        <i data-lucide="pencil"></i>
+                                    </a>
                                     <form method="POST" action="/projects/{{ .ID }}/delete" style="display: inline;"
                                         onsubmit="return confirm('Удалить проект {{ .Name }}? Все интеграции проекта ({{ len .Integrations }}) также будут удалены!');">
-                                        <button type="submit" class="btn btn-danger btn-sm" title="Удалить">🗑️</button>
+                                        <button type="submit" class="btn btn-danger btn-sm" title="Удалить">
+                                            <i data-lucide="trash-2"></i>
+                                        </button>
                                     </form>
                                 </div>
                             </td>
@@ -73,11 +105,14 @@
                         {{ end }}
                         {{ else }}
                         <tr>
-                            <td colspan="5" style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+                            <td colspan="5" style="text-align: center; padding: 3rem; color: var(--muted-foreground);">
                                 <div style="font-size: 3rem; margin-bottom: 1rem;">📁</div>
-                                <h3>Проектов пока нет</h3>
-                                <p style="margin-top: 0.5rem;">Создайте первый проект для группировки интеграций</p>
-                                <a href="/projects/create" class="btn" style="margin-top: 1rem;">Создать проект</a>
+                                <h3 style="margin-bottom: 0.5rem;">Проектов пока нет</h3>
+                                <p style="margin-top: 0.5rem; margin-bottom: 1rem;">Создайте первый проект для группировки интеграций</p>
+                                <a href="/projects/create" class="btn">
+                                    <i data-lucide="plus"></i>
+                                    Создать проект
+                                </a>
                             </td>
                         </tr>
                         {{ end }}
@@ -86,5 +121,10 @@
             </div>
         </div>
     </main>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        lucide.createIcons();
+    </script>
 </body>
 </html>
