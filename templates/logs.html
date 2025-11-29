@@ -177,12 +177,12 @@
         <!-- Logs -->
         {{ if .logs }}
         {{ range .logs }}
-        <div class="log-entry {{ if .Error }}error-log{{ end }}">
+        <div class="log-entry {{ if .ErrorMessage }}error-log{{ end }}">
             <div class="log-header">
                 <div>
                     <span class="log-method {{ .Method }}">{{ .Method }}</span>
-                    <span class="log-status {{ if .Error }}error{{ else }}success{{ end }}">
-                        {{ if .Error }}Ошибка{{ else }}Успешно{{ end }}
+                    <span class="log-status {{ if .ErrorMessage }}error{{ else }}success{{ end }}">
+                        {{ if .ErrorMessage }}Ошибка{{ else }}Успешно{{ end }}
                     </span>
                     <span class="log-meta">
                         <i data-lucide="calendar" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
@@ -195,13 +195,13 @@
                 </div>
             </div>
 
-            {{ if .Error }}
+            {{ if .ErrorMessage }}
             <div class="log-section">
                 <div class="log-section-title">
                     <i data-lucide="alert-circle" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
                     Ошибка
                 </div>
-                <div class="error-message">{{ .Error }}</div>
+                <div class="error-message">{{ .ErrorMessage }}</div>
             </div>
             {{ end }}
 

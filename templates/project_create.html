@@ -13,22 +13,22 @@
 <body>
     <aside class="sidebar">
         <div class="sidebar-logo">
-            <span class="icon">🚀</span>
-            <h1>dmIntegroff</h1>
+            <img src="/static/img/logo.png" alt="dmIntegroff" class="sidebar-logo-img">
         </div>
         
-        <nav>
-            <ul class="sidebar-nav">
-                <li><a href="/"><span class="icon">📊</span> Главная</a></li>
-                <li><a href="/projects" class="active"><span class="icon">📁</span> Проекты</a></li>
-                <li><a href="/integrations"><span class="icon">🔗</span> Интеграции</a></li>
-                <li><a href="/logs"><span class="icon">📝</span> Логи</a></li>
+        <nav class="sidebar-nav">
+            <ul>
+                <li><a href="/"><i data-lucide="layout-dashboard"></i> Обзор</a></li>
+                <li><a href="/projects" class="active"><i data-lucide="folder-kanban"></i> Проекты</a></li>
+                <li><a href="/integrations"><i data-lucide="webhook"></i> Интеграции</a></li>
+                <li><a href="/integrations/create"><i data-lucide="plus"></i> Создать</a></li>
+                <li><a href="/logs"><i data-lucide="file-text"></i> Логи</a></li>
             </ul>
         </nav>
         
         <div class="sidebar-settings">
-            <a href="/settings"><span class="icon">⚙️</span> Настройки</a>
-            <a href="/help"><span class="icon">❓</span> Помощь</a>
+            <a href="/settings"><i data-lucide="settings"></i> Настройки</a>
+            <a href="/help"><i data-lucide="help-circle"></i> Помощь</a>
         </div>
         
         <div class="sidebar-user">
@@ -70,5 +70,10 @@
             </form>
         </div>
     </main>
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        lucide.createIcons();
+    </script>
 </body>
 </html>
