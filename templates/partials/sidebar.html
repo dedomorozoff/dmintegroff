@@ -7,7 +7,7 @@
 
     <nav class="sidebar-nav">
         <ul>
-            <li><a href="/" {{ if eq .CurrentPage "dashboard" }}class="active"{{ end }}><i data-lucide="layout-dashboard"></i> Обзор</a></li>
+            <li><a href="/" {{ if eq .CurrentPage "dashboard" }}class="active"{{ end }}><i data-lucide="layout-dashboard"></i> Панель управления</a></li>
             <li><a href="/projects" {{ if eq .CurrentPage "projects" }}class="active"{{ end }}><i data-lucide="folder-kanban"></i> Проекты</a></li>
             <li><a href="/integrations" {{ if eq .CurrentPage "integrations" }}class="active"{{ end }}><i data-lucide="webhook"></i> Интеграции</a></li>
             <li><a href="/integrations/create" {{ if eq .CurrentPage "integration_create" }}class="active"{{ end }}><i data-lucide="plus"></i> Создать</a></li>
@@ -22,10 +22,10 @@
 
     <div class="sidebar-user">
         <div class="sidebar-user-info">
-            <div class="sidebar-user-avatar">{{ if .role }}{{ slice .role 0 1 }}{{ else }}U{{ end }}</div>
+            <div class="sidebar-user-avatar">{{ if .username }}{{ slice .username 0 1 }}{{ else }}U{{ end }}</div>
             <div class="sidebar-user-details">
-                <h4>{{ if .role }}{{ .role }}{{ else }}Пользователь{{ end }}</h4>
-                <p>Активен</p>
+                <h4>{{ if .username }}{{ .username }}{{ else }}Пользователь{{ end }}</h4>
+                <p>{{ if .role }}{{ .role }}{{ else }}Активен{{ end }}</p>
             </div>
             <a href="/logout" class="logout-btn" title="Выйти">
                 <i data-lucide="log-out"></i>

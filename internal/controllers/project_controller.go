@@ -12,6 +12,7 @@ import (
 )
 
 func ProjectList(c *gin.Context) {
+	session := sessions.Default(c)
 	var projects []models.Project
 	database.DB.Preload("Integrations").Preload("CreatedBy").Find(&projects)
 
@@ -19,13 +20,18 @@ func ProjectList(c *gin.Context) {
 		"title":       "Проекты",
 		"CurrentPage": "projects",
 		"projects":    projects,
+		"username":    session.Get("username"),
+		"role":        session.Get("role"),
 	})
 }
 
 func ProjectCreate(c *gin.Context) {
+	session := sessions.Default(c)
 	c.HTML(http.StatusOK, "pages/project_create.html", gin.H{
 		"title":       "Создание проекта",
 		"CurrentPage": "projects",
+		"username":    session.Get("username"),
+		"role":        session.Get("role"),
 	})
 }
 
@@ -58,6 +64,7 @@ func ProjectStore(c *gin.Context) {
 }
 
 func ProjectView(c *gin.Context) {
+	session := sessions.Default(c)
 	idStr := c.Param("id")
 	id, _ := strconv.ParseUint(idStr, 10, 32)
 
@@ -71,11 +78,14 @@ func ProjectView(c *gin.Context) {
 		"title":       project.Name,
 		"CurrentPage": "projects",
 		"project":     project,
+		"username":    session.Get("username"),
+		"role":        session.Get("role"),
 	})
 }
 
 // ProjectCreateIntegration - создание интеграции в контексте проекта
 func ProjectCreateIntegration(c *gin.Context) {
+	session := sessions.Default(c)
 	projectIDStr := c.Param("id")
 	projectID, _ := strconv.ParseUint(projectIDStr, 10, 32)
 
@@ -89,6 +99,8 @@ func ProjectCreateIntegration(c *gin.Context) {
 		"title":       "Создание интеграции",
 		"CurrentPage": "projects",
 		"project":     project,
+		"username":    session.Get("username"),
+		"role":        session.Get("role"),
 	})
 }
 
@@ -155,6 +167,7 @@ func ProjectDeleteIntegration(c *gin.Context) {
 }
 
 func ProjectEdit(c *gin.Context) {
+	session := sessions.Default(c)
 	idStr := c.Param("id")
 	id, _ := strconv.ParseUint(idStr, 10, 32)
 
@@ -168,6 +181,8 @@ func ProjectEdit(c *gin.Context) {
 		"title":       "Редактирование проекта",
 		"CurrentPage": "projects",
 		"project":     project,
+		"username":    session.Get("username"),
+		"role":        session.Get("role"),
 	})
 }
 

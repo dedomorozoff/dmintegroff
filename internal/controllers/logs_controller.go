@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 
@@ -53,6 +54,7 @@ func TestEndpoint(c *gin.Context) {
 
 // LogsPage - страница с логами
 func LogsPage(c *gin.Context) {
+	session := sessions.Default(c)
 	query := database.DB.Preload("Integration").Preload("Integration.Project").Order("created_at desc")
 
 	// Фильтры
@@ -91,6 +93,8 @@ func LogsPage(c *gin.Context) {
 		"filter_project":     c.Query("project_id"),
 		"filter_search":      c.Query("search"),
 		"filter_status":      c.Query("status"),
+		"username":           session.Get("username"),
+		"role":               session.Get("role"),
 	})
 }
 

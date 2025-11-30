@@ -715,11 +715,41 @@ pre {
 }
 
 /* Lucide Icons Support */
-i[data-lucide] {
+i[data-lucide],
+svg[data-lucide] {
     display: inline-block;
-    width: 1em;
-    height: 1em;
+    width: 12px !important;
+    height: 12px !important;
     stroke-width: 2;
+}
+
+/* Sidebar icons - normal size */
+.sidebar i[data-lucide],
+.sidebar svg[data-lucide] {
+    width: 20px !important;
+    height: 20px !important;
+}
+
+/* Dashboard icons - normal size */
+.stat-card-icon i[data-lucide],
+.stat-card-icon svg[data-lucide],
+.quick-action-header i[data-lucide],
+.quick-action-header svg[data-lucide],
+.step-icon i[data-lucide],
+.step-icon svg[data-lucide] {
+    width: 20px !important;
+    height: 20px !important;
+}
+
+/* Card title icons - 18x18 */
+.card-title i[data-lucide],
+.card-title svg[data-lucide],
+h2 i[data-lucide],
+h2 svg[data-lucide],
+h3 i[data-lucide],
+h3 svg[data-lucide] {
+    width: 18px !important;
+    height: 18px !important;
 }
 
 /* Responsive adjustments */

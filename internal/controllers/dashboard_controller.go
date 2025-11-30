@@ -24,6 +24,7 @@ type ActivityItem struct {
 // DashboardPage - главная страница с панелью управления
 func DashboardPage(c *gin.Context) {
 	session := sessions.Default(c)
+	username := session.Get("username")
 	role := session.Get("role")
 
 	// Получаем статистику интеграций
@@ -125,6 +126,7 @@ func DashboardPage(c *gin.Context) {
 
 	c.HTML(http.StatusOK, "pages/dashboard.html", gin.H{
 		"title":               "Главная",
+		"username":            username,
 		"role":                role,
 		"CurrentPage":         "dashboard",
 		"total_integrations":  totalIntegrations,

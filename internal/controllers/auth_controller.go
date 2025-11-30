@@ -39,6 +39,7 @@ func LoginPost(c *gin.Context) {
 
 	session := sessions.Default(c)
 	session.Set("user_id", user.ID)
+	session.Set("username", user.Username)
 	session.Set("role", user.Role)
 	session.Save()
 

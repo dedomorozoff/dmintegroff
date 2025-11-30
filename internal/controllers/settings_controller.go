@@ -13,6 +13,7 @@ import (
 // SettingsPage - страница настроек
 func SettingsPage(c *gin.Context) {
 	session := sessions.Default(c)
+	username := session.Get("username")
 	role := session.Get("role")
 	userID := session.Get("user_id")
 
@@ -21,6 +22,7 @@ func SettingsPage(c *gin.Context) {
 	if err := database.DB.First(&user, userID).Error; err != nil {
 		c.HTML(http.StatusOK, "pages/settings.html", gin.H{
 			"title":       "Настройки",
+			"username":    username,
 			"role":        role,
 			"CurrentPage": "settings",
 			"error":       "Не удалось загрузить информацию о пользователе",
@@ -30,15 +32,16 @@ func SettingsPage(c *gin.Context) {
 
 	c.HTML(http.StatusOK, "pages/settings.html", gin.H{
 		"title":       "Настройки",
+		"username":    username,
 		"role":        role,
 		"CurrentPage": "settings",
-		"username":    user.Username,
 	})
 }
 
 // ChangePassword - смена пароля пользователя
 func ChangePassword(c *gin.Context) {
 	session := sessions.Default(c)
+	username := session.Get("username")
 	role := session.Get("role")
 	userID := session.Get("user_id")
 
@@ -52,9 +55,9 @@ func ChangePassword(c *gin.Context) {
 	if err := database.DB.First(&user, userID).Error; err != nil {
 		c.HTML(http.StatusOK, "pages/settings.html", gin.H{
 			"title":       "Настройки",
+			"username":    username,
 			"role":        role,
 			"CurrentPage": "settings",
-			"username":    "",
 			"error":       "Пользователь не найден",
 		})
 		return
@@ -64,9 +67,9 @@ func ChangePassword(c *gin.Context) {
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(currentPassword)); err != nil {
 		c.HTML(http.StatusOK, "pages/settings.html", gin.H{
 			"title":       "Настройки",
+			"username":    username,
 			"role":        role,
 			"CurrentPage": "settings",
-			"username":    user.Username,
 			"error":       "Неверный текущий пароль",
 		})
 		return
@@ -76,9 +79,9 @@ func ChangePassword(c *gin.Context) {
 	if newPassword != confirmPassword {
 		c.HTML(http.StatusOK, "pages/settings.html", gin.H{
 			"title":       "Настройки",
+			"username":    username,
 			"role":        role,
 			"CurrentPage": "settings",
-			"username":    user.Username,
 			"error":       "Новые пароли не совпадают",
 		})
 		return
@@ -88,9 +91,9 @@ func ChangePassword(c *gin.Context) {
 	if len(newPassword) < 6 {
 		c.HTML(http.StatusOK, "pages/settings.html", gin.H{
 			"title":       "Настройки",
+			"username":    username,
 			"role":        role,
 			"CurrentPage": "settings",
-			"username":    user.Username,
 			"error":       "Пароль должен содержать минимум 6 символов",
 		})
 		return
@@ -101,9 +104,9 @@ func ChangePassword(c *gin.Context) {
 	if err != nil {
 		c.HTML(http.StatusOK, "pages/settings.html", gin.H{
 			"title":       "Настройки",
+			"username":    username,
 			"role":        role,
 			"CurrentPage": "settings",
-			"username":    user.Username,
 			"error":       "Ошибка при обработке пароля",
 		})
 		return
@@ -114,9 +117,9 @@ func ChangePassword(c *gin.Context) {
 	if err := database.DB.Save(&user).Error; err != nil {
 		c.HTML(http.StatusOK, "pages/settings.html", gin.H{
 			"title":       "Настройки",
+			"username":    username,
 			"role":        role,
 			"CurrentPage": "settings",
-			"username":    user.Username,
 			"error":       "Ошибка при сохранении пароля",
 		})
 		return
@@ -124,9 +127,9 @@ func ChangePassword(c *gin.Context) {
 
 	c.HTML(http.StatusOK, "pages/settings.html", gin.H{
 		"title":       "Настройки",
+		"username":    username,
 		"role":        role,
 		"CurrentPage": "settings",
-		"username":    user.Username,
 		"success":     "Пароль успешно изменен",
 	})
 }

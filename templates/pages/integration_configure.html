@@ -36,9 +36,9 @@
 
     <div class="card">
         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-            <h2 class="card-title">📥 Полученные данные (образец)</h2>
+            <h2 class="card-title"><i data-lucide="download"></i> Полученные данные (образец)</h2>
             <button type="button" class="btn btn-secondary" onclick="toggleEditPayload()" id="editPayloadBtn">
-                ✏️ Редактировать JSON
+                <i data-lucide="edit"></i> Редактировать JSON
             </button>
         </div>
         <div id="payloadView">
@@ -71,7 +71,7 @@
 
     <div class="card">
         <div class="card-header">
-            <h2 class="card-title">🔀 Настройка трансформации данных</h2>
+            <h2 class="card-title"><i data-lucide="shuffle"></i> Настройка трансформации данных</h2>
         </div>
 
         <!-- Переключатель режима -->
@@ -111,7 +111,12 @@
                             <th>Тип</th>
                             <th>Значение</th>
                             <th>Новое имя для Target API</th>
-                            <th style="text-align: center;">Игнорировать</th>
+                            <th style="text-align: center;">
+                                <label style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin: 0; cursor: pointer;">
+                                    <input type="checkbox" id="toggleAllIgnore" onclick="toggleAllIgnoreCheckboxes()" style="width: auto; cursor: pointer;">
+                                    <span>Игнорировать</span>
+                                </label>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -141,6 +146,7 @@
                             </td>
                             <td style="text-align: center;">
                                 <input type="checkbox" name="ignore_{{ $field.Path }}" data-path="{{ $field.Path }}"
+                                    class="ignore-checkbox" onchange="updateMasterCheckbox()"
                                     style="width: auto; cursor: pointer;">
                             </td>
                         </tr>
@@ -167,7 +173,7 @@
 
             <!-- Секция для кастомного шаблона -->
             <div id="templateSection" style="display: none;">
-                <h3 style="margin-bottom: 1rem;">📝 JSON Шаблон</h3>
+                <h3 style="margin-bottom: 1rem;"><i data-lucide="file-json"></i> JSON Шаблон</h3>
                 <p style="margin-bottom: 1rem; color: var(--text-secondary);">
                     Создайте свой JSON шаблон. Используйте <code style="color: #61afef;">{{`{{field.path}}`}}</code> для подстановки значений из источника.
                 </p>
@@ -176,7 +182,7 @@
                 {{ if .fields }}
                 <details style="margin-bottom: 1rem; padding: 1rem; background: #2d3748; border-radius: 8px;" ontoggle="if(this.open && window.lucide) window.lucide.createIcons()">
                     <summary style="cursor: pointer; font-weight: bold; color: #63b3ed;">
-                        📋 Доступные поля для подстановки
+                        <i data-lucide="list"></i> Доступные поля для подстановки
                     </summary>
                     <div style="margin-top: 1rem; max-height: 200px; overflow-y: auto;">
                         <table style="width: 100%; font-size: 0.9em;">
@@ -233,7 +239,7 @@
                 <div id="templateValidation" style="margin-top: 1rem;"></div>
 
                 <div style="margin-top: 1rem; padding: 1rem; background: #2d3748; border-radius: 8px; border-left: 4px solid #3b82f6;">
-                    <strong>💡 Подсказки:</strong>
+                    <strong><i data-lucide="lightbulb"></i> Подсказки:</strong>
                     <ul style="margin-top: 0.5rem; margin-left: 1.5rem; color: var(--text-secondary); line-height: 1.8;">
                         <li><strong>Строки:</strong> используйте кавычки <code style="color: #61afef;">{{`"{{field}}"`}}</code></li>
                         <li><strong>Числа и булевы:</strong> без кавычек <code style="color: #61afef;">{{`{{count}}`}}</code></li>
@@ -251,9 +257,9 @@
             <div style="display: flex; gap: 1rem; margin-top: 2rem;">
                 <button type="submit" class="btn btn-success" onclick="handleFormSubmit(event)">
                     {{ if eq .integration.Mode "active" }}
-                    ✅ Сохранить изменения
+                    <i data-lucide="save"></i> Сохранить изменения
                     {{ else }}
-                    ✅ Сохранить и активировать
+                    <i data-lucide="check-circle"></i> Сохранить и активировать
                     {{ end }}
                 </button>
                 <a href="/integrations" class="btn btn-secondary">Отмена</a>
@@ -304,11 +310,13 @@
         if (view.style.display === 'none') {
             view.style.display = 'block';
             edit.style.display = 'none';
-            btn.textContent = '✏️ Редактировать JSON';
+            btn.innerHTML = '<i data-lucide="edit"></i> Редактировать JSON';
+            if (window.lucide) window.lucide.createIcons();
         } else {
             view.style.display = 'none';
             edit.style.display = 'block';
-            btn.textContent = '👁️ Просмотр';
+            btn.innerHTML = '<i data-lucide="eye"></i> Просмотр';
+            if (window.lucide) window.lucide.createIcons();
             
             // Инициализируем подсветку после показа элемента
             setTimeout(() => {
@@ -348,6 +356,34 @@
         } else {
             mappingSection.style.display = 'none';
             templateSection.style.display = 'block';
+        }
+    }
+
+    // Переключение всех чекбоксов "Игнорировать"
+    function toggleAllIgnoreCheckboxes() {
+        const masterCheckbox = document.getElementById('toggleAllIgnore');
+        const checkboxes = document.querySelectorAll('input[type="checkbox"][name^="ignore_"]');
+        
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = masterCheckbox.checked;
+        });
+    }
+
+    // Обновление главного чекбокса при изменении отдельных чекбоксов
+    function updateMasterCheckbox() {
+        const masterCheckbox = document.getElementById('toggleAllIgnore');
+        const checkboxes = document.querySelectorAll('input[type="checkbox"][name^="ignore_"]');
+        const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+        
+        if (checkedCount === 0) {
+            masterCheckbox.checked = false;
+            masterCheckbox.indeterminate = false;
+        } else if (checkedCount === checkboxes.length) {
+            masterCheckbox.checked = true;
+            masterCheckbox.indeterminate = false;
+        } else {
+            masterCheckbox.checked = false;
+            masterCheckbox.indeterminate = true;
         }
     }
 
@@ -597,7 +633,7 @@
                     }
 
                     // Показываем уведомление
-                    showNotification('📥 Получены новые данные! Обновление страницы...', 'success');
+                    showNotification('Получены новые данные! Обновление страницы...', 'success');
 
                     // Обновляем страницу через небольшую задержку
                     setTimeout(() => {

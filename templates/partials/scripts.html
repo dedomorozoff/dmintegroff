@@ -1,7 +1,12 @@
 {{ define "partials/scripts.html" }}
 <script src="https://unpkg.com/lucide@latest"></script>
 <script>
-    lucide.createIcons();
+    lucide.createIcons({
+        attrs: {
+            width: '12',
+            height: '12'
+        }
+    });
 </script>
 </body>
 

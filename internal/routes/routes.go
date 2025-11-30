@@ -47,6 +47,7 @@ func SetupRouter() *gin.Engine {
 	// Protected routes
 	authorized := r.Group(appPath + "/")
 	authorized.Use(AuthRequired())
+	authorized.Use(InjectUserData())
 	{
 		authorized.GET("/", controllers.DashboardPage)
 		authorized.GET("/api/activity", controllers.GetRecentActivity)
@@ -99,6 +100,9 @@ func SetupRouter() *gin.Engine {
 	r.POST("/webhook/:token", controllers.WebhookHandler)
 	r.POST("/webhook/test", controllers.TestEndpoint) // Test webhook endpoint
 
+	// Error pages - должны быть в конце
+	r.NoRoute(controllers.NotFoundPage)
+
 	return r
 }
 
@@ -111,6 +115,28 @@ func AuthRequired() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+		
+		// Добавляем username и role в контекст для использования в шаблонах
+		username := session.Get("username")
+		role := session.Get("role")
+		c.Set("username", username)
+		c.Set("role", role)
+		
+		c.Next()
+	}
+}
+
+// InjectUserData - middleware для автоматического добавления данных пользователя в шаблоны
+func InjectUserData() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Получаем данные из контекста
+		username, _ := c.Get("username")
+		role, _ := c.Get("role")
+		
+		// Сохраняем в контексте для доступа в контроллерах
+		c.Set("template_username", username)
+		c.Set("template_role", role)
+		
 		c.Next()
 	}
 }
@@ -190,10 +216,15 @@ func PanicRecovery() gin.HandlerFunc {
 					controllers.CreateLogWithLimit(&log)
 				}
 
-				// Возвращаем 500 ошибку
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"error": "Internal Server Error",
-				})
+				// Показываем красивую страницу 500 для HTML запросов
+				if c.GetHeader("Accept") == "" || c.GetHeader("Accept") == "text/html" || c.Request.Header.Get("Accept") == "*/*" {
+					controllers.InternalErrorPage(c)
+				} else {
+					// Для API запросов возвращаем JSON
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"error": "Internal Server Error",
+					})
+				}
 				c.Abort()
 			}
 		}()

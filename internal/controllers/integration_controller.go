@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 
 	"github.com/gin-contrib/sessions"
@@ -15,6 +16,7 @@ import (
 )
 
 func IntegrationList(c *gin.Context) {
+	session := sessions.Default(c)
 	var integrations []models.Integration
 	database.DB.Preload("Project").Find(&integrations)
 
@@ -22,6 +24,8 @@ func IntegrationList(c *gin.Context) {
 		"title":        "Интеграции",
 		"CurrentPage":  "integrations",
 		"integrations": integrations,
+		"username":     session.Get("username"),
+		"role":         session.Get("role"),
 	})
 }
 
@@ -54,6 +58,7 @@ func IntegrationsListAPI(c *gin.Context) {
 }
 
 func IntegrationCreate(c *gin.Context) {
+	session := sessions.Default(c)
 	var projects []models.Project
 	database.DB.Find(&projects)
 
@@ -61,6 +66,8 @@ func IntegrationCreate(c *gin.Context) {
 		"title":       "Создание интеграции",
 		"CurrentPage": "integration_create",
 		"projects":    projects,
+		"username":    session.Get("username"),
+		"role":        session.Get("role"),
 	})
 }
 
@@ -237,6 +244,12 @@ func IntegrationConfigure(c *gin.Context) {
 		json.Unmarshal([]byte(integration.MappingConfig), &currentMapping)
 	}
 
+	// Сортируем поля по алфавиту
+	sort.Slice(fields, func(i, j int) bool {
+		return fields[i].Path < fields[j].Path
+	})
+
+	session := sessions.Default(c)
 	c.HTML(http.StatusOK, "pages/integration_configure.html", gin.H{
 		"title":          "Настройка маппинга",
 		"CurrentPage":    "integrations",
@@ -245,6 +258,8 @@ func IntegrationConfigure(c *gin.Context) {
 		"fields":         fields,
 		"payloadJSON":    payloadJSON,
 		"currentMapping": currentMapping,
+		"username":       session.Get("username"),
+		"role":           session.Get("role"),
 	})
 }
 
@@ -335,6 +350,7 @@ func IntegrationSaveMapping(c *gin.Context) {
 }
 
 func IntegrationEdit(c *gin.Context) {
+	session := sessions.Default(c)
 	idStr := c.Param("id")
 	id, _ := strconv.ParseUint(idStr, 10, 32)
 
@@ -348,6 +364,8 @@ func IntegrationEdit(c *gin.Context) {
 		"title":       "Редактирование интеграции",
 		"CurrentPage": "integrations",
 		"integration": integration,
+		"username":    session.Get("username"),
+		"role":        session.Get("role"),
 	})
 }
 
