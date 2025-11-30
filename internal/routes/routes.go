@@ -111,7 +111,15 @@ func AuthRequired() gin.HandlerFunc {
 		session := sessions.Default(c)
 		user := session.Get("user_id")
 		if user == nil {
-			c.Redirect(http.StatusFound, "/login")
+			// Для AJAX/API запросов показываем страницу 401
+			if c.GetHeader("X-Requested-With") == "XMLHttpRequest" || c.GetHeader("Accept") == "application/json" {
+				c.HTML(http.StatusUnauthorized, "pages/401.html", gin.H{
+					"title": "Доступ запрещён",
+				})
+			} else {
+				// Для обычных запросов редиректим на логин
+				c.Redirect(http.StatusFound, "/login")
+			}
 			c.Abort()
 			return
 		}

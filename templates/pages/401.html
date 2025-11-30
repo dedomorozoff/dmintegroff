@@ -1,0 +1,24 @@
+{{ define "pages/401.html" }}
+{{ template "partials/head.html" . }}
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-logo">
+                <img src="/static/img/logo.png" alt="dmIntegroff" style="max-width: 280px; width: 100%; height: auto; margin-bottom: 1rem;">
+                <h1 style="font-size: 4rem; margin: 1rem 0; color: var(--primary);">401</h1>
+                <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Доступ запрещён</h2>
+                <p style="margin-bottom: 2rem;">Похоже, вы забыли пароль от этого измерения 🔐</p>
+            </div>
+
+            <div style="text-align: center;">
+                <a href="/login" class="btn" style="width: 100%; justify-content: center; margin-bottom: 0.5rem;">
+                    Войти в систему
+                </a>
+                <p style="margin-top: 1rem; color: var(--muted-foreground); font-size: 0.875rem;">
+                    Если у вас нет доступа, свяжитесь с администратором
+                </p>
+            </div>
+        </div>
+    </div>
+
+    {{ template "partials/scripts.html" . }}
+{{ end }}

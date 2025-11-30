@@ -92,7 +92,7 @@ func LoginPost(c *gin.Context) {
 
 	var user models.User
 	if err := database.DB.Where("username = ?", username).First(&user).Error; err != nil {
-		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
+		c.HTML(http.StatusUnauthorized, "pages/login.html", gin.H{
 			"error": "Неверное имя пользователя или пароль",
 			"title": "Вход в систему",
 		})
@@ -100,7 +100,7 @@ func LoginPost(c *gin.Context) {
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
+		c.HTML(http.StatusUnauthorized, "pages/login.html", gin.H{
 			"error": "Неверное имя пользователя или пароль",
 			"title": "Вход в систему",
 		})
