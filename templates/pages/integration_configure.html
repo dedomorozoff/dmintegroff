@@ -1,5 +1,9 @@
 {{ define "pages/integration_configure.html" }}
 {{ template "partials/head.html" . }}
+
+<!-- JSON Highlight Styles -->
+<link rel="stylesheet" href="/static/css/json-highlight.css">
+
 {{ template "partials/sidebar.html" . }}
 
 <!-- Main Content -->
@@ -38,36 +42,68 @@
             </button>
         </div>
         <div id="payloadView">
-            <pre
+            <pre id="payloadViewPre"
                 style="background: #1a1f2e; color: #abb2bf; padding: 1rem; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;">{{ .integration.SamplePayload }}</pre>
         </div>
         <div id="payloadEdit" style="display: none;">
             <form method="POST" action="/integrations/{{ .integration.ID }}/configure" id="payloadEditForm">
-                <textarea name="sample_payload" id="samplePayloadTextarea"
-                    style="width: 100%; min-height: 300px; font-family: 'Courier New', monospace; background: #1a1f2e; color: #abb2bf; padding: 1rem; border-radius: 8px; border: 1px solid #2d3748;"
-                    placeholder="Вставьте JSON здесь...">{{ .integration.SamplePayload }}</textarea>
+                <div class="json-editor-container" style="position: relative;">
+                    <textarea name="sample_payload" id="samplePayloadTextarea" class="json-editor json-editor-dark"
+                        style="width: 100%; min-height: 300px; font-family: 'Courier New', monospace; padding: 1rem; border-radius: 8px; font-size: 0.95em; line-height: 1.5;"
+                        placeholder="Вставьте JSON здесь...">{{ .integration.SamplePayload }}</textarea>
+                    <div id="samplePayloadTextarea_preview" class="json-preview"></div>
+                </div>
                 <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                    <button type="button" class="btn btn-secondary" onclick="formatPayload()">
+                        <i data-lucide="align-left"></i> Автоотступы
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="validatePayload()">
+                        <i data-lucide="check-circle"></i> Проверить
+                    </button>
                     <button type="submit" class="btn btn-success"><i data-lucide="save"></i> Сохранить
                         изменения</button>
                     <button type="button" class="btn btn-secondary" onclick="toggleEditPayload()">Отмена</button>
                 </div>
+                <div id="payloadValidation" style="margin-top: 1rem;"></div>
             </form>
         </div>
     </div>
 
     <div class="card">
         <div class="card-header">
-            <h2 class="card-title">🔀 Настройка маппинга</h2>
+            <h2 class="card-title">🔀 Настройка трансформации данных</h2>
         </div>
 
-        <p style="margin-bottom: 1.5rem; color: var(--text-secondary);">
-            Укажите, как поля из входящих данных должны быть переименованы для Target API.
-            Система автоматически разбирает вложенные объекты и массивы.
-        </p>
+        <!-- Переключатель режима -->
+        <div style="margin-bottom: 1.5rem; padding: 1rem; background: #2d3748; border-radius: 8px;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <input type="radio" name="transform_mode" value="mapping" id="modeMapping" checked onchange="switchTransformMode()">
+                <strong>Простой маппинг полей</strong>
+            </label>
+            <p style="margin-left: 1.5rem; color: var(--text-secondary); font-size: 0.9em;">
+                Переименование полей из источника (например: user.name → userName)
+            </p>
+
+            <label style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem; margin-bottom: 0.5rem;">
+                <input type="radio" name="transform_mode" value="template" id="modeTemplate" onchange="switchTransformMode()">
+                <strong>Кастомный JSON шаблон</strong>
+            </label>
+            <p style="margin-left: 1.5rem; color: var(--text-secondary); font-size: 0.9em;">
+                Полный контроль над структурой выходного JSON с подстановкой значений через <code style="color: #61afef;">{{`{{field.path}}`}}</code>
+            </p>
+        </div>
 
         <form method="POST" action="/integrations/{{ .integration.ID }}/configure" id="mappingForm">
             <input type="hidden" name="sample_payload" value="{{ .integration.SamplePayload }}">
-            <div class="table-container">
+            
+            <!-- Секция простого маппинга -->
+            <div id="mappingSection">
+                <p style="margin-bottom: 1.5rem; color: var(--text-secondary);">
+                    Укажите, как поля из входящих данных должны быть переименованы для Target API.
+                    Система автоматически разбирает вложенные объекты и массивы.
+                </p>
+                
+                <div class="table-container">
                 <table>
                     <thead>
                         <tr>
@@ -123,12 +159,97 @@
                         {{ end }}
                     </tbody>
                 </table>
+                </div>
             </div>
+            <!-- Конец секции простого маппинга -->
 
             <input type="hidden" name="mapping_config" id="mappingConfig">
 
+            <!-- Секция для кастомного шаблона -->
+            <div id="templateSection" style="display: none;">
+                <h3 style="margin-bottom: 1rem;">📝 JSON Шаблон</h3>
+                <p style="margin-bottom: 1rem; color: var(--text-secondary);">
+                    Создайте свой JSON шаблон. Используйте <code style="color: #61afef;">{{`{{field.path}}`}}</code> для подстановки значений из источника.
+                </p>
+
+                <!-- Примеры доступных полей -->
+                {{ if .fields }}
+                <details style="margin-bottom: 1rem; padding: 1rem; background: #2d3748; border-radius: 8px;" ontoggle="if(this.open && window.lucide) window.lucide.createIcons()">
+                    <summary style="cursor: pointer; font-weight: bold; color: #63b3ed;">
+                        📋 Доступные поля для подстановки
+                    </summary>
+                    <div style="margin-top: 1rem; max-height: 200px; overflow-y: auto;">
+                        <table style="width: 100%; font-size: 0.9em;">
+                            {{ range $field := .fields }}
+                            <tr style="transition: background 0.2s;" onmouseover="this.style.background='#3d4758'" onmouseout="this.style.background='transparent'">
+                                <td style="padding: 0.25rem;">
+                                    <code style="color: #61afef;">{{`{{`}}{{ $field.Path }}{{`}}`}}</code>
+                                </td>
+                                <td style="padding: 0.25rem; color: #c678dd;">{{ $field.Type }}</td>
+                                <td style="padding: 0.25rem; color: #98c379;">
+                                    {{ if eq $field.Type "string" }}"{{ $field.Value }}"{{ else }}{{ $field.Value }}{{ end }}
+                                </td>
+                                <td style="padding: 0.25rem; text-align: center;">
+                                    <button type="button" 
+                                        onclick="copyFieldToClipboard('{{`{{`}}{{ $field.Path }}{{`}}`}}', this)" 
+                                        style="background: none; border: none; cursor: pointer; padding: 0.25rem; color: #63b3ed; transition: color 0.2s;"
+                                        onmouseover="this.style.color='#90cdf4'"
+                                        onmouseout="this.style.color='#63b3ed'"
+                                        title="Копировать плейсхолдер">
+                                        <i data-lucide="copy" style="width: 16px; height: 16px;"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {{ end }}
+                        </table>
+                    </div>
+                </details>
+                {{ end }}
+
+                <!-- Редактор шаблона с подсветкой синтаксиса -->
+                <div class="json-editor-container" style="position: relative;">
+                    <textarea name="output_template" id="outputTemplate" class="json-editor json-editor-dark"
+                        style="width: 100%; min-height: 400px; font-family: 'Courier New', monospace; padding: 1rem; border-radius: 8px; font-size: 0.95em; line-height: 1.5;"
+                        placeholder='Пример шаблона:
+{
+  "user": {
+    "name": {{`"{{user.name}}"`}},
+    "email": {{`"{{user.email}}"`}}
+  },
+  "timestamp": {{`"{{timestamp}}"`}},
+  "custom_field": "статическое значение"
+}'>{{ .integration.OutputTemplate }}</textarea>
+                    <div id="outputTemplate_preview" class="json-preview"></div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                    <button type="button" class="btn btn-secondary" onclick="formatTemplate()">
+                        <i data-lucide="align-left"></i> Автоотступы
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="validateTemplate()">
+                        <i data-lucide="check-circle"></i> Проверить шаблон
+                    </button>
+                </div>
+                <div id="templateValidation" style="margin-top: 1rem;"></div>
+
+                <div style="margin-top: 1rem; padding: 1rem; background: #2d3748; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                    <strong>💡 Подсказки:</strong>
+                    <ul style="margin-top: 0.5rem; margin-left: 1.5rem; color: var(--text-secondary); line-height: 1.8;">
+                        <li><strong>Строки:</strong> используйте кавычки <code style="color: #61afef;">{{`"{{field}}"`}}</code></li>
+                        <li><strong>Числа и булевы:</strong> без кавычек <code style="color: #61afef;">{{`{{count}}`}}</code></li>
+                        <li><strong>Вложенные поля:</strong> через точку <code style="color: #61afef;">{{`{{user.address.city}}`}}</code></li>
+                        <li><strong>Элемент массива:</strong> по индексу <code style="color: #61afef;">{{`{{items[0].name}}`}}</code></li>
+                        <li><strong>🆕 Весь массив:</strong> wildcard <code style="color: #61afef; background: rgba(97, 175, 239, 0.15); padding: 2px 4px; border-radius: 3px;">{{`{{items.*}}`}}</code> - копирует массив целиком</li>
+                        <li><strong>Статические значения:</strong> можно комбинировать с плейсхолдерами</li>
+                        <li><strong>Копирование полей:</strong> кликните 📋 в списке "Доступные поля"</li>
+                        <li><strong>Форматирование:</strong> используйте кнопку "Автоотступы"</li>
+                        <li><strong>Проверка:</strong> используйте кнопку "Проверить шаблон"</li>
+                    </ul>
+                </div>
+            </div>
+
             <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-                <button type="submit" class="btn btn-success" onclick="generateMapping(event)">
+                <button type="submit" class="btn btn-success" onclick="handleFormSubmit(event)">
                     {{ if eq .integration.Mode "active" }}
                     ✅ Сохранить изменения
                     {{ else }}
@@ -142,6 +263,7 @@
 </main>
 
 <script src="/static/js/common.js"></script>
+<script src="/static/js/json-highlight.js"></script>
 <script>
     // Определяем функции в глобальной области видимости сразу
     function copyWebhookUrl() {
@@ -187,29 +309,246 @@
             view.style.display = 'none';
             edit.style.display = 'block';
             btn.textContent = '👁️ Просмотр';
+            
+            // Инициализируем подсветку после показа элемента
+            setTimeout(() => {
+                const textarea = document.getElementById('samplePayloadTextarea');
+                if (textarea && typeof JSONHighlighter !== 'undefined') {
+                    // Проверяем, не инициализирован ли уже
+                    if (textarea.dataset.highlighterInitialized !== 'true') {
+                        console.log('Initializing samplePayloadTextarea highlighter (delayed)');
+                        new JSONHighlighter('samplePayloadTextarea', 'samplePayloadTextarea_preview');
+                    } else {
+                        console.log('samplePayloadTextarea already initialized');
+                        // Просто обновляем подсветку
+                        const preview = document.getElementById('samplePayloadTextarea_preview');
+                        if (preview && typeof highlightJSON !== 'undefined') {
+                            preview.innerHTML = highlightJSON(textarea.value);
+                        }
+                    }
+                }
+            }, 150);
         }
     }
 
-    // Обновленная функция для работы с вложенными полями
-    function generateMapping(event) {
+    // Переключение между режимами трансформации
+    function switchTransformMode() {
+        const mappingMode = document.getElementById('modeMapping').checked;
+        const mappingSection = document.getElementById('mappingSection');
+        const templateSection = document.getElementById('templateSection');
+
+        if (!mappingSection || !templateSection) {
+            console.error('Sections not found');
+            return;
+        }
+
+        if (mappingMode) {
+            mappingSection.style.display = 'block';
+            templateSection.style.display = 'none';
+        } else {
+            mappingSection.style.display = 'none';
+            templateSection.style.display = 'block';
+        }
+    }
+
+    // Копирование поля в буфер обмена
+    function copyFieldToClipboard(fieldPlaceholder, button) {
+        navigator.clipboard.writeText(fieldPlaceholder).then(() => {
+            // Сохраняем оригинальную иконку
+            const icon = button.querySelector('i');
+            const originalIcon = icon.getAttribute('data-lucide');
+            
+            // Меняем на галочку
+            icon.setAttribute('data-lucide', 'check');
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+            
+            // Показываем уведомление
+            showNotification(`Скопировано: ${fieldPlaceholder}`, 'success');
+            
+            // Возвращаем обратно через 2 секунды
+            setTimeout(() => {
+                icon.setAttribute('data-lucide', originalIcon || 'copy');
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy:', err);
+            showNotification('Ошибка копирования', 'error');
+        });
+    }
+
+    // Форматирование JSON шаблона
+    function formatTemplate() {
+        const textarea = document.getElementById('outputTemplate');
+        const validationDiv = document.getElementById('templateValidation');
+        
+        if (!textarea) return;
+        
+        const text = textarea.value.trim();
+        if (!text) {
+            validationDiv.innerHTML = '<div style="padding: 1rem; background: #ef4444; color: white; border-radius: 8px;">❌ Нечего форматировать</div>';
+            return;
+        }
+        
+        try {
+            // Парсим JSON
+            const parsed = JSON.parse(text);
+            // Форматируем с отступами
+            const formatted = JSON.stringify(parsed, null, 2);
+            // Обновляем textarea
+            textarea.value = formatted;
+            // Обновляем подсветку
+            textarea.dispatchEvent(new Event('input'));
+            
+            validationDiv.innerHTML = '<div style="padding: 1rem; background: #10b981; color: white; border-radius: 8px;">✅ JSON отформатирован!</div>';
+            setTimeout(() => {
+                validationDiv.innerHTML = '';
+            }, 3000);
+        } catch (e) {
+            validationDiv.innerHTML = `<div style="padding: 1rem; background: #ef4444; color: white; border-radius: 8px;">❌ Ошибка: ${e.message}</div>`;
+        }
+    }
+
+    // Форматирование Sample Payload
+    function formatPayload() {
+        const textarea = document.getElementById('samplePayloadTextarea');
+        const validationDiv = document.getElementById('payloadValidation');
+        
+        if (!textarea) return;
+        
+        const text = textarea.value.trim();
+        if (!text) {
+            if (validationDiv) {
+                validationDiv.innerHTML = '<div style="padding: 1rem; background: #ef4444; color: white; border-radius: 8px;">❌ Нечего форматировать</div>';
+            }
+            return;
+        }
+        
+        try {
+            // Парсим JSON
+            const parsed = JSON.parse(text);
+            // Форматируем с отступами
+            const formatted = JSON.stringify(parsed, null, 2);
+            // Обновляем textarea
+            textarea.value = formatted;
+            // Обновляем подсветку
+            textarea.dispatchEvent(new Event('input'));
+            
+            if (validationDiv) {
+                validationDiv.innerHTML = '<div style="padding: 1rem; background: #10b981; color: white; border-radius: 8px;">✅ JSON отформатирован!</div>';
+                setTimeout(() => {
+                    validationDiv.innerHTML = '';
+                }, 3000);
+            }
+        } catch (e) {
+            if (validationDiv) {
+                validationDiv.innerHTML = `<div style="padding: 1rem; background: #ef4444; color: white; border-radius: 8px;">❌ Ошибка: ${e.message}</div>`;
+            }
+        }
+    }
+
+    // Валидация Sample Payload
+    function validatePayload() {
+        const textarea = document.getElementById('samplePayloadTextarea');
+        const validationDiv = document.getElementById('payloadValidation');
+        
+        if (!textarea || !validationDiv) return;
+        
+        const text = textarea.value.trim();
+        if (!text) {
+            validationDiv.innerHTML = '<div style="padding: 1rem; background: #ef4444; color: white; border-radius: 8px;">❌ JSON пустой</div>';
+            return false;
+        }
+        
+        try {
+            JSON.parse(text);
+            validationDiv.innerHTML = '<div style="padding: 1rem; background: #10b981; color: white; border-radius: 8px;">✅ JSON валиден!</div>';
+            setTimeout(() => {
+                validationDiv.innerHTML = '';
+            }, 3000);
+            return true;
+        } catch (e) {
+            validationDiv.innerHTML = `<div style="padding: 1rem; background: #ef4444; color: white; border-radius: 8px;">❌ Ошибка в JSON: ${e.message}</div>`;
+            return false;
+        }
+    }
+
+    // Валидация шаблона
+    function validateTemplate() {
+        const template = document.getElementById('outputTemplate').value.trim();
+        const validationDiv = document.getElementById('templateValidation');
+
+        if (!template) {
+            validationDiv.innerHTML = '<div style="padding: 1rem; background: #ef4444; color: white; border-radius: 8px;">❌ Шаблон пустой</div>';
+            return false;
+        }
+
+        try {
+            // Заменяем плейсхолдеры на тестовые значения для проверки структуры
+            const testTemplate = template.replace(/\{\{[^}]+\}\}/g, '"test_value"');
+            JSON.parse(testTemplate);
+            validationDiv.innerHTML = '<div style="padding: 1rem; background: #10b981; color: white; border-radius: 8px;">✅ Шаблон валиден!</div>';
+            return true;
+        } catch (e) {
+            validationDiv.innerHTML = `<div style="padding: 1rem; background: #ef4444; color: white; border-radius: 8px;">❌ Ошибка в JSON: ${e.message}</div>`;
+            return false;
+        }
+    }
+
+    // Обработка отправки формы
+    function handleFormSubmit(event) {
         event.preventDefault();
 
-        const mapping = {};
         const form = document.getElementById('mappingForm');
-        const inputs = form.querySelectorAll('input[type="text"][data-path]');
+        const mappingMode = document.getElementById('modeMapping').checked;
 
-        inputs.forEach(input => {
-            const fieldPath = input.getAttribute('data-path');
-            const newName = input.value.trim();
-            const ignoreCheckbox = form.querySelector(`input[name="ignore_${fieldPath}"]`);
+        if (mappingMode) {
+            // Генерируем маппинг
+            const mapping = {};
+            const inputs = form.querySelectorAll('input[type="text"][data-path]');
 
-            if (!ignoreCheckbox.checked && newName) {
-                mapping[newName] = fieldPath;
+            inputs.forEach(input => {
+                const fieldPath = input.getAttribute('data-path');
+                const newName = input.value.trim();
+                const ignoreCheckbox = form.querySelector(`input[name="ignore_${fieldPath}"]`);
+
+                if (!ignoreCheckbox.checked && newName) {
+                    mapping[newName] = fieldPath;
+                }
+            });
+
+            document.getElementById('mappingConfig').value = JSON.stringify(mapping);
+            // Очищаем output_template
+            const templateField = document.getElementById('outputTemplate');
+            if (templateField) templateField.value = '';
+        } else {
+            // Используем шаблон
+            const template = document.getElementById('outputTemplate').value.trim();
+            
+            if (!template) {
+                showNotification('❌ Шаблон не может быть пустым', 'error');
+                return;
             }
-        });
 
-        document.getElementById('mappingConfig').value = JSON.stringify(mapping);
+            // Валидируем шаблон перед отправкой
+            if (!validateTemplate()) {
+                showNotification('❌ Исправьте ошибки в шаблоне', 'error');
+                return;
+            }
+
+            // Очищаем mapping_config
+            document.getElementById('mappingConfig').value = '';
+        }
+
         form.submit();
+    }
+
+    // Обновленная функция для работы с вложенными полями (для обратной совместимости)
+    function generateMapping(event) {
+        handleFormSubmit(event);
     }
 
     // Определяем переменные
@@ -395,6 +734,44 @@
         const urlElement = document.getElementById('webhookUrl');
         if (urlElement) {
             urlElement.textContent = url;
+        }
+
+        // Определяем начальный режим на основе наличия output_template
+        const hasOutputTemplate = {{ if .integration.OutputTemplate }}true{{ else }}false{{ end }};
+        if (hasOutputTemplate) {
+            document.getElementById('modeTemplate').checked = true;
+            switchTransformMode();
+        } else {
+            document.getElementById('modeMapping').checked = true;
+            switchTransformMode();
+        }
+
+        // Инициализация подсветки синтаксиса JSON
+        if (typeof JSONHighlighter !== 'undefined') {
+            console.log('JSONHighlighter class found, initializing...');
+            
+            // Подсветка для редактора шаблона
+            const outputTemplate = document.getElementById('outputTemplate');
+            if (outputTemplate) {
+                console.log('Initializing outputTemplate highlighter');
+                new JSONHighlighter('outputTemplate', 'outputTemplate_preview');
+            } else {
+                console.warn('outputTemplate not found');
+            }
+            
+            // НЕ инициализируем samplePayloadTextarea здесь - он скрыт
+            // Инициализация происходит в toggleEditPayload()
+        } else {
+            console.error('JSONHighlighter class not found!');
+        }
+
+        // Подсветка для статического просмотра JSON
+        if (typeof highlightStaticJSON !== 'undefined') {
+            const payloadViewPre = document.getElementById('payloadViewPre');
+            if (payloadViewPre && payloadViewPre.textContent.trim()) {
+                console.log('Highlighting static JSON view');
+                highlightStaticJSON('payloadViewPre');
+            }
         }
 
         // Инициализация Lucide иконок

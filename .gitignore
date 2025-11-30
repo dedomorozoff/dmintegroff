@@ -21,9 +21,13 @@ go.work
 *.db
 *.sqlite
 *.sqlite3
+db/*
+!db/.gitkeep
 
 # Log files
 *.log
+logs/*
+!logs/.gitkeep
 
 # IDE specific files
 .vscode/

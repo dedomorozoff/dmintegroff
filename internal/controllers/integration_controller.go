@@ -280,7 +280,7 @@ func IntegrationSaveMapping(c *gin.Context) {
 	}
 
 	// Проверяем, это обновление только payload или полное сохранение маппинга
-	if c.PostForm("mapping_config") == "" && c.PostForm("sample_payload") != "" {
+	if c.PostForm("mapping_config") == "" && c.PostForm("output_template") == "" && c.PostForm("sample_payload") != "" {
 		// Обновляем только SamplePayload
 		newPayload := c.PostForm("sample_payload")
 		// Проверяем валидность JSON
@@ -302,9 +302,26 @@ func IntegrationSaveMapping(c *gin.Context) {
 		}
 	}
 
-	// Get mapping config from form
+	// Получаем output_template или mapping_config
+	outputTemplate := c.PostForm("output_template")
 	mappingConfig := c.PostForm("mapping_config")
-	integration.MappingConfig = mappingConfig
+
+	// Валидируем output_template, если он задан
+	if outputTemplate != "" {
+		processor := utils.NewTemplateProcessor()
+		if err := processor.ValidateTemplate(outputTemplate); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid output template: " + err.Error()})
+			return
+		}
+		integration.OutputTemplate = outputTemplate
+		// Очищаем старый mapping_config, если используется шаблон
+		integration.MappingConfig = ""
+	} else if mappingConfig != "" {
+		// Используем старый способ с mapping_config
+		integration.MappingConfig = mappingConfig
+		// Очищаем output_template
+		integration.OutputTemplate = ""
+	}
 
 	// Активируем интеграцию только если она была в режиме listening или inactive
 	// Если уже active, оставляем active

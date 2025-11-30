@@ -34,44 +34,56 @@ func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 		return err
 	}
 
-	// Parse mapping config
-	// Expected format: {"target_field": "source_field"}
-	var mapping map[string]string
-	if integration.MappingConfig != "" {
+	var transformed map[string]interface{}
+
+	// Приоритет 1: Используем OutputTemplate, если он задан
+	if integration.OutputTemplate != "" {
+		processor := utils.NewTemplateProcessor()
+		var err error
+		transformed, err = processor.ProcessTemplate(integration.OutputTemplate, payload)
+		if err != nil {
+			logger.Log.WithFields(map[string]interface{}{
+				"integration_id": integrationID,
+				"error":          err.Error(),
+			}).Error("Failed to process output template")
+			return err
+		}
+	} else if integration.MappingConfig != "" {
+		// Приоритет 2: Используем MappingConfig (старый способ)
+		var mapping map[string]string
 		if err := json.Unmarshal([]byte(integration.MappingConfig), &mapping); err != nil {
 			logger.Log.WithFields(map[string]interface{}{
 				"integration_id": integrationID,
 				"error":          err.Error(),
 			}).Warn("Invalid mapping config, using passthrough")
-		}
-	}
+			transformed = payload
+		} else {
+			// Transform data using mapping
+			transformed = make(map[string]interface{})
+			for targetField, sourceField := range mapping {
+				// Поддерживаем как простые поля, так и вложенные пути
+				var val interface{}
+				var found bool
 
-	// Transform data
-	transformed := make(map[string]interface{})
-	if len(mapping) > 0 {
-		for targetField, sourceField := range mapping {
-			// Поддерживаем как простые поля, так и вложенные пути
-			var val interface{}
-			var found bool
-
-			// Сначала пробуем как простое поле (для обратной совместимости)
-			if v, ok := payload[sourceField]; ok {
-				val = v
-				found = true
-			} else {
-				// Пробуем извлечь по пути (для вложенных полей)
-				if v, err := utils.GetValueByPath(payload, sourceField); err == nil {
+				// Сначала пробуем как простое поле (для обратной совместимости)
+				if v, ok := payload[sourceField]; ok {
 					val = v
 					found = true
+				} else {
+					// Пробуем извлечь по пути (для вложенных полей)
+					if v, err := utils.GetValueByPath(payload, sourceField); err == nil {
+						val = v
+						found = true
+					}
 				}
-			}
 
-			if found {
-				transformed[targetField] = val
+				if found {
+					transformed[targetField] = val
+				}
 			}
 		}
 	} else {
-		// If no mapping, pass through all data
+		// Приоритет 3: Если ничего не задано, передаем данные как есть
 		transformed = payload
 	}
 

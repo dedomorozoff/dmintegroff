@@ -31,7 +31,9 @@
    }
    ```
 
-4. **Настройте маппинг в dmIntegroff**
+4. **Настройте трансформацию в dmIntegroff**
+
+   **Вариант A: Простой маппинг**
    
    | Поле источника | Поле назначения | Игнорировать |
    |----------------|-----------------|--------------|
@@ -40,9 +42,33 @@
    | email_address | to_email | ☐ |
    | phone | - | ☑ |
 
+   **Вариант B: Кастомный шаблон** (рекомендуется для сложных структур)
+   ```json
+   {
+     "personalizations": [{
+       "to": [{
+         "email": "{{email_address}}",
+         "name": "{{first_name}} {{last_name}}"
+       }]
+     }],
+     "from": {
+       "email": "noreply@mycompany.com",
+       "name": "My Company"
+     },
+     "subject": "Welcome!",
+     "content": [{
+       "type": "text/plain",
+       "value": "Hello {{first_name}}!"
+     }],
+     "custom_args": {
+       "lead_id": "{{lead_id}}"
+     }
+   }
+   ```
+
 5. **Результат**
    
-   dmIntegroff отправит на SendGrid:
+   dmIntegroff отправит на SendGrid (простой маппинг):
    ```json
    {
      "external_id": 12345,
@@ -372,3 +398,281 @@ ngrok http 8080
 - [JSON Validator](https://jsonlint.com/)
 - [Webhook.site](https://webhook.site/)
 - [ngrok Documentation](https://ngrok.com/docs)
+
+
+---
+
+## 🆕 Продвинутые сценарии с кастомными шаблонами
+
+### Сценарий 7: Реструктуризация данных для внешнего API
+
+**Задача**: Получать данные от одной системы и отправлять в другую с полностью измененной структурой.
+
+**Входные данные от CRM:**
+```json
+{
+  "contact": {
+    "personal": {
+      "first_name": "Мария",
+      "last_name": "Иванова",
+      "birth_date": "1990-05-15"
+    },
+    "communication": {
+      "email": "maria@example.com",
+      "phone": "+7 999 888-77-66",
+      "preferred": "email"
+    }
+  },
+  "lead": {
+    "source": "website",
+    "campaign": "summer_2024",
+    "score": 85
+  },
+  "timestamp": "2024-11-30T10:00:00Z"
+}
+```
+
+**Кастомный шаблон для Target API:**
+```json
+{
+  "customer": {
+    "fullName": "{{contact.personal.first_name}} {{contact.personal.last_name}}",
+    "dateOfBirth": "{{contact.personal.birth_date}}",
+    "contacts": {
+      "primary": "{{contact.communication.email}}",
+      "secondary": "{{contact.communication.phone}}",
+      "preferredMethod": "{{contact.communication.preferred}}"
+    }
+  },
+  "marketing": {
+    "source": "{{lead.source}}",
+    "campaign": "{{lead.campaign}}",
+    "leadScore": {{lead.score}}
+  },
+  "metadata": {
+    "receivedAt": "{{timestamp}}",
+    "processedBy": "dmIntegroff",
+    "version": "1.0"
+  }
+}
+```
+
+**Результат отправки:**
+```json
+{
+  "customer": {
+    "fullName": "Мария Иванова",
+    "dateOfBirth": "1990-05-15",
+    "contacts": {
+      "primary": "maria@example.com",
+      "secondary": "+7 999 888-77-66",
+      "preferredMethod": "email"
+    }
+  },
+  "marketing": {
+    "source": "website",
+    "campaign": "summer_2024",
+    "leadScore": 85
+  },
+  "metadata": {
+    "receivedAt": "2024-11-30T10:00:00Z",
+    "processedBy": "dmIntegroff",
+    "version": "1.0"
+  }
+}
+```
+
+**Преимущества:**
+- ✅ Полный контроль над структурой
+- ✅ Добавление статических полей
+- ✅ Комбинирование данных из разных уровней
+- ✅ Переименование и реорганизация
+
+---
+
+### Сценарий 8: Работа с массивами данных
+
+**Задача**: Обработка заказа с несколькими товарами.
+
+**Входные данные от интернет-магазина:**
+```json
+{
+  "order": {
+    "id": "ORD-12345",
+    "customer": {
+      "name": "Алексей Смирнов",
+      "email": "alex@example.com"
+    },
+    "items": [
+      {
+        "product_id": "PROD-001",
+        "name": "Ноутбук",
+        "quantity": 1,
+        "price": 50000
+      },
+      {
+        "product_id": "PROD-002",
+        "name": "Мышь",
+        "quantity": 2,
+        "price": 500
+      }
+    ],
+    "total": 51000,
+    "status": "paid"
+  }
+}
+```
+
+**Кастомный шаблон для системы учета:**
+```json
+{
+  "orderId": "{{order.id}}",
+  "customerName": "{{order.customer.name}}",
+  "customerEmail": "{{order.customer.email}}",
+  "orderStatus": "{{order.status}}",
+  "totalAmount": {{order.total}},
+  "firstItem": {
+    "productId": "{{order.items[0].product_id}}",
+    "productName": "{{order.items[0].name}}",
+    "quantity": {{order.items[0].quantity}},
+    "price": {{order.items[0].price}}
+  },
+  "secondItem": {
+    "productId": "{{order.items[1].product_id}}",
+    "productName": "{{order.items[1].name}}",
+    "quantity": {{order.items[1].quantity}},
+    "price": {{order.items[1].price}}
+  },
+  "integration": {
+    "source": "online_store",
+    "processor": "dmIntegroff"
+  }
+}
+```
+
+**Результат:**
+```json
+{
+  "orderId": "ORD-12345",
+  "customerName": "Алексей Смирнов",
+  "customerEmail": "alex@example.com",
+  "orderStatus": "paid",
+  "totalAmount": 51000,
+  "firstItem": {
+    "productId": "PROD-001",
+    "productName": "Ноутбук",
+    "quantity": 1,
+    "price": 50000
+  },
+  "secondItem": {
+    "productId": "PROD-002",
+    "productName": "Мышь",
+    "quantity": 2,
+    "price": 500
+  },
+  "integration": {
+    "source": "online_store",
+    "processor": "dmIntegroff"
+  }
+}
+```
+
+---
+
+### Сценарий 9: Минималистичная трансформация
+
+**Задача**: Извлечь только нужные данные из большого объекта.
+
+**Входные данные (большой объект):**
+```json
+{
+  "user": {
+    "id": 123,
+    "profile": {
+      "name": "Иван",
+      "email": "ivan@example.com",
+      "phone": "+7 999 123-45-67",
+      "address": {
+        "city": "Москва",
+        "street": "Ленина",
+        "building": "10"
+      },
+      "preferences": {
+        "language": "ru",
+        "timezone": "Europe/Moscow"
+      }
+    },
+    "metadata": {
+      "created_at": "2024-01-01",
+      "updated_at": "2024-11-30",
+      "last_login": "2024-11-30T09:00:00Z"
+    }
+  }
+}
+```
+
+**Кастомный шаблон (только нужное):**
+```json
+{
+  "userId": {{user.id}},
+  "name": "{{user.profile.name}}",
+  "email": "{{user.profile.email}}",
+  "city": "{{user.profile.address.city}}"
+}
+```
+
+**Результат (компактный):**
+```json
+{
+  "userId": 123,
+  "name": "Иван",
+  "email": "ivan@example.com",
+  "city": "Москва"
+}
+```
+
+---
+
+## 📊 Сравнение методов трансформации
+
+| Критерий | Простой маппинг | Кастомный шаблон |
+|----------|----------------|------------------|
+| **Сложность настройки** | Простая | Средняя |
+| **Переименование полей** | ✅ | ✅ |
+| **Изменение структуры** | ❌ | ✅ |
+| **Статические значения** | ❌ | ✅ |
+| **Вложенные объекты** | ✅ | ✅ |
+| **Массивы** | ✅ | ✅ |
+| **Комбинирование данных** | ❌ | ✅ |
+| **Минимизация данных** | Частично | ✅ |
+| **Время настройки** | 2-5 мин | 5-15 мин |
+| **Гибкость** | Низкая | Высокая |
+
+---
+
+## 💡 Советы по выбору метода
+
+### Используйте простой маппинг когда:
+- ✅ Нужно только переименовать поля
+- ✅ Структура данных остается той же
+- ✅ Требуется быстрая настройка
+- ✅ Нет необходимости в статических полях
+
+### Используйте кастомный шаблон когда:
+- ✅ Нужно изменить структуру данных
+- ✅ Требуется добавить статические поля
+- ✅ Нужно комбинировать данные из разных уровней
+- ✅ Требуется минимизировать объем данных
+- ✅ Целевой API требует специфичную структуру
+
+---
+
+## 🔗 Дополнительные ресурсы
+
+- **[Руководство по шаблонам](TEMPLATE_GUIDE.md)** - Подробная документация
+- **[Техническая документация](TECHNICAL_DOCS.md)** - API и архитектура
+- **[Руководство программиста](PROGRAMMER_GUIDE.md)** - Разработка и расширение
+
+---
+
+**Нужна помощь?** Создайте issue в репозитории или обратитесь к документации.

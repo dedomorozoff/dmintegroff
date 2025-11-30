@@ -129,10 +129,6 @@ func deduplicateFields(fields []FieldInfo) []FieldInfo {
 	var result []FieldInfo
 
 	for _, field := range fields {
-		// Пропускаем только объекты (их поля уже обработаны рекурсивно)
-		if field.Type == "object" {
-			continue
-		}
 		// Пропускаем массивы, которые содержат сложные типы (их элементы уже обработаны рекурсивно)
 		// Но оставляем массивы с простыми значениями
 		if field.Type == "array" {
@@ -148,6 +144,10 @@ func deduplicateFields(fields []FieldInfo) []FieldInfo {
 				continue
 			}
 		}
+		
+		// НЕ пропускаем объекты - они нужны для отображения структуры
+		// Просто не будем их использовать в маппинге
+		
 		// Добавляем поле, если его еще не было
 		if !seen[field.Path] {
 			seen[field.Path] = true
