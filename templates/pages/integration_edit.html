@@ -44,10 +44,14 @@
                 <div class="form-group">
                     <label>Target API URL *</label>
                     <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
-                        <input type="text" id="target_api" name="target_api" value="{{ .integration.TargetAPI }}" required style="flex: 1;">
+                        <input type="text" id="target_api" name="target_api" value="{{ .integration.TargetAPI }}" required style="flex: 1;" {{ if .isDemo }}readonly{{ end }}>
                         <button type="button" class="btn btn-secondary" onclick="fillTestUrl()" style="white-space: nowrap;"><i data-lucide="flask"></i> Тестовый URL</button>
                     </div>
+                    {{ if .isDemo }}
+                    <small style="color: #f59e0b;">В демо-режиме можно использовать только тестовый URL. Для изменения URL используйте кнопку "Тестовый URL".</small>
+                    {{ else }}
                     <small>Куда будут отправляться преобразованные данные</small>
+                    {{ end }}
                 </div>
 
                 <div class="form-group">

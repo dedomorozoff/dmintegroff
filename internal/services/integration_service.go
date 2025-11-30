@@ -7,7 +7,10 @@ import (
 	"dmintegroff/internal/models"
 	"dmintegroff/internal/utils"
 	"encoding/json"
+	"errors"
 	"net/http"
+	"os"
+	"strings"
 )
 
 // CreateLogWithLimit - создает лог и удаляет старые, если их больше 50
@@ -24,13 +27,54 @@ func CreateLogWithLimit(log *models.RequestLog) {
 	}
 }
 
+// ValidateDemoMode - проверяет ограничения демо-режима
+func ValidateDemoMode(integration *models.Integration) error {
+	demoMode := os.Getenv("DEMO_MODE") == "true"
+	if !demoMode {
+		return nil // Демо-режим выключен, ограничений нет
+	}
+
+	// Загружаем пользователя, создавшего интеграцию
+	var user models.User
+	if err := database.DB.First(&user, integration.CreatedByID).Error; err != nil {
+		return err
+	}
+
+	// Если пользователь не демо, ограничений нет
+	if !user.IsDemo {
+		return nil
+	}
+
+	// Для демо-пользователей проверяем target URL
+	demoTargetURL := os.Getenv("DEMO_TARGET_URL")
+	if demoTargetURL == "" {
+		return errors.New("demo mode enabled but DEMO_TARGET_URL not configured")
+	}
+
+	// Проверяем, что target API начинается с разрешенного URL
+	if !strings.HasPrefix(integration.TargetAPI, demoTargetURL) {
+		return errors.New("demo users can only send webhooks to demo target URL")
+	}
+
+	return nil
+}
+
 func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 	var integration models.Integration
-	if err := database.DB.First(&integration, integrationID).Error; err != nil {
+	if err := database.DB.Preload("CreatedBy").First(&integration, integrationID).Error; err != nil {
 		logger.Log.WithFields(map[string]interface{}{
 			"integration_id": integrationID,
 			"error":          err.Error(),
 		}).Error("Failed to find integration")
+		return err
+	}
+
+	// Проверяем демо-режим
+	if err := ValidateDemoMode(&integration); err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"integration_id": integrationID,
+			"error":          err.Error(),
+		}).Warn("Demo mode validation failed")
 		return err
 	}
 

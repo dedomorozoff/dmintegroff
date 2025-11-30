@@ -62,12 +62,25 @@ func IntegrationCreate(c *gin.Context) {
 	var projects []models.Project
 	database.DB.Find(&projects)
 
+	// Получаем информацию о пользователе для проверки демо-режима
+	userIDInterface := session.Get("user_id")
+	isDemo := false
+	if userIDInterface != nil {
+		if userID, ok := userIDInterface.(uint); ok {
+			var user models.User
+			if err := database.DB.First(&user, userID).Error; err == nil {
+				isDemo = user.IsDemo
+			}
+		}
+	}
+
 	c.HTML(http.StatusOK, "pages/integration_create.html", gin.H{
 		"title":       "Создание интеграции",
 		"CurrentPage": "integration_create",
 		"projects":    projects,
 		"username":    session.Get("username"),
 		"role":        session.Get("role"),
+		"isDemo":      isDemo,
 	})
 }
 
@@ -360,12 +373,25 @@ func IntegrationEdit(c *gin.Context) {
 		return
 	}
 
+	// Получаем информацию о пользователе для проверки демо-режима
+	userIDInterface := session.Get("user_id")
+	isDemo := false
+	if userIDInterface != nil {
+		if userID, ok := userIDInterface.(uint); ok {
+			var user models.User
+			if err := database.DB.First(&user, userID).Error; err == nil {
+				isDemo = user.IsDemo
+			}
+		}
+	}
+
 	c.HTML(http.StatusOK, "pages/integration_edit.html", gin.H{
 		"title":       "Редактирование интеграции",
 		"CurrentPage": "integrations",
 		"integration": integration,
 		"username":    session.Get("username"),
 		"role":        session.Get("role"),
+		"isDemo":      isDemo,
 	})
 }
 

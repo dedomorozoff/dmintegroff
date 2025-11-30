@@ -1,0 +1,23 @@
+feat: Ограничение редактирования Target URL для демо-пользователей
+
+Добавлено ограничение на прямое редактирование поля Target API URL
+для демо-пользователей в настройках интеграций.
+
+Изменения:
+- Поле Target API URL теперь readonly для демо-пользователей
+- Кнопка "Тестовый URL" остается активной
+- Добавлена визуальная подсказка о причине ограничения
+- Обновлены контроллеры IntegrationEdit и IntegrationCreate
+- Обновлены шаблоны integration_edit.html и integration_create.html
+- Обновлена документация DEMO_MODE.md
+- Обновлен CHANGELOG_DEMO_MODE.md
+
+Цель: Предотвратить отправку вебхуков демо-пользователями на 
+произвольные URL-адреса, обеспечивая безопасность в демо-режиме.
+
+Файлы:
+- internal/controllers/integration_controller.go
+- templates/pages/integration_edit.html
+- templates/pages/integration_create.html
+- docs/DEMO_MODE.md
+- CHANGELOG_DEMO_MODE.md

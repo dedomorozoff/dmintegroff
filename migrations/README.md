@@ -38,6 +38,28 @@ mysql -u username -p database_name < migrations/004_cascade_delete_integrations.
 
 ## История миграций
 
+### 006_add_demo_users (2024-12-01)
+**Описание:** Добавление поддержки демо-режима с временными пользователями.
+
+**Изменения:**
+- Добавлено поле `is_demo` (BOOLEAN) - флаг демо-пользователя
+- Добавлено поле `expires_at` (DATETIME) - время истечения срока действия
+- Создан индекс на `expires_at` для быстрой очистки
+
+**Применение:**
+```bash
+# SQLite
+sqlite3 dmintegroff.db < migrations/006_add_demo_users_sqlite.sql
+
+# MySQL
+mysql -u username -p database_name < migrations/006_add_demo_users.sql
+```
+
+**Документация:** См. `docs/DEMO_MODE.md` для подробной информации о демо-режиме.
+
+### 005_add_output_template (2024-11-30)
+**Описание:** Добавление поддержки шаблонов вывода для интеграций.
+
 ### 004_cascade_delete_integrations (2024-11-30)
 **Описание:** Изменение поведения при удалении проекта - теперь все интеграции проекта удаляются автоматически.
 
