@@ -61,18 +61,17 @@
                             <td style="text-align: right;">
                                 <div style="display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap;" data-actions-cell>
                                     {{ if eq .Mode "listening" }}
-                                        {{ if .SamplePayload }}
                                         <a href="/integrations/{{ .ID }}/configure" class="btn btn-success btn-sm" data-configure-btn>
                                             <i data-lucide="settings"></i> Настроить
                                         </a>
-                                        {{ if .MappingConfig }}
+                                        {{ if and .SamplePayload .MappingConfig }}
                                         <form method="POST" action="/integrations/{{ .ID }}/toggle" style="display: inline;">
                                             <button type="submit" class="btn btn-success btn-sm" title="Активировать интеграцию">
                                                 <i data-lucide="play"></i> Активировать
                                             </button>
                                         </form>
                                         {{ end }}
-                                        {{ else }}
+                                        {{ if not .SamplePayload }}
                                         <span style="color: var(--muted-foreground); font-size: 0.8125rem;" data-waiting-text>Ожидание данных...</span>
                                         {{ end }}
                                         <form method="POST" action="/integrations/{{ .ID }}/cancel-listening" style="display: inline;"

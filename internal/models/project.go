@@ -10,5 +10,5 @@ type Project struct {
 	Description  string        `gorm:"type:text" json:"description"`
 	CreatedByID  uint          `json:"created_by_id"`
 	CreatedBy    User          `gorm:"foreignKey:CreatedByID" json:"created_by"`
-	Integrations []Integration `gorm:"foreignKey:ProjectID" json:"integrations"`
+	Integrations []Integration `gorm:"foreignKey:ProjectID;constraint:OnDelete:CASCADE" json:"integrations"`
 }

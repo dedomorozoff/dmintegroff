@@ -1,254 +1,294 @@
 {{ define "pages/integration_configure.html" }}
 {{ template "partials/head.html" . }}
-    {{ template "partials/sidebar.html" . }}
+{{ template "partials/sidebar.html" . }}
 
-    <!-- Main Content -->
-    <main class="main-content">
-        <div class="page-header">
-            <h1>Настройка маппинга полей</h1>
-            <p><strong>Интеграция:</strong> {{ .integration.Name }}</p>
-            {{ if and (not .integration.SamplePayload) (eq .integration.Mode "active") }}
-            <div class="warning-box" style="margin-top: 1rem;">
-                <i data-lucide="alert-triangle"></i> <strong>Внимание:</strong> Редактирование маппинга без образца данных. Текущий маппинг восстановлен из конфигурации.
+<!-- Main Content -->
+<main class="main-content">
+    <div class="page-header">
+        <h1>Настройка маппинга полей</h1>
+        <p><strong>Интеграция:</strong> {{ .integration.Name }}</p>
+
+        <div class="url-container"
+            style="margin-top: 1rem; background: #2d3748; padding: 0.75rem 1rem; border-radius: 6px; display: flex; align-items: center; gap: 1rem; border: 1px solid #4a5568;">
+            <div style="flex-grow: 1;">
+                <div
+                    style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #a0aec0; margin-bottom: 0.25rem;">
+                    Webhook URL</div>
+                <code id="webhookUrl"
+                    style="color: #63b3ed; font-family: 'Courier New', monospace; font-size: 1rem; word-break: break-all;">...</code>
             </div>
-            {{ end }}
+            <button type="button" class="btn btn-sm btn-secondary" onclick="copyWebhookUrl()" title="Копировать"
+                style="padding: 0.5rem;">
+                <i data-lucide="copy" style="width: 18px; height: 18px;"></i>
+            </button>
         </div>
-
-        <div class="card">
-            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-                <h2 class="card-title">📥 Полученные данные (образец)</h2>
-                <button type="button" class="btn btn-secondary" onclick="toggleEditPayload()" id="editPayloadBtn">
-                    ✏️ Редактировать JSON
-                </button>
-            </div>
-            <div id="payloadView">
-                <pre style="background: #1a1f2e; color: #abb2bf; padding: 1rem; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;">{{ .integration.SamplePayload }}</pre>
-            </div>
-            <div id="payloadEdit" style="display: none;">
-                <form method="POST" action="/integrations/{{ .integration.ID }}/configure" id="payloadEditForm">
-                    <textarea name="sample_payload" id="samplePayloadTextarea" 
-                              style="width: 100%; min-height: 300px; font-family: 'Courier New', monospace; background: #1a1f2e; color: #abb2bf; padding: 1rem; border-radius: 8px; border: 1px solid #2d3748;"
-                              placeholder="Вставьте JSON здесь...">{{ .integration.SamplePayload }}</textarea>
-                    <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-                        <button type="submit" class="btn btn-success"><i data-lucide="save"></i> Сохранить изменения</button>
-                        <button type="button" class="btn btn-secondary" onclick="toggleEditPayload()">Отмена</button>
-                    </div>
-                </form>
-            </div>
+        {{ if and (not .integration.SamplePayload) (eq .integration.Mode "active") }}
+        <div class="warning-box" style="margin-top: 1rem;">
+            <i data-lucide="alert-triangle"></i> <strong>Внимание:</strong> Редактирование маппинга без образца данных.
+            Текущий маппинг восстановлен из конфигурации.
         </div>
+        {{ end }}
+    </div>
 
-        <div class="card">
-            <div class="card-header">
-                <h2 class="card-title">🔀 Настройка маппинга</h2>
-            </div>
-            
-            <p style="margin-bottom: 1.5rem; color: var(--text-secondary);">
-                Укажите, как поля из входящих данных должны быть переименованы для Target API. 
-                Система автоматически разбирает вложенные объекты и массивы.
-            </p>
-
-            <form method="POST" action="/integrations/{{ .integration.ID }}/configure" id="mappingForm">
-                <input type="hidden" name="sample_payload" value="{{ .integration.SamplePayload }}">
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Поле из источника (путь)</th>
-                                <th>Тип</th>
-                                <th>Значение</th>
-                                <th>Новое имя для Target API</th>
-                                <th style="text-align: center;">Игнорировать</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {{ if .fields }}
-                                {{ range $field := .fields }}
-                                <tr>
-                                    <td><code style="color: #61afef;">{{ $field.Path }}</code></td>
-                                    <td><span style="color: #c678dd; font-size: 0.9em;">{{ $field.Type }}</span></td>
-                                    <td>
-                                        <span style="color: #98c379; font-size: 0.85em;">
-                                            {{ if eq $field.Type "string" }}"{{ $field.Value }}"{{ else }}{{ $field.Value }}{{ end }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        {{ $currentValue := $field.Path }}
-                                        {{ if $.currentMapping }}
-                                            {{ range $target, $source := $.currentMapping }}
-                                                {{ if eq $source $field.Path }}
-                                                    {{ $currentValue = $target }}
-                                                {{ end }}
-                                            {{ end }}
-                                        {{ end }}
-                                        <input type="text" 
-                                               name="field_{{ $field.Path }}" 
-                                               data-path="{{ $field.Path }}"
-                                               value="{{ $currentValue }}" 
-                                               placeholder="Новое имя или оставьте как есть"
-                                               style="width: 100%;">
-                                    </td>
-                                    <td style="text-align: center;">
-                                        <input type="checkbox" 
-                                               name="ignore_{{ $field.Path }}" 
-                                               data-path="{{ $field.Path }}"
-                                               style="width: auto; cursor: pointer;">
-                                    </td>
-                                </tr>
-                                {{ end }}
-                            {{ else }}
-                                <tr>
-                                    <td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 2rem;">
-                                        {{ if eq .integration.Mode "active" }}
-                                        Нет образца данных. Маппинг можно редактировать, но рекомендуется сначала получить образец данных через кнопку "<i data-lucide="refresh-cw"></i> Переопределить маппинг".
-                                        {{ else }}
-                                        Нет данных для отображения. Отправьте запрос на webhook для захвата данных.
-                                        {{ end }}
-                                    </td>
-                                </tr>
-                            {{ end }}
-                        </tbody>
-                    </table>
-                </div>
-
-                <input type="hidden" name="mapping_config" id="mappingConfig">
-                
-                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-                    <button type="submit" class="btn btn-success" onclick="generateMapping(event)">
-                        {{ if eq .integration.Mode "active" }}
-                        ✅ Сохранить изменения
-                        {{ else }}
-                        ✅ Сохранить и активировать
-                        {{ end }}
-                    </button>
-                    <a href="/integrations" class="btn btn-secondary">Отмена</a>
+    <div class="card">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 class="card-title">📥 Полученные данные (образец)</h2>
+            <button type="button" class="btn btn-secondary" onclick="toggleEditPayload()" id="editPayloadBtn">
+                ✏️ Редактировать JSON
+            </button>
+        </div>
+        <div id="payloadView">
+            <pre
+                style="background: #1a1f2e; color: #abb2bf; padding: 1rem; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;">{{ .integration.SamplePayload }}</pre>
+        </div>
+        <div id="payloadEdit" style="display: none;">
+            <form method="POST" action="/integrations/{{ .integration.ID }}/configure" id="payloadEditForm">
+                <textarea name="sample_payload" id="samplePayloadTextarea"
+                    style="width: 100%; min-height: 300px; font-family: 'Courier New', monospace; background: #1a1f2e; color: #abb2bf; padding: 1rem; border-radius: 8px; border: 1px solid #2d3748;"
+                    placeholder="Вставьте JSON здесь...">{{ .integration.SamplePayload }}</textarea>
+                <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                    <button type="submit" class="btn btn-success"><i data-lucide="save"></i> Сохранить
+                        изменения</button>
+                    <button type="button" class="btn btn-secondary" onclick="toggleEditPayload()">Отмена</button>
                 </div>
             </form>
         </div>
-    </main>
+    </div>
 
-    <script src="/static/js/common.js"></script>
-    <script>
-        // Определяем функции в глобальной области видимости сразу
-        function toggleEditPayload() {
-            const view = document.getElementById('payloadView');
-            const edit = document.getElementById('payloadEdit');
-            const btn = document.getElementById('editPayloadBtn');
-            
-            if (!view || !edit || !btn) {
-                console.error('Elements not found for toggleEditPayload');
-                return;
-            }
-            
-            if (view.style.display === 'none') {
-                view.style.display = 'block';
-                edit.style.display = 'none';
-                btn.textContent = '✏️ Редактировать JSON';
-            } else {
-                view.style.display = 'none';
-                edit.style.display = 'block';
-                btn.textContent = '👁️ Просмотр';
-            }
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">🔀 Настройка маппинга</h2>
+        </div>
+
+        <p style="margin-bottom: 1.5rem; color: var(--text-secondary);">
+            Укажите, как поля из входящих данных должны быть переименованы для Target API.
+            Система автоматически разбирает вложенные объекты и массивы.
+        </p>
+
+        <form method="POST" action="/integrations/{{ .integration.ID }}/configure" id="mappingForm">
+            <input type="hidden" name="sample_payload" value="{{ .integration.SamplePayload }}">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Поле из источника (путь)</th>
+                            <th>Тип</th>
+                            <th>Значение</th>
+                            <th>Новое имя для Target API</th>
+                            <th style="text-align: center;">Игнорировать</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ if .fields }}
+                        {{ range $field := .fields }}
+                        <tr>
+                            <td><code style="color: #61afef;">{{ $field.Path }}</code></td>
+                            <td><span style="color: #c678dd; font-size: 0.9em;">{{ $field.Type }}</span></td>
+                            <td>
+                                <span style="color: #98c379; font-size: 0.85em;">
+                                    {{ if eq $field.Type "string" }}"{{ $field.Value }}"{{ else }}{{ $field.Value }}{{
+                                    end }}
+                                </span>
+                            </td>
+                            <td>
+                                {{ $currentValue := $field.Path }}
+                                {{ if $.currentMapping }}
+                                {{ range $target, $source := $.currentMapping }}
+                                {{ if eq $source $field.Path }}
+                                {{ $currentValue = $target }}
+                                {{ end }}
+                                {{ end }}
+                                {{ end }}
+                                <input type="text" name="field_{{ $field.Path }}" data-path="{{ $field.Path }}"
+                                    value="{{ $currentValue }}" placeholder="Новое имя или оставьте как есть"
+                                    style="width: 100%;">
+                            </td>
+                            <td style="text-align: center;">
+                                <input type="checkbox" name="ignore_{{ $field.Path }}" data-path="{{ $field.Path }}"
+                                    style="width: auto; cursor: pointer;">
+                            </td>
+                        </tr>
+                        {{ end }}
+                        {{ else }}
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 2rem;">
+                                {{ if eq .integration.Mode "active" }}
+                                Нет образца данных. Маппинг можно редактировать, но рекомендуется сначала получить
+                                образец данных через кнопку "<i data-lucide="refresh-cw"></i> Переопределить маппинг".
+                                {{ else }}
+                                Нет данных для отображения. Отправьте запрос на webhook для захвата данных.
+                                {{ end }}
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+
+            <input type="hidden" name="mapping_config" id="mappingConfig">
+
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button type="submit" class="btn btn-success" onclick="generateMapping(event)">
+                    {{ if eq .integration.Mode "active" }}
+                    ✅ Сохранить изменения
+                    {{ else }}
+                    ✅ Сохранить и активировать
+                    {{ end }}
+                </button>
+                <a href="/integrations" class="btn btn-secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+</main>
+
+<script src="/static/js/common.js"></script>
+<script>
+    // Определяем функции в глобальной области видимости сразу
+    function copyWebhookUrl() {
+        const urlElement = document.getElementById('webhookUrl');
+        if (!urlElement) return;
+
+        const url = urlElement.textContent;
+        navigator.clipboard.writeText(url).then(() => {
+            const btn = document.querySelector('button[onclick="copyWebhookUrl()"]');
+            const originalHtml = btn.innerHTML;
+
+            // Visual feedback
+            btn.innerHTML = '<i data-lucide="check" style="width: 18px; height: 18px;"></i>';
+            if (window.lucide) window.lucide.createIcons();
+
+            showNotification('URL скопирован!', 'success');
+
+            setTimeout(() => {
+                btn.innerHTML = originalHtml;
+                if (window.lucide) window.lucide.createIcons();
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy:', err);
+            showNotification('Ошибка копирования', 'error');
+        });
+    }
+
+    function toggleEditPayload() {
+        const view = document.getElementById('payloadView');
+        const edit = document.getElementById('payloadEdit');
+        const btn = document.getElementById('editPayloadBtn');
+
+        if (!view || !edit || !btn) {
+            console.error('Elements not found for toggleEditPayload');
+            return;
         }
 
-        // Обновленная функция для работы с вложенными полями
-        function generateMapping(event) {
-            event.preventDefault();
-            
-            const mapping = {};
-            const form = document.getElementById('mappingForm');
-            const inputs = form.querySelectorAll('input[type="text"][data-path]');
-            
-            inputs.forEach(input => {
-                const fieldPath = input.getAttribute('data-path');
-                const newName = input.value.trim();
-                const ignoreCheckbox = form.querySelector(`input[name="ignore_${fieldPath}"]`);
-                
-                if (!ignoreCheckbox.checked && newName) {
-                    mapping[newName] = fieldPath;
+        if (view.style.display === 'none') {
+            view.style.display = 'block';
+            edit.style.display = 'none';
+            btn.textContent = '✏️ Редактировать JSON';
+        } else {
+            view.style.display = 'none';
+            edit.style.display = 'block';
+            btn.textContent = '👁️ Просмотр';
+        }
+    }
+
+    // Обновленная функция для работы с вложенными полями
+    function generateMapping(event) {
+        event.preventDefault();
+
+        const mapping = {};
+        const form = document.getElementById('mappingForm');
+        const inputs = form.querySelectorAll('input[type="text"][data-path]');
+
+        inputs.forEach(input => {
+            const fieldPath = input.getAttribute('data-path');
+            const newName = input.value.trim();
+            const ignoreCheckbox = form.querySelector(`input[name="ignore_${fieldPath}"]`);
+
+            if (!ignoreCheckbox.checked && newName) {
+                mapping[newName] = fieldPath;
+            }
+        });
+
+        document.getElementById('mappingConfig').value = JSON.stringify(mapping);
+        form.submit();
+    }
+
+    // Определяем переменные
+    const integrationId = {{ .integration.ID }};
+    const currentMode = "{{ .integration.Mode }}";
+    const hasPayload = {{ if .integration.SamplePayload }}true{{ else }}false{{ end }};
+    const initialPayload = {{ .payloadJSON }};
+    let checkInterval = null;
+
+    // Функция для проверки обновлений интеграции
+    let lastPayloadLength = hasPayload ? (initialPayload && initialPayload !== 'null' && initialPayload !== '""' ? initialPayload.length : 0) : 0;
+    let isUpdating = false; // Флаг для предотвращения множественных обновлений
+
+    function checkIntegrationUpdate() {
+        // Если уже обновляемся, не проверяем снова
+        if (isUpdating) {
+            return;
+        }
+
+        fetch(`/api/integrations/${integrationId}/check`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
                 }
+                return response.json();
+            })
+            .then(data => {
+                const currentPayload = data.sample_payload || '';
+                const currentLength = currentPayload.length;
+
+                // Если пришли данные и их раньше не было, обновляем страницу только один раз
+                if (data.has_payload && currentLength > 0 && currentLength !== lastPayloadLength && !hasPayload) {
+                    // Устанавливаем флаг обновления
+                    isUpdating = true;
+
+                    // Останавливаем интервал проверки
+                    if (checkInterval) {
+                        clearInterval(checkInterval);
+                        checkInterval = null;
+                    }
+
+                    // Удаляем индикатор ожидания, если есть
+                    const waitingIndicator = document.getElementById('waitingIndicator');
+                    if (waitingIndicator) {
+                        waitingIndicator.remove();
+                    }
+
+                    // Показываем уведомление
+                    showNotification('📥 Получены новые данные! Обновление страницы...', 'success');
+
+                    // Обновляем страницу через небольшую задержку
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else if (data.has_payload && currentLength > 0) {
+                    // Если данные уже есть, обновляем длину, но не обновляем страницу
+                    lastPayloadLength = currentLength;
+                } else if (!data.has_payload && lastPayloadLength > 0) {
+                    // Если данных нет, но раньше были - сбрасываем
+                    lastPayloadLength = 0;
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка при проверке обновлений:', error);
+                // Не показываем ошибку пользователю, чтобы не мешать
             });
-            
-            document.getElementById('mappingConfig').value = JSON.stringify(mapping);
-            form.submit();
+    }
+
+    // Функция для показа уведомления
+    function showNotification(message, type) {
+        // Удаляем предыдущее уведомление, если есть
+        const existing = document.getElementById('updateNotification');
+        if (existing) {
+            existing.remove();
         }
 
-        // Определяем переменные
-        const integrationId = {{ .integration.ID }};
-        const currentMode = "{{ .integration.Mode }}";
-        const hasPayload = {{ if .integration.SamplePayload }}true{{ else }}false{{ end }};
-        const initialPayload = {{ .payloadJSON }};
-        let checkInterval = null;
-
-        // Функция для проверки обновлений интеграции
-        let lastPayloadLength = hasPayload ? (initialPayload && initialPayload !== 'null' && initialPayload !== '""' ? initialPayload.length : 0) : 0;
-        let isUpdating = false; // Флаг для предотвращения множественных обновлений
-        
-        function checkIntegrationUpdate() {
-            // Если уже обновляемся, не проверяем снова
-            if (isUpdating) {
-                return;
-            }
-            
-            fetch(`/api/integrations/${integrationId}/check`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    const currentPayload = data.sample_payload || '';
-                    const currentLength = currentPayload.length;
-                    
-                    // Если пришли данные и их раньше не было, обновляем страницу только один раз
-                    if (data.has_payload && currentLength > 0 && currentLength !== lastPayloadLength && !hasPayload) {
-                        // Устанавливаем флаг обновления
-                        isUpdating = true;
-                        
-                        // Останавливаем интервал проверки
-                        if (checkInterval) {
-                            clearInterval(checkInterval);
-                            checkInterval = null;
-                        }
-                        
-                        // Удаляем индикатор ожидания, если есть
-                        const waitingIndicator = document.getElementById('waitingIndicator');
-                        if (waitingIndicator) {
-                            waitingIndicator.remove();
-                        }
-                        
-                        // Показываем уведомление
-                        showNotification('📥 Получены новые данные! Обновление страницы...', 'success');
-                        
-                        // Обновляем страницу через небольшую задержку
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1000);
-                    } else if (data.has_payload && currentLength > 0) {
-                        // Если данные уже есть, обновляем длину, но не обновляем страницу
-                        lastPayloadLength = currentLength;
-                    } else if (!data.has_payload && lastPayloadLength > 0) {
-                        // Если данных нет, но раньше были - сбрасываем
-                        lastPayloadLength = 0;
-                    }
-                })
-                .catch(error => {
-                    console.error('Ошибка при проверке обновлений:', error);
-                    // Не показываем ошибку пользователю, чтобы не мешать
-                });
-        }
-
-        // Функция для показа уведомления
-        function showNotification(message, type) {
-            // Удаляем предыдущее уведомление, если есть
-            const existing = document.getElementById('updateNotification');
-            if (existing) {
-                existing.remove();
-            }
-
-            const notification = document.createElement('div');
-            notification.id = 'updateNotification';
-            notification.style.cssText = `
+        const notification = document.createElement('div');
+        notification.id = 'updateNotification';
+        notification.style.cssText = `
                 position: fixed;
                 top: 20px;
                 right: 20px;
@@ -260,31 +300,31 @@
                 z-index: 10000;
                 animation: slideIn 0.3s ease-out;
             `;
-            notification.textContent = message;
-            document.body.appendChild(notification);
+        notification.textContent = message;
+        document.body.appendChild(notification);
 
-            // Удаляем уведомление через 3 секунды
-            setTimeout(() => {
-                notification.style.animation = 'slideOut 0.3s ease-out';
-                setTimeout(() => notification.remove(), 300);
-            }, 3000);
-        }
+        // Удаляем уведомление через 3 секунды
+        setTimeout(() => {
+            notification.style.animation = 'slideOut 0.3s ease-out';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
 
 
-        // Запускаем проверку обновлений, если интеграция в режиме прослушивания и нет данных
-        if (currentMode === 'listening' && !hasPayload) {
-            // Проверяем каждые 2 секунды
-            checkInterval = setInterval(checkIntegrationUpdate, 2000);
-            
-            // Первая проверка сразу
-            checkIntegrationUpdate();
-            
-            // Показываем индикатор ожидания
-            const pageHeader = document.querySelector('.page-header');
-            if (pageHeader) {
-                const waitingIndicator = document.createElement('div');
-                waitingIndicator.id = 'waitingIndicator';
-                waitingIndicator.style.cssText = `
+    // Запускаем проверку обновлений, если интеграция в режиме прослушивания и нет данных
+    if (currentMode === 'listening' && !hasPayload) {
+        // Проверяем каждые 2 секунды
+        checkInterval = setInterval(checkIntegrationUpdate, 2000);
+
+        // Первая проверка сразу
+        checkIntegrationUpdate();
+
+        // Показываем индикатор ожидания
+        const pageHeader = document.querySelector('.page-header');
+        if (pageHeader) {
+            const waitingIndicator = document.createElement('div');
+            waitingIndicator.id = 'waitingIndicator';
+            waitingIndicator.style.cssText = `
                     background: #3b82f6;
                     color: white;
                     padding: 0.75rem 1.5rem;
@@ -294,24 +334,24 @@
                     align-items: center;
                     gap: 0.5rem;
                 `;
-                waitingIndicator.innerHTML = `
+            waitingIndicator.innerHTML = `
                     <span style="animation: pulse 2s infinite;">⏳</span>
                     <span>Ожидание данных... Страница будет автоматически обновлена при получении webhook</span>
                 `;
-                pageHeader.appendChild(waitingIndicator);
-            }
+            pageHeader.appendChild(waitingIndicator);
         }
+    }
 
-        // Останавливаем проверку при уходе со страницы
-        window.addEventListener('beforeunload', () => {
-            if (checkInterval) {
-                clearInterval(checkInterval);
-            }
-        });
+    // Останавливаем проверку при уходе со страницы
+    window.addEventListener('beforeunload', () => {
+        if (checkInterval) {
+            clearInterval(checkInterval);
+        }
+    });
 
-        // Добавляем CSS анимации
-        const style = document.createElement('style');
-        style.textContent = `
+    // Добавляем CSS анимации
+    const style = document.createElement('style');
+    style.textContent = `
             @keyframes slideIn {
                 from {
                     transform: translateX(100%);
@@ -341,13 +381,27 @@
                 }
             }
         `;
-        document.head.appendChild(style);
+    document.head.appendChild(style);
 
-        // Переопределяем функцию из common.js для этого шаблона
-        if (typeof window.generateMapping === 'function') {
-            window.generateMapping = generateMapping;
+    // Переопределяем функцию из common.js для этого шаблона
+    if (typeof window.generateMapping === 'function') {
+        window.generateMapping = generateMapping;
+    }
+
+    // Инициализация URL и иконок
+    document.addEventListener('DOMContentLoaded', () => {
+        const token = "{{ .integration.WebhookToken }}";
+        const url = `${window.location.origin}/webhook/${token}`;
+        const urlElement = document.getElementById('webhookUrl');
+        if (urlElement) {
+            urlElement.textContent = url;
         }
-    </script>
-    
-    {{ template "partials/scripts.html" . }}
+
+        // Инициализация Lucide иконок
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+    });
+</script>
+
 {{ end }}
