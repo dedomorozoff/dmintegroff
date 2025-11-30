@@ -24,18 +24,33 @@ type ActivityItem struct {
 // DashboardPage - главная страница с панелью управления
 func DashboardPage(c *gin.Context) {
 	session := sessions.Default(c)
+	userID := session.Get("user_id")
 	username := session.Get("username")
 	role := session.Get("role")
 
-	// Получаем статистику интеграций
+	// Получаем статистику интеграций (только свои для specialist)
 	var totalIntegrations int64
 	var activeIntegrations int64
-	database.DB.Model(&models.Integration{}).Count(&totalIntegrations)
-	database.DB.Model(&models.Integration{}).Where("status = ?", "active").Count(&activeIntegrations)
+	integrationQuery := database.DB.Model(&models.Integration{})
+	if role != "admin" {
+		integrationQuery = integrationQuery.Where("created_by_id = ?", userID)
+	}
+	integrationQuery.Count(&totalIntegrations)
+	
+	activeQuery := database.DB.Model(&models.Integration{}).Where("mode = ?", "active")
+	if role != "admin" {
+		activeQuery = activeQuery.Where("created_by_id = ?", userID)
+	}
+	activeQuery.Count(&activeIntegrations)
 
-	// Получаем последние логи для активности
+	// Получаем последние логи для активности (только свои для specialist)
 	var logs []models.RequestLog
-	database.DB.Order("created_at desc").Limit(10).Find(&logs)
+	logQuery := database.DB.Order("request_logs.created_at desc").Limit(10)
+	if role != "admin" {
+		logQuery = logQuery.Joins("JOIN integrations ON integrations.id = request_logs.integration_id").
+			Where("integrations.created_by_id = ?", userID)
+	}
+	logQuery.Find(&logs)
 
 	// Преобразуем логи в элементы активности
 	activities := make([]ActivityItem, 0)
@@ -108,12 +123,17 @@ func DashboardPage(c *gin.Context) {
 		activities = append(activities, activity)
 	}
 
-	// Подсчитываем общее количество обработанных запросов
+	// Подсчитываем общее количество обработанных запросов (только свои для specialist)
 	var totalRequests int64
-	database.DB.Model(&models.RequestLog{}).Where("log_type = ?", "webhook").Count(&totalRequests)
+	requestQuery := database.DB.Model(&models.RequestLog{}).Where("log_type = ?", "webhook")
+	if role != "admin" {
+		requestQuery = requestQuery.Joins("JOIN integrations ON integrations.id = request_logs.integration_id").
+			Where("integrations.created_by_id = ?", userID)
+	}
+	requestQuery.Count(&totalRequests)
 
 	// Определяем прогресс пользователя
-	progress := calculateProgress()
+	progress := calculateProgress(userID, role)
 	
 	// Подсчитываем количество завершенных шагов
 	completedSteps := 0
@@ -146,12 +166,16 @@ type ProgressStep struct {
 }
 
 // calculateProgress определяет прогресс пользователя
-func calculateProgress() map[string]ProgressStep {
+func calculateProgress(userID interface{}, role interface{}) map[string]ProgressStep {
 	progress := make(map[string]ProgressStep)
 
 	// Шаг 1: Создан ли хотя бы один проект
 	var projectCount int64
-	database.DB.Model(&models.Project{}).Count(&projectCount)
+	projectQuery := database.DB.Model(&models.Project{})
+	if role != "admin" {
+		projectQuery = projectQuery.Where("created_by_id = ?", userID)
+	}
+	projectQuery.Count(&projectCount)
 	progress["step1"] = ProgressStep{
 		Completed: projectCount > 0,
 		Text:      "Создайте проект для группировки интеграций",
@@ -159,7 +183,11 @@ func calculateProgress() map[string]ProgressStep {
 
 	// Шаг 2: Создана ли хотя бы одна интеграция
 	var integrationCount int64
-	database.DB.Model(&models.Integration{}).Count(&integrationCount)
+	integrationQuery := database.DB.Model(&models.Integration{})
+	if role != "admin" {
+		integrationQuery = integrationQuery.Where("created_by_id = ?", userID)
+	}
+	integrationQuery.Count(&integrationCount)
 	progress["step2"] = ProgressStep{
 		Completed: integrationCount > 0,
 		Text:      "Создайте интеграцию в проекте",
@@ -167,7 +195,12 @@ func calculateProgress() map[string]ProgressStep {
 
 	// Шаг 3: Получен ли хотя бы один webhook запрос
 	var webhookCount int64
-	database.DB.Model(&models.RequestLog{}).Where("log_type = ?", "webhook").Count(&webhookCount)
+	webhookQuery := database.DB.Model(&models.RequestLog{}).Where("log_type = ?", "webhook")
+	if role != "admin" {
+		webhookQuery = webhookQuery.Joins("JOIN integrations ON integrations.id = request_logs.integration_id").
+			Where("integrations.created_by_id = ?", userID)
+	}
+	webhookQuery.Count(&webhookCount)
 	progress["step3"] = ProgressStep{
 		Completed: webhookCount > 0,
 		Text:      "Отправьте тестовый запрос на webhook URL",
@@ -175,7 +208,11 @@ func calculateProgress() map[string]ProgressStep {
 
 	// Шаг 4: Настроен ли маппинг хотя бы в одной интеграции
 	var mappedIntegrationCount int64
-	database.DB.Model(&models.Integration{}).Where("mapping_config != '' AND mapping_config IS NOT NULL").Count(&mappedIntegrationCount)
+	mappedQuery := database.DB.Model(&models.Integration{}).Where("mapping_config != '' AND mapping_config IS NOT NULL")
+	if role != "admin" {
+		mappedQuery = mappedQuery.Where("created_by_id = ?", userID)
+	}
+	mappedQuery.Count(&mappedIntegrationCount)
 	progress["step4"] = ProgressStep{
 		Completed: mappedIntegrationCount > 0,
 		Text:      "Настройте маппинг полей",
@@ -183,7 +220,11 @@ func calculateProgress() map[string]ProgressStep {
 
 	// Шаг 5: Активирована ли хотя бы одна интеграция
 	var activeCount int64
-	database.DB.Model(&models.Integration{}).Where("mode = ?", "active").Count(&activeCount)
+	activeQuery := database.DB.Model(&models.Integration{}).Where("mode = ?", "active")
+	if role != "admin" {
+		activeQuery = activeQuery.Where("created_by_id = ?", userID)
+	}
+	activeQuery.Count(&activeCount)
 	progress["step5"] = ProgressStep{
 		Completed: activeCount > 0,
 		Text:      "Активируйте интеграцию",
@@ -247,6 +288,10 @@ func formatInt(n int) string {
 
 // GetRequestStats - API endpoint для получения статистики запросов по дням
 func GetRequestStats(c *gin.Context) {
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
+	
 	// Получаем статистику за последние 30 дней
 	type DayStats struct {
 		Date  string `json:"date"`
@@ -256,18 +301,37 @@ func GetRequestStats(c *gin.Context) {
 	var stats []DayStats
 	
 	// SQL запрос для группировки по дням
-	query := `
-		SELECT 
-			DATE(created_at) as date,
-			COUNT(*) as count
-		FROM request_logs
-		WHERE log_type = 'webhook'
-		AND created_at >= datetime('now', '-30 days')
-		GROUP BY DATE(created_at)
-		ORDER BY date ASC
-	`
+	var query string
+	var rows interface{ Close() error; Next() bool; Scan(...interface{}) error }
+	var err error
 	
-	rows, err := database.DB.Raw(query).Rows()
+	if role != "admin" {
+		query = `
+			SELECT 
+				DATE(request_logs.created_at) as date,
+				COUNT(*) as count
+			FROM request_logs
+			JOIN integrations ON integrations.id = request_logs.integration_id
+			WHERE request_logs.log_type = 'webhook'
+			AND request_logs.created_at >= datetime('now', '-30 days')
+			AND integrations.created_by_id = ?
+			GROUP BY DATE(request_logs.created_at)
+			ORDER BY date ASC
+		`
+		rows, err = database.DB.Raw(query, userID).Rows()
+	} else {
+		query = `
+			SELECT 
+				DATE(created_at) as date,
+				COUNT(*) as count
+			FROM request_logs
+			WHERE log_type = 'webhook'
+			AND created_at >= datetime('now', '-30 days')
+			GROUP BY DATE(created_at)
+			ORDER BY date ASC
+		`
+		rows, err = database.DB.Raw(query).Rows()
+	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -297,8 +361,17 @@ func GetRequestStats(c *gin.Context) {
 
 // GetRecentActivity - API endpoint для получения последней активности
 func GetRecentActivity(c *gin.Context) {
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
+	
 	var logs []models.RequestLog
-	database.DB.Order("created_at desc").Limit(10).Find(&logs)
+	logQuery := database.DB.Order("request_logs.created_at desc").Limit(10)
+	if role != "admin" {
+		logQuery = logQuery.Joins("JOIN integrations ON integrations.id = request_logs.integration_id").
+			Where("integrations.created_by_id = ?", userID)
+	}
+	logQuery.Find(&logs)
 
 	activities := make([]ActivityItem, 0)
 	for _, log := range logs {

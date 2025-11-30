@@ -17,22 +17,43 @@ import (
 
 func IntegrationList(c *gin.Context) {
 	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
+	
 	var integrations []models.Integration
-	database.DB.Preload("Project").Find(&integrations)
+	query := database.DB.Preload("Project")
+	
+	// Specialist видит только свои интеграции, admin видит все
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+	
+	query.Find(&integrations)
 
 	c.HTML(http.StatusOK, "pages/integrations.html", gin.H{
 		"title":        "Интеграции",
 		"CurrentPage":  "integrations",
 		"integrations": integrations,
 		"username":     session.Get("username"),
-		"role":         session.Get("role"),
+		"role":         role,
 	})
 }
 
 // IntegrationsListAPI - API endpoint для получения списка интеграций в JSON
 func IntegrationsListAPI(c *gin.Context) {
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
+	
 	var integrations []models.Integration
-	database.DB.Preload("Project").Find(&integrations)
+	query := database.DB.Preload("Project")
+	
+	// Specialist видит только свои интеграции
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+	
+	query.Find(&integrations)
 
 	// Возвращаем только необходимые данные для обновления статуса
 	type IntegrationStatus struct {
@@ -59,8 +80,18 @@ func IntegrationsListAPI(c *gin.Context) {
 
 func IntegrationCreate(c *gin.Context) {
 	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
+	
 	var projects []models.Project
-	database.DB.Find(&projects)
+	query := database.DB
+	
+	// Specialist видит только свои проекты
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+	
+	query.Find(&projects)
 
 	// Получаем информацию о пользователе для проверки демо-режима
 	userIDInterface := session.Get("user_id")
@@ -118,9 +149,14 @@ func IntegrationStore(c *gin.Context) {
 		return
 	}
 
-	// Проверяем, что проект существует
+	// Проверяем, что проект существует и пользователь имеет к нему доступ
+	role := session.Get("role")
 	var project models.Project
-	if err := database.DB.First(&project, uint(projectID)).Error; err != nil {
+	query := database.DB
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+	if err := query.First(&project, uint(projectID)).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Проект не найден"})
 		return
 	}
@@ -201,12 +237,19 @@ func WebhookHandler(c *gin.Context) {
 }
 
 func IntegrationConfigure(c *gin.Context) {
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
 	idStr := c.Param("id")
 	id, _ := strconv.ParseUint(idStr, 10, 32)
 
 	var integration models.Integration
-	if err := database.DB.First(&integration, uint(id)).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Integration not found"})
+	query := database.DB
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+	if err := query.First(&integration, uint(id)).Error; err != nil {
+		c.HTML(http.StatusNotFound, "pages/404.html", gin.H{"title": "Интеграция не найдена"})
 		return
 	}
 
@@ -262,7 +305,6 @@ func IntegrationConfigure(c *gin.Context) {
 		return fields[i].Path < fields[j].Path
 	})
 
-	session := sessions.Default(c)
 	c.HTML(http.StatusOK, "pages/integration_configure.html", gin.H{
 		"title":          "Настройка маппинга",
 		"CurrentPage":    "integrations",
@@ -272,17 +314,24 @@ func IntegrationConfigure(c *gin.Context) {
 		"payloadJSON":    payloadJSON,
 		"currentMapping": currentMapping,
 		"username":       session.Get("username"),
-		"role":           session.Get("role"),
+		"role":           role,
 	})
 }
 
 // IntegrationCheckUpdate - API endpoint для проверки обновлений интеграции
 func IntegrationCheckUpdate(c *gin.Context) {
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
 	idStr := c.Param("id")
 	id, _ := strconv.ParseUint(idStr, 10, 32)
 
 	var integration models.Integration
-	if err := database.DB.First(&integration, uint(id)).Error; err != nil {
+	query := database.DB
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+	if err := query.First(&integration, uint(id)).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Integration not found"})
 		return
 	}
@@ -298,12 +347,19 @@ func IntegrationCheckUpdate(c *gin.Context) {
 }
 
 func IntegrationSaveMapping(c *gin.Context) {
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
 	idStr := c.Param("id")
 	id, _ := strconv.ParseUint(idStr, 10, 32)
 
 	var integration models.Integration
-	if err := database.DB.First(&integration, uint(id)).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Integration not found"})
+	query := database.DB
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+	if err := query.First(&integration, uint(id)).Error; err != nil {
+		c.HTML(http.StatusNotFound, "pages/404.html", gin.H{"title": "Интеграция не найдена"})
 		return
 	}
 
@@ -396,12 +452,19 @@ func IntegrationEdit(c *gin.Context) {
 }
 
 func IntegrationUpdate(c *gin.Context) {
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
 	idStr := c.Param("id")
 	id, _ := strconv.ParseUint(idStr, 10, 32)
 
 	var integration models.Integration
-	if err := database.DB.First(&integration, uint(id)).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Integration not found"})
+	query := database.DB
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+	if err := query.First(&integration, uint(id)).Error; err != nil {
+		c.HTML(http.StatusNotFound, "pages/404.html", gin.H{"title": "Интеграция не найдена"})
 		return
 	}
 
@@ -416,12 +479,19 @@ func IntegrationUpdate(c *gin.Context) {
 
 // IntegrationRegenerateToken - генерация нового webhook токена
 func IntegrationRegenerateToken(c *gin.Context) {
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
 	idStr := c.Param("id")
 	id, _ := strconv.ParseUint(idStr, 10, 32)
 
 	var integration models.Integration
-	if err := database.DB.First(&integration, uint(id)).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Integration not found"})
+	query := database.DB
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+	if err := query.First(&integration, uint(id)).Error; err != nil {
+		c.HTML(http.StatusNotFound, "pages/404.html", gin.H{"title": "Интеграция не найдена"})
 		return
 	}
 
@@ -443,22 +513,43 @@ func IntegrationRegenerateToken(c *gin.Context) {
 }
 
 func IntegrationDelete(c *gin.Context) {
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
 	idStr := c.Param("id")
 	id, _ := strconv.ParseUint(idStr, 10, 32)
 
-	database.DB.Delete(&models.Integration{}, uint(id))
+	// Проверяем доступ перед удалением
+	var integration models.Integration
+	query := database.DB
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+	if err := query.First(&integration, uint(id)).Error; err != nil {
+		c.HTML(http.StatusNotFound, "pages/404.html", gin.H{"title": "Интеграция не найдена"})
+		return
+	}
+
+	database.DB.Delete(&integration)
 
 	c.Redirect(http.StatusFound, "/integrations")
 }
 
 // IntegrationToggle - активация/деактивация интеграции
 func IntegrationToggle(c *gin.Context) {
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
 	idStr := c.Param("id")
 	id, _ := strconv.ParseUint(idStr, 10, 32)
 
 	var integration models.Integration
-	if err := database.DB.First(&integration, uint(id)).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Integration not found"})
+	query := database.DB
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+	if err := query.First(&integration, uint(id)).Error; err != nil {
+		c.HTML(http.StatusNotFound, "pages/404.html", gin.H{"title": "Интеграция не найдена"})
 		return
 	}
 
@@ -480,12 +571,19 @@ func IntegrationToggle(c *gin.Context) {
 
 // IntegrationReconfigure - переход в режим переопределения маппинга
 func IntegrationReconfigure(c *gin.Context) {
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
 	idStr := c.Param("id")
 	id, _ := strconv.ParseUint(idStr, 10, 32)
 
 	var integration models.Integration
-	if err := database.DB.First(&integration, uint(id)).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Integration not found"})
+	query := database.DB
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+	if err := query.First(&integration, uint(id)).Error; err != nil {
+		c.HTML(http.StatusNotFound, "pages/404.html", gin.H{"title": "Интеграция не найдена"})
 		return
 	}
 
@@ -499,12 +597,19 @@ func IntegrationReconfigure(c *gin.Context) {
 
 // IntegrationCancelListening - отмена режима прослушивания
 func IntegrationCancelListening(c *gin.Context) {
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
 	idStr := c.Param("id")
 	id, _ := strconv.ParseUint(idStr, 10, 32)
 
 	var integration models.Integration
-	if err := database.DB.First(&integration, uint(id)).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Integration not found"})
+	query := database.DB
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+	if err := query.First(&integration, uint(id)).Error; err != nil {
+		c.HTML(http.StatusNotFound, "pages/404.html", gin.H{"title": "Интеграция не найдена"})
 		return
 	}
 

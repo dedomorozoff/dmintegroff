@@ -4,6 +4,7 @@ import (
 	"dmintegroff/internal/database"
 	"dmintegroff/internal/models"
 	"dmintegroff/internal/utils"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -13,15 +14,32 @@ import (
 
 func ProjectList(c *gin.Context) {
 	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
+	
+	// Отладка
+	fmt.Printf("DEBUG ProjectList: userID=%v, role=%v, roleType=%T\n", userID, role, role)
+	
 	var projects []models.Project
-	database.DB.Preload("Integrations").Preload("CreatedBy").Find(&projects)
+	query := database.DB.Preload("Integrations").Preload("CreatedBy")
+	
+	// Specialist видит только свои проекты, admin видит все
+	if role != "admin" {
+		fmt.Printf("DEBUG: Applying filter for non-admin user\n")
+		query = query.Where("created_by_id = ?", userID)
+	} else {
+		fmt.Printf("DEBUG: Admin user, showing all projects\n")
+	}
+	
+	query.Find(&projects)
+	fmt.Printf("DEBUG: Found %d projects\n", len(projects))
 
 	c.HTML(http.StatusOK, "pages/projects.html", gin.H{
 		"title":       "Проекты",
 		"CurrentPage": "projects",
 		"projects":    projects,
 		"username":    session.Get("username"),
-		"role":        session.Get("role"),
+		"role":        role,
 	})
 }
 
@@ -65,12 +83,21 @@ func ProjectStore(c *gin.Context) {
 
 func ProjectView(c *gin.Context) {
 	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
 	idStr := c.Param("id")
 	id, _ := strconv.ParseUint(idStr, 10, 32)
 
 	var project models.Project
-	if err := database.DB.Preload("Integrations").Preload("CreatedBy").First(&project, uint(id)).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
+	query := database.DB.Preload("Integrations").Preload("CreatedBy")
+	
+	// Specialist может видеть только свои проекты
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+	
+	if err := query.First(&project, uint(id)).Error; err != nil {
+		c.HTML(http.StatusNotFound, "pages/404.html", gin.H{"title": "Проект не найден"})
 		return
 	}
 
@@ -79,19 +106,25 @@ func ProjectView(c *gin.Context) {
 		"CurrentPage": "projects",
 		"project":     project,
 		"username":    session.Get("username"),
-		"role":        session.Get("role"),
+		"role":        role,
 	})
 }
 
 // ProjectCreateIntegration - создание интеграции в контексте проекта
 func ProjectCreateIntegration(c *gin.Context) {
 	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
 	projectIDStr := c.Param("id")
 	projectID, _ := strconv.ParseUint(projectIDStr, 10, 32)
 
 	var project models.Project
-	if err := database.DB.First(&project, uint(projectID)).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
+	query := database.DB
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+	if err := query.First(&project, uint(projectID)).Error; err != nil {
+		c.HTML(http.StatusNotFound, "pages/404.html", gin.H{"title": "Проект не найден"})
 		return
 	}
 
@@ -100,7 +133,7 @@ func ProjectCreateIntegration(c *gin.Context) {
 		"CurrentPage": "projects",
 		"project":     project,
 		"username":    session.Get("username"),
-		"role":        session.Get("role"),
+		"role":        role,
 	})
 }
 
@@ -108,6 +141,7 @@ func ProjectCreateIntegration(c *gin.Context) {
 func ProjectStoreIntegration(c *gin.Context) {
 	session := sessions.Default(c)
 	userIDInterface := session.Get("user_id")
+	role := session.Get("role")
 	if userIDInterface == nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -122,10 +156,14 @@ func ProjectStoreIntegration(c *gin.Context) {
 	projectIDStr := c.Param("id")
 	projectID, _ := strconv.ParseUint(projectIDStr, 10, 32)
 
-	// Проверяем, что проект существует
+	// Проверяем, что проект существует и пользователь имеет к нему доступ
 	var project models.Project
-	if err := database.DB.First(&project, uint(projectID)).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
+	query := database.DB
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+	if err := query.First(&project, uint(projectID)).Error; err != nil {
+		c.HTML(http.StatusNotFound, "pages/404.html", gin.H{"title": "Проект не найден"})
 		return
 	}
 
@@ -156,24 +194,45 @@ func ProjectStoreIntegration(c *gin.Context) {
 
 // ProjectDeleteIntegration - удаление интеграции из проекта
 func ProjectDeleteIntegration(c *gin.Context) {
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
 	projectIDStr := c.Param("id")
+	projectID, _ := strconv.ParseUint(projectIDStr, 10, 32)
 	integrationIDStr := c.Param("integration_id")
 	integrationID, _ := strconv.ParseUint(integrationIDStr, 10, 32)
 
-	// Удаляем интеграцию
-	database.DB.Delete(&models.Integration{}, uint(integrationID))
+	// Проверяем доступ к проекту
+	var project models.Project
+	query := database.DB
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+	if err := query.First(&project, uint(projectID)).Error; err != nil {
+		c.HTML(http.StatusNotFound, "pages/404.html", gin.H{"title": "Проект не найден"})
+		return
+	}
+
+	// Удаляем интеграцию только если она принадлежит этому проекту
+	database.DB.Where("project_id = ?", projectID).Delete(&models.Integration{}, uint(integrationID))
 
 	c.Redirect(http.StatusFound, "/projects/"+projectIDStr)
 }
 
 func ProjectEdit(c *gin.Context) {
 	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
 	idStr := c.Param("id")
 	id, _ := strconv.ParseUint(idStr, 10, 32)
 
 	var project models.Project
-	if err := database.DB.First(&project, uint(id)).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
+	query := database.DB
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+	if err := query.First(&project, uint(id)).Error; err != nil {
+		c.HTML(http.StatusNotFound, "pages/404.html", gin.H{"title": "Проект не найден"})
 		return
 	}
 
@@ -182,17 +241,24 @@ func ProjectEdit(c *gin.Context) {
 		"CurrentPage": "projects",
 		"project":     project,
 		"username":    session.Get("username"),
-		"role":        session.Get("role"),
+		"role":        role,
 	})
 }
 
 func ProjectUpdate(c *gin.Context) {
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
 	idStr := c.Param("id")
 	id, _ := strconv.ParseUint(idStr, 10, 32)
 
 	var project models.Project
-	if err := database.DB.First(&project, uint(id)).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
+	query := database.DB
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+	if err := query.First(&project, uint(id)).Error; err != nil {
+		c.HTML(http.StatusNotFound, "pages/404.html", gin.H{"title": "Проект не найден"})
 		return
 	}
 
@@ -205,11 +271,25 @@ func ProjectUpdate(c *gin.Context) {
 }
 
 func ProjectDelete(c *gin.Context) {
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
 	idStr := c.Param("id")
 	id, _ := strconv.ParseUint(idStr, 10, 32)
 
+	// Проверяем доступ к проекту перед удалением
+	var project models.Project
+	query := database.DB
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+	if err := query.First(&project, uint(id)).Error; err != nil {
+		c.HTML(http.StatusNotFound, "pages/404.html", gin.H{"title": "Проект не найден"})
+		return
+	}
+
 	// Удаляем проект (все связанные интеграции удалятся автоматически благодаря ON DELETE CASCADE)
-	database.DB.Delete(&models.Project{}, uint(id))
+	database.DB.Delete(&project)
 
 	c.Redirect(http.StatusFound, "/projects")
 }

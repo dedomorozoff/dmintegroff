@@ -24,20 +24,18 @@ func LoginPage(c *gin.Context) {
 	password := ""
 	autoRegister := false
 
-	// Если демо-режим включен, проверяем GET-параметры
+	// Если демо-режим включен, проверяем заголовки
 	if demoMode && demoSecret != "" {
-		querySecret := c.Query("demo_key")
-		queryUsername := c.Query("username")
-		queryPassword := c.Query("password")
+		headerSecret := c.GetHeader("X-Demo-Secret")
+		headerUsername := c.GetHeader("X-Demo-Username")
+		headerPassword := c.GetHeader("X-Demo-Password")
 
 		// Если ключ совпадает и есть логин/пароль
-		if querySecret == demoSecret && queryUsername != "" && queryPassword != "" {
-			username = queryUsername
-			password = queryPassword
+		if headerSecret == demoSecret && headerUsername != "" && headerPassword != "" {
+			username = headerUsername
+			password = headerPassword
 			autoRegister = true
-
-			// Автоматически регистрируем демо-пользователя
-			RegisterDemoUser(queryUsername, queryPassword)
+			// Пользователь создается на стороне сайта, здесь только автозаполнение формы
 		}
 	}
 

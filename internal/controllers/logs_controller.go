@@ -55,19 +55,38 @@ func TestEndpoint(c *gin.Context) {
 // LogsPage - страница с логами
 func LogsPage(c *gin.Context) {
 	session := sessions.Default(c)
-	query := database.DB.Preload("Integration").Preload("Integration.Project").Order("created_at desc")
+	userID := session.Get("user_id")
+	role := session.Get("role")
+	
+	query := database.DB.Preload("Integration").Preload("Integration.Project").Order("request_logs.created_at desc")
+
+	// Specialist видит только логи своих интеграций
+	if role != "admin" {
+		query = query.Joins("JOIN integrations ON integrations.id = request_logs.integration_id").
+			Where("integrations.created_by_id = ?", userID)
+	}
 
 	// Фильтры
 	if integrationID := c.Query("integration_id"); integrationID != "" {
-		query = query.Where("integration_id = ?", integrationID)
+		query = query.Where("request_logs.integration_id = ?", integrationID)
 	}
 	if projectID := c.Query("project_id"); projectID != "" {
-		query = query.Joins("JOIN integrations ON integrations.id = request_logs.integration_id").
-			Where("integrations.project_id = ?", projectID)
+		if role != "admin" {
+			query = query.Joins("JOIN integrations i2 ON i2.id = request_logs.integration_id").
+				Where("i2.project_id = ? AND i2.created_by_id = ?", projectID, userID)
+		} else {
+			query = query.Joins("JOIN integrations i2 ON i2.id = request_logs.integration_id").
+				Where("i2.project_id = ?", projectID)
+		}
 	}
 	if search := c.Query("search"); search != "" {
-		query = query.Joins("JOIN integrations ON integrations.id = request_logs.integration_id").
-			Where("integrations.name LIKE ? OR request_logs.id = ?", "%"+search+"%", search)
+		if role != "admin" {
+			query = query.Joins("JOIN integrations i3 ON i3.id = request_logs.integration_id").
+				Where("(i3.name LIKE ? OR request_logs.id = ?) AND i3.created_by_id = ?", "%"+search+"%", search, userID)
+		} else {
+			query = query.Joins("JOIN integrations i3 ON i3.id = request_logs.integration_id").
+				Where("i3.name LIKE ? OR request_logs.id = ?", "%"+search+"%", search)
+		}
 	}
 	if status := c.Query("status"); status != "" {
 		if status == "error" {
@@ -80,9 +99,13 @@ func LogsPage(c *gin.Context) {
 	var logs []models.RequestLog
 	query.Limit(100).Find(&logs)
 
-	// Получаем список проектов для фильтра
+	// Получаем список проектов для фильтра (только свои для specialist)
 	var projects []models.Project
-	database.DB.Order("name").Find(&projects)
+	projectQuery := database.DB.Order("name")
+	if role != "admin" {
+		projectQuery = projectQuery.Where("created_by_id = ?", userID)
+	}
+	projectQuery.Find(&projects)
 
 	c.HTML(http.StatusOK, "pages/logs.html", gin.H{
 		"title":              "Тесты интеграций",
@@ -94,29 +117,67 @@ func LogsPage(c *gin.Context) {
 		"filter_search":      c.Query("search"),
 		"filter_status":      c.Query("status"),
 		"username":           session.Get("username"),
-		"role":               session.Get("role"),
+		"role":               role,
 	})
 }
 
 // ClearLogs - очистка всех логов
 func ClearLogs(c *gin.Context) {
-	database.DB.Exec("DELETE FROM request_logs")
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
+	
+	// Admin может удалить все логи, specialist только свои
+	if role == "admin" {
+		database.DB.Exec("DELETE FROM request_logs")
+	} else {
+		database.DB.Exec("DELETE FROM request_logs WHERE integration_id IN (SELECT id FROM integrations WHERE created_by_id = ?)", userID)
+	}
 	c.Redirect(http.StatusFound, "/logs")
 }
 
 // DeleteLog - удаление конкретного лога
 func DeleteLog(c *gin.Context) {
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
 	idStr := c.Param("id")
 	id, _ := strconv.ParseUint(idStr, 10, 32)
 
-	database.DB.Delete(&models.RequestLog{}, uint(id))
+	// Проверяем доступ к логу
+	var log models.RequestLog
+	query := database.DB.Preload("Integration")
+	if err := query.First(&log, uint(id)).Error; err != nil {
+		c.HTML(http.StatusNotFound, "pages/404.html", gin.H{"title": "Лог не найден"})
+		return
+	}
+
+	// Specialist может удалять только логи своих интеграций
+	if role != "admin" && log.Integration.CreatedByID != userID.(uint) {
+		c.HTML(http.StatusNotFound, "pages/404.html", gin.H{"title": "Лог не найден"})
+		return
+	}
+
+	database.DB.Delete(&log)
 	c.Redirect(http.StatusFound, "/logs")
 }
 
 // LogsAPI - API endpoint для получения логов в JSON
 func LogsAPI(c *gin.Context) {
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
+	
+	query := database.DB.Order("request_logs.created_at desc").Limit(100)
+	
+	// Specialist видит только логи своих интеграций
+	if role != "admin" {
+		query = query.Joins("JOIN integrations ON integrations.id = request_logs.integration_id").
+			Where("integrations.created_by_id = ?", userID)
+	}
+	
 	var logs []models.RequestLog
-	database.DB.Order("created_at desc").Limit(100).Find(&logs)
+	query.Find(&logs)
 
 	c.JSON(http.StatusOK, gin.H{
 		"logs": logs,
