@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -161,11 +162,23 @@ func IntegrationStore(c *gin.Context) {
 		return
 	}
 
+	// Проверяем демо-режим и валидируем Target API URL
+	var user models.User
+	targetAPI := c.PostForm("target_api")
+	if err := database.DB.First(&user, userID).Error; err == nil && user.IsDemo {
+		// В демо-режиме разрешен только тестовый URL
+		testURL := "/webhook/test"
+		if targetAPI != testURL && !strings.HasSuffix(targetAPI, testURL) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "В демо-режиме разрешен только тестовый URL"})
+			return
+		}
+	}
+
 	integration := models.Integration{
 		Name:         c.PostForm("name"),
 		WebhookToken: token,
 		SourceAPI:    c.PostForm("source_api"), // Optional
-		TargetAPI:    c.PostForm("target_api"),
+		TargetAPI:    targetAPI,
 		Mode:         "listening", // Start in listening mode
 		CreatedByID:  userID,
 		ProjectID:    uint(projectID),
@@ -468,9 +481,25 @@ func IntegrationUpdate(c *gin.Context) {
 		return
 	}
 
+	// Проверяем демо-режим и валидируем Target API URL
+	targetAPI := c.PostForm("target_api")
+	if userID != nil {
+		if uid, ok := userID.(uint); ok {
+			var user models.User
+			if err := database.DB.First(&user, uid).Error; err == nil && user.IsDemo {
+				// В демо-режиме разрешен только тестовый URL
+				testURL := "/webhook/test"
+				if targetAPI != testURL && !strings.HasSuffix(targetAPI, testURL) {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "В демо-режиме разрешен только тестовый URL"})
+					return
+				}
+			}
+		}
+	}
+
 	integration.Name = c.PostForm("name")
 	integration.SourceAPI = c.PostForm("source_api")
-	integration.TargetAPI = c.PostForm("target_api")
+	integration.TargetAPI = targetAPI
 
 	database.DB.Save(&integration)
 

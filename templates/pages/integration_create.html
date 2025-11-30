@@ -39,7 +39,7 @@
                         <button type="button" onclick="fillTestUrl()" class="btn btn-secondary" style="white-space: nowrap;"><i data-lucide="flask"></i> Тестовый URL</button>
                     </div>
                     {{ if .isDemo }}
-                    <small style="color: #f59e0b;">В демо-режиме можно использовать только тестовый URL. Для изменения URL используйте кнопку "Тестовый URL".</small>
+                    <small style="color: #f59e0b;">В демо-режиме доступен только тестовый URL. Используйте кнопку для вставки.</small>
                     {{ else }}
                     <small>Куда будут отправляться преобразованные данные</small>
                     {{ end }}
@@ -77,7 +77,10 @@
         function fillTestUrl() {
             const input = document.getElementById('target_api');
             const testUrl = window.location.protocol + '//' + window.location.host + '/webhook/test';
+            // Снимаем readonly временно для изменения значения
+            input.removeAttribute('readonly');
             input.value = testUrl;
+            input.setAttribute('readonly', 'readonly');
             input.focus();
         }
     </script>

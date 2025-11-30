@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -174,11 +175,23 @@ func ProjectStoreIntegration(c *gin.Context) {
 		return
 	}
 
+	// Проверяем демо-режим и валидируем Target API URL
+	targetAPI := c.PostForm("target_api")
+	var user models.User
+	if err := database.DB.First(&user, userID).Error; err == nil && user.IsDemo {
+		// В демо-режиме разрешен только тестовый URL
+		testURL := "/webhook/test"
+		if targetAPI != testURL && !strings.HasSuffix(targetAPI, testURL) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "В демо-режиме разрешен только тестовый URL"})
+			return
+		}
+	}
+
 	integration := models.Integration{
 		Name:         c.PostForm("name"),
 		WebhookToken: token,
 		SourceAPI:    c.PostForm("source_api"),
-		TargetAPI:    c.PostForm("target_api"),
+		TargetAPI:    targetAPI,
 		Mode:         "listening",
 		CreatedByID:  userID,
 		ProjectID:    uint(projectID),
