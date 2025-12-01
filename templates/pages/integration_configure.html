@@ -766,7 +766,9 @@
     // Инициализация URL и иконок
     document.addEventListener('DOMContentLoaded', () => {
         const token = "{{ .integration.WebhookToken }}";
-        const url = `${window.location.origin}/webhook/${token}`;
+        const appURL = "{{ .appURL }}";
+        const appPath = "{{ .appPath }}";
+        const url = `${appURL}${appPath}/webhook/${token}`;
         const urlElement = document.getElementById('webhookUrl');
         if (urlElement) {
             urlElement.textContent = url;

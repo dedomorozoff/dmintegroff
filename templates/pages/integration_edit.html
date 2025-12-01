@@ -80,8 +80,10 @@
         }
 
         function copyWebhookUrl() {
+            const appURL = "{{ .appURL }}";
+            const appPath = "{{ .appPath }}";
             const urlElement = document.getElementById('webhook-url');
-            const fullUrl = window.location.protocol + '//' + window.location.host + urlElement.textContent;
+            const fullUrl = appURL + appPath + urlElement.textContent;
             navigator.clipboard.writeText(fullUrl).then(() => {
                 alert('URL скопирован: ' + fullUrl);
             }).catch(err => {

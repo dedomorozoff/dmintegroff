@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -15,6 +16,29 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
+
+// getAppURL возвращает базовый URL приложения из переменной окружения или из запроса
+func getAppURL(c *gin.Context) string {
+	appURL := os.Getenv("APP_URL")
+	if appURL == "" {
+		// Fallback: используем текущий origin из запроса
+		scheme := "http"
+		if c.Request.TLS != nil {
+			scheme = "https"
+		}
+		appURL = fmt.Sprintf("%s://%s", scheme, c.Request.Host)
+	}
+	return appURL
+}
+
+// getAppPath возвращает базовый путь приложения из переменной окружения
+func getAppPath() string {
+	appPath := os.Getenv("APP_PATH")
+	if appPath == "" {
+		return ""
+	}
+	return appPath
+}
 
 func IntegrationList(c *gin.Context) {
 	session := sessions.Default(c)
@@ -37,6 +61,8 @@ func IntegrationList(c *gin.Context) {
 		"integrations": integrations,
 		"username":     session.Get("username"),
 		"role":         role,
+		"appURL":       getAppURL(c),
+		"appPath":      getAppPath(),
 	})
 }
 
@@ -328,6 +354,8 @@ func IntegrationConfigure(c *gin.Context) {
 		"currentMapping": currentMapping,
 		"username":       session.Get("username"),
 		"role":           role,
+		"appURL":         getAppURL(c),
+		"appPath":        getAppPath(),
 	})
 }
 
@@ -461,6 +489,8 @@ func IntegrationEdit(c *gin.Context) {
 		"username":    session.Get("username"),
 		"role":        session.Get("role"),
 		"isDemo":      isDemo,
+		"appURL":      getAppURL(c),
+		"appPath":     getAppPath(),
 	})
 }
 

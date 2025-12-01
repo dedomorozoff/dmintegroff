@@ -6,12 +6,36 @@ import (
 	"dmintegroff/internal/utils"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
+
+// getProjectAppURL возвращает базовый URL приложения из переменной окружения или из запроса
+func getProjectAppURL(c *gin.Context) string {
+	appURL := os.Getenv("APP_URL")
+	if appURL == "" {
+		// Fallback: используем текущий origin из запроса
+		scheme := "http"
+		if c.Request.TLS != nil {
+			scheme = "https"
+		}
+		appURL = fmt.Sprintf("%s://%s", scheme, c.Request.Host)
+	}
+	return appURL
+}
+
+// getProjectAppPath возвращает базовый путь приложения из переменной окружения
+func getProjectAppPath() string {
+	appPath := os.Getenv("APP_PATH")
+	if appPath == "" {
+		return ""
+	}
+	return appPath
+}
 
 func ProjectList(c *gin.Context) {
 	session := sessions.Default(c)
@@ -108,6 +132,8 @@ func ProjectView(c *gin.Context) {
 		"project":     project,
 		"username":    session.Get("username"),
 		"role":        role,
+		"appURL":      getProjectAppURL(c),
+		"appPath":     getProjectAppPath(),
 	})
 }
 

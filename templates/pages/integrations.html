@@ -43,7 +43,7 @@
                             </td>
                             <td>
                                 <code style="font-size: 0.75rem;">/webhook/{{ .WebhookToken }}</code>
-                                <button onclick="copyToClipboard('http://localhost:8080/webhook/{{ .WebhookToken }}')" 
+                                <button onclick="copyToClipboard('{{ $.appURL }}{{ $.appPath }}/webhook/{{ .WebhookToken }}')" 
                                         style="background: none; border: none; cursor: pointer; color: var(--primary); margin-left: 0.5rem; padding: 0.25rem;">
                                     <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
                                 </button>
