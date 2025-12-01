@@ -206,9 +206,11 @@ func calculateProgress(userID interface{}, role interface{}) map[string]Progress
 		Text:      "Отправьте тестовый запрос на webhook URL",
 	}
 
-	// Шаг 4: Настроен ли маппинг хотя бы в одной интеграции
+	// Шаг 4: Настроен ли маппинг хотя бы в одной интеграции (mapping_config или output_template)
 	var mappedIntegrationCount int64
-	mappedQuery := database.DB.Model(&models.Integration{}).Where("mapping_config != '' AND mapping_config IS NOT NULL")
+	mappedQuery := database.DB.Model(&models.Integration{}).Where(
+		"(mapping_config != '' AND mapping_config IS NOT NULL) OR (output_template != '' AND output_template IS NOT NULL)",
+	)
 	if role != "admin" {
 		mappedQuery = mappedQuery.Where("created_by_id = ?", userID)
 	}

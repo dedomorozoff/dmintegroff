@@ -75,7 +75,11 @@ class JSONHighlighter {
         this.preview.style.background = '#1a1f2e';
         this.preview.style.borderRadius = '8px';
         this.preview.style.border = '1px solid #2d3748';
-        this.preview.style.pointerEvents = 'none';
+        this.preview.style.setProperty('pointer-events', 'none', 'important');
+        this.preview.style.setProperty('user-select', 'none', 'important');
+        this.preview.style.setProperty('-webkit-user-select', 'none', 'important');
+        this.preview.style.setProperty('-moz-user-select', 'none', 'important');
+        this.preview.style.setProperty('-ms-user-select', 'none', 'important');
         this.preview.style.setProperty('z-index', '1', 'important');
         this.preview.style.whiteSpace = 'pre-wrap'; // Изменено с pre на pre-wrap
         this.preview.style.wordWrap = 'break-word';
@@ -89,6 +93,17 @@ class JSONHighlighter {
         this.textarea.style.setProperty('caret-color', '#abb2bf', 'important');
         this.textarea.style.setProperty('background', 'transparent', 'important');
         this.textarea.style.setProperty('z-index', '2', 'important');
+        
+        // Блокируем копирование из preview
+        this.preview.addEventListener('copy', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        }, true);
+        
+        this.preview.addEventListener('cut', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        }, true);
         
         console.log('Styles applied:', {
             textareaColor: this.textarea.style.color,
@@ -123,27 +138,27 @@ JSONHighlighter.highlightText = function(text) {
                .replace(/</g, '&lt;')
                .replace(/>/g, '&gt;');
     
-    // Подсветка различных элементов JSON (с inline стилями для надежности)
+    // Подсветка различных элементов JSON (используем CSS классы вместо inline стилей)
     text = text
         // Строки (включая плейсхолдеры) - ЯРКИЙ ЗЕЛЕНЫЙ
         .replace(/"([^"\\]*(\\.[^"\\]*)*)"/g, (match) => {
             // Проверяем, содержит ли строка плейсхолдер
             if (match.includes('{{') && match.includes('}}')) {
                 return match.replace(/\{\{([^}]+)\}\}/g, 
-                    '<span style="color: #61afef; font-weight: bold; background: rgba(97, 175, 239, 0.15);">{{$1}}</span>');
+                    '<span class="json-placeholder">{{$1}}</span>');
             }
-            return `<span style="color: #98c379;">${match}</span>`;
+            return `<span class="json-string">${match}</span>`;
         })
         // Числа - ОРАНЖЕВЫЙ
-        .replace(/\b(-?\d+\.?\d*)\b/g, '<span style="color: #d19a66;">$1</span>')
+        .replace(/\b(-?\d+\.?\d*)\b/g, '<span class="json-number">$1</span>')
         // Булевы значения - ГОЛУБОЙ
-        .replace(/\b(true|false)\b/g, '<span style="color: #56b6c2;">$1</span>')
+        .replace(/\b(true|false)\b/g, '<span class="json-boolean">$1</span>')
         // null - ФИОЛЕТОВЫЙ
-        .replace(/\bnull\b/g, '<span style="color: #c678dd;">null</span>')
+        .replace(/\bnull\b/g, '<span class="json-null">null</span>')
         // Ключи (слова перед двоеточием) - КРАСНЫЙ
-        .replace(/("[\w\s_-]+")\s*:/g, '<span style="color: #e06c75; font-weight: 500;">$1</span>:')
+        .replace(/("[\w\s_-]+")\s*:/g, '<span class="json-key">$1</span>:')
         // Плейсхолдеры вне строк - СИНИЙ
-        .replace(/\{\{([^}]+)\}\}/g, '<span style="color: #61afef; font-weight: bold; background: rgba(97, 175, 239, 0.15);">{{$1}}</span>');
+        .replace(/\{\{([^}]+)\}\}/g, '<span class="json-placeholder">{{$1}}</span>');
     
     return text;
 };

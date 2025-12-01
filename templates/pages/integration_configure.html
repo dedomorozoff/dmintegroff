@@ -215,6 +215,7 @@
                 <!-- Редактор шаблона с подсветкой синтаксиса -->
                 <div class="json-editor-container" style="position: relative;">
                     <textarea name="output_template" id="outputTemplate" class="json-editor json-editor-dark"
+                        autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
                         style="width: 100%; min-height: 400px; font-family: 'Courier New', monospace; padding: 1rem; border-radius: 8px; font-size: 0.95em; line-height: 1.5;"
                         placeholder='Пример шаблона:
 {
@@ -389,30 +390,46 @@
 
     // Копирование поля в буфер обмена
     function copyFieldToClipboard(fieldPlaceholder, button) {
-        navigator.clipboard.writeText(fieldPlaceholder).then(() => {
+        // Используем Clipboard API для записи только текста
+        const textBlob = new Blob([fieldPlaceholder], { type: 'text/plain' });
+        const clipboardItem = new ClipboardItem({
+            'text/plain': textBlob
+        });
+        
+        navigator.clipboard.write([clipboardItem]).then(() => {
             // Сохраняем оригинальную иконку
             const icon = button.querySelector('i');
-            const originalIcon = icon.getAttribute('data-lucide');
             
-            // Меняем на галочку
-            icon.setAttribute('data-lucide', 'check');
-            if (window.lucide) {
-                window.lucide.createIcons();
+            // Проверяем, что иконка существует
+            if (icon) {
+                const originalIcon = icon.getAttribute('data-lucide');
+                
+                // Меняем на галочку
+                icon.setAttribute('data-lucide', 'check');
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+                
+                // Возвращаем обратно через 2 секунды
+                setTimeout(() => {
+                    icon.setAttribute('data-lucide', originalIcon || 'copy');
+                    if (window.lucide) {
+                        window.lucide.createIcons();
+                    }
+                }, 2000);
             }
             
             // Показываем уведомление
             showNotification(`Скопировано: ${fieldPlaceholder}`, 'success');
-            
-            // Возвращаем обратно через 2 секунды
-            setTimeout(() => {
-                icon.setAttribute('data-lucide', originalIcon || 'copy');
-                if (window.lucide) {
-                    window.lucide.createIcons();
-                }
-            }, 2000);
         }).catch(err => {
-            console.error('Failed to copy:', err);
-            showNotification('Ошибка копирования', 'error');
+            console.error('Failed to copy with ClipboardItem, trying writeText:', err);
+            // Fallback на старый метод
+            navigator.clipboard.writeText(fieldPlaceholder).then(() => {
+                showNotification(`Скопировано: ${fieldPlaceholder}`, 'success');
+            }).catch(err2 => {
+                console.error('Failed to copy:', err2);
+                showNotification('Ошибка копирования', 'error');
+            });
         });
     }
 
@@ -523,10 +540,22 @@
         }
 
         try {
-            // Заменяем плейсхолдеры на тестовые значения для проверки структуры
-            const testTemplate = template.replace(/\{\{[^}]+\}\}/g, '"test_value"');
+            // Умная замена плейсхолдеров на тестовые значения
+            let testTemplate = template;
+            
+            // Заменяем плейсхолдеры в строках: "{{`{{field}}`}}" -> "test_value"
+            testTemplate = testTemplate.replace(/"{{`{{`}}[^}]+{{`}}`}}"/g, '"test_value"');
+            
+            // Заменяем плейсхолдеры вне строк (числа/булевы): {{`{{field}}`}} -> 123
+            testTemplate = testTemplate.replace(/{{`{{`}}[^}]+{{`}}`}}/g, '123');
+            
+            // Пытаемся распарсить
             JSON.parse(testTemplate);
+            
             validationDiv.innerHTML = '<div style="padding: 1rem; background: #10b981; color: white; border-radius: 8px;">✅ Шаблон валиден!</div>';
+            setTimeout(() => {
+                validationDiv.innerHTML = '';
+            }, 3000);
             return true;
         } catch (e) {
             validationDiv.innerHTML = `<div style="padding: 1rem; background: #ef4444; color: white; border-radius: 8px;">❌ Ошибка в JSON: ${e.message}</div>`;
@@ -793,12 +822,194 @@
             if (outputTemplate) {
                 console.log('Initializing outputTemplate highlighter');
                 new JSONHighlighter('outputTemplate', 'outputTemplate_preview');
+                
+                // Отключаем автозаполнение и автовставку
+                outputTemplate.setAttribute('autocomplete', 'off');
+                outputTemplate.setAttribute('autocorrect', 'off');
+                outputTemplate.setAttribute('autocapitalize', 'off');
+                outputTemplate.setAttribute('spellcheck', 'false');
+                
+                // Флаг для разрешения paste (только при Ctrl+V)
+                let allowPaste = false;
+                let pasteTimeout = null;
+                
+                // Отслеживаем Ctrl+V
+                outputTemplate.addEventListener('keydown', (e) => {
+                    if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) {
+                        console.log('Ctrl+V detected, allowing paste');
+                        allowPaste = true;
+                        
+                        // Сбрасываем флаг через 100мс
+                        if (pasteTimeout) clearTimeout(pasteTimeout);
+                        pasteTimeout = setTimeout(() => {
+                            allowPaste = false;
+                        }, 100);
+                    }
+                }, true);
+                
+                // Обработчик вставки - только чистый текст без HTML/стилей
+                outputTemplate.addEventListener('paste', (e) => {
+                    console.log('Paste event triggered, allowPaste:', allowPaste);
+                    
+                    // Если paste НЕ вызван через Ctrl+V - блокируем полностью
+                    if (!allowPaste) {
+                        console.log('Paste blocked - not triggered by Ctrl+V');
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
+                        return false;
+                    }
+                    
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    
+                    const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+                    console.log('Pasting text:', text);
+                    
+                    const start = outputTemplate.selectionStart;
+                    const end = outputTemplate.selectionEnd;
+                    const currentValue = outputTemplate.value;
+                    
+                    // Вставляем чистый текст
+                    const newValue = currentValue.substring(0, start) + text + currentValue.substring(end);
+                    outputTemplate.value = newValue;
+                    
+                    // Восстанавливаем позицию курсора
+                    const newPosition = start + text.length;
+                    outputTemplate.selectionStart = newPosition;
+                    outputTemplate.selectionEnd = newPosition;
+                    
+                    // Триггерим событие input для обновления подсветки
+                    outputTemplate.dispatchEvent(new Event('input', { bubbles: true }));
+                    
+                    console.log('Paste completed, new value length:', newValue.length);
+                    
+                    // Сбрасываем флаг
+                    allowPaste = false;
+                }, true);
+                
+                // Обработчик keydown - перехватываем ввод кавычек
+                const handleQuoteKey = (e) => {
+                    // Пропускаем Ctrl+V
+                    if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) {
+                        return;
+                    }
+                    
+                    console.log('Key pressed:', e.key, 'keyCode:', e.keyCode, 'which:', e.which);
+                    
+                    // Проверяем различные варианты кавычек
+                    const isQuote = e.key === '"' || e.key === "'" || e.key === '`' || 
+                                   e.keyCode === 222 || e.which === 222 ||
+                                   e.keyCode === 192 || e.which === 192;
+                    
+                    if (isQuote) {
+                        console.log('Quote key detected! Preventing default');
+                        
+                        // Сохраняем текущее состояние
+                        const start = outputTemplate.selectionStart;
+                        const end = outputTemplate.selectionEnd;
+                        const currentValue = outputTemplate.value;
+                        
+                        // Предотвращаем стандартное поведение
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
+                        
+                        // Определяем, какую кавычку вставить
+                        let quote = e.key;
+                        if (!quote || quote.length !== 1) {
+                            quote = e.shiftKey ? '"' : "'";
+                        }
+                        
+                        // Вставляем кавычку вручную
+                        const newValue = currentValue.substring(0, start) + quote + currentValue.substring(end);
+                        outputTemplate.value = newValue;
+                        
+                        // Устанавливаем курсор после кавычки
+                        const newPosition = start + 1;
+                        outputTemplate.selectionStart = newPosition;
+                        outputTemplate.selectionEnd = newPosition;
+                        
+                        // Триггерим событие input
+                        outputTemplate.dispatchEvent(new Event('input', { bubbles: true }));
+                        
+                        console.log('Quote inserted manually:', quote);
+                        
+                        return false;
+                    }
+                };
+                
+                outputTemplate.addEventListener('keydown', handleQuoteKey, true);
+                outputTemplate.addEventListener('keypress', handleQuoteKey, true);
+                
+                // Обработчик input - проверяем на мусор
+                let lastCleanValue = outputTemplate.value;
+                let cleanupTimeout = null;
+                
+                outputTemplate.addEventListener('input', (e) => {
+                    const currentValue = outputTemplate.value;
+                    
+                    // Очищаем предыдущий таймаут
+                    if (cleanupTimeout) {
+                        clearTimeout(cleanupTimeout);
+                    }
+                    
+                    // Проверяем через небольшую задержку (на случай если мусор добавляется асинхронно)
+                    cleanupTimeout = setTimeout(() => {
+                        const value = outputTemplate.value;
+                        
+                        // Проверяем, не появился ли HTML-мусор
+                        if (value.includes('rgba(') || value.includes('style=') || value.includes(';">') || 
+                            value.includes('0.15);') || /\d+,\s*\d+,\s*\d+,\s*[\d.]+\)/.test(value)) {
+                            
+                            console.warn('Detected HTML garbage in textarea, cleaning...');
+                            console.log('Before:', value);
+                            
+                            // Агрессивная очистка
+                            let cleaned = value
+                                .replace(/rgba?\([^)]+\)[^"]*">/g, '')
+                                .replace(/style="[^"]*"/g, '')
+                                .replace(/\d+,\s*\d+,\s*\d+,\s*[\d.]+\);?"?>/g, '')
+                                .replace(/;">/g, '');
+                            
+                            console.log('After:', cleaned);
+                            
+                            if (cleaned !== value) {
+                                const cursorPos = outputTemplate.selectionStart;
+                                outputTemplate.value = cleaned;
+                                outputTemplate.selectionStart = Math.min(cursorPos, cleaned.length);
+                                outputTemplate.selectionEnd = Math.min(cursorPos, cleaned.length);
+                                outputTemplate.dispatchEvent(new Event('input', { bubbles: true }));
+                                console.log('Cleaned value');
+                            }
+                        } else {
+                            lastCleanValue = value;
+                        }
+                    }, 50);
+                }, true);
             } else {
                 console.warn('outputTemplate not found');
             }
             
             // НЕ инициализируем samplePayloadTextarea здесь - он скрыт
             // Инициализация происходит в toggleEditPayload()
+            
+            // Добавляем обработчик paste для samplePayloadTextarea
+            const samplePayloadTextarea = document.getElementById('samplePayloadTextarea');
+            if (samplePayloadTextarea) {
+                samplePayloadTextarea.addEventListener('paste', (e) => {
+                    e.preventDefault();
+                    const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+                    const start = samplePayloadTextarea.selectionStart;
+                    const end = samplePayloadTextarea.selectionEnd;
+                    const currentValue = samplePayloadTextarea.value;
+                    
+                    samplePayloadTextarea.value = currentValue.substring(0, start) + text + currentValue.substring(end);
+                    samplePayloadTextarea.selectionStart = samplePayloadTextarea.selectionEnd = start + text.length;
+                    samplePayloadTextarea.dispatchEvent(new Event('input'));
+                });
+            }
         } else {
             console.error('JSONHighlighter class not found!');
         }
