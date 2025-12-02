@@ -1,16 +1,37 @@
 package controllers
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
 	"dmintegroff/internal/database"
+	"dmintegroff/internal/logger"
 	"dmintegroff/internal/models"
+	"encoding/hex"
+	"fmt"
+	"math"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
+
+// generateDemoSecret генерирует HMAC-подпись для проверки демо-доступа
+// Должна совпадать с функцией на лендинге
+func generateDemoSecret(username, password string, timestamp int64, sharedSecret string) string {
+	// Формируем данные для подписи (тот же формат, что и на лендинге)
+	data := fmt.Sprintf("%s:%s:%d", username, password, timestamp)
+	
+	// Создаем HMAC с SHA256
+	h := hmac.New(sha256.New, []byte(sharedSecret))
+	h.Write([]byte(data))
+	
+	// Возвращаем hex-представление подписи
+	return hex.EncodeToString(h.Sum(nil))
+}
 
 func LoginPage(c *gin.Context) {
 	// Очищаем старых демо-пользователей при каждом заходе на страницу логина
@@ -24,38 +45,79 @@ func LoginPage(c *gin.Context) {
 	password := ""
 	autoRegister := false
 
-	// Если демо-режим включен, проверяем заголовки или GET-параметры (в DEBUG режиме)
+	// Если демо-режим включен, проверяем заголовки с HMAC-проверкой
 	if demoMode && demoSecret != "" {
 		debugMode := os.Getenv("DEBUG") == "true"
+		
+		// Получаем общий секретный ключ для HMAC
+		sharedSecret := os.Getenv("DEMO_SHARED_SECRET")
 		
 		// Проверяем заголовки (приоритет)
 		headerSecret := c.GetHeader("X-Demo-Secret")
 		headerUsername := c.GetHeader("X-Demo-Username")
 		headerPassword := c.GetHeader("X-Demo-Password")
+		headerTimestamp := c.GetHeader("X-Demo-Timestamp")
 
 		secret := headerSecret
 		user := headerUsername
 		pass := headerPassword
+		timestampStr := headerTimestamp
 
-		// В DEBUG режиме также проверяем GET-параметры
+		// В DEBUG режиме также проверяем GET-параметры (старый метод, менее безопасный)
 		if debugMode && secret == "" {
 			secret = c.Query("demo_key")
 			user = c.Query("username")
 			pass = c.Query("password")
-		}
-
-		// Если ключ совпадает и есть логин/пароль
-		if secret == demoSecret && user != "" && pass != "" {
-			username = user
-			password = pass
-			autoRegister = true
-			// Автоматически создаем/обновляем демо-пользователя
-			if err := RegisterDemoUser(user, pass); err != nil {
-				c.HTML(http.StatusInternalServerError, "pages/login.html", gin.H{
-					"title": "Вход в систему",
-					"error": "Ошибка создания демо-пользователя",
-				})
-				return
+			// Для GET-параметров используем простую проверку по старому ключу
+			if secret == demoSecret && user != "" && pass != "" {
+				logger.Log.Warn("Demo access via GET parameters (insecure, deprecated)")
+				username = user
+				password = pass
+				autoRegister = true
+				if err := RegisterDemoUser(user, pass); err != nil {
+					c.HTML(http.StatusInternalServerError, "pages/login.html", gin.H{
+						"title": "Вход в систему",
+						"error": "Ошибка создания демо-пользователя",
+					})
+					return
+				}
+			}
+		} else if secret != "" && user != "" && pass != "" && timestampStr != "" && sharedSecret != "" {
+			// HMAC-проверка для заголовков
+			
+			// Парсим timestamp
+			timestamp, err := strconv.ParseInt(timestampStr, 10, 64)
+			if err != nil {
+				logger.Log.Warn("Invalid demo timestamp: %v", err)
+			} else {
+				// Проверяем, что timestamp не старше 5 минут (защита от replay-атак)
+				currentTime := time.Now().Unix()
+				timeDiff := math.Abs(float64(currentTime - timestamp))
+				
+				if timeDiff > 300 { // 5 минут = 300 секунд
+					logger.Log.Warn("Demo timestamp too old: %d seconds", int(timeDiff))
+				} else {
+					// Генерируем ожидаемую HMAC-подпись
+					expectedSecret := generateDemoSecret(user, pass, timestamp, sharedSecret)
+					
+					// Сравниваем подписи (constant-time comparison для защиты от timing-атак)
+					if hmac.Equal([]byte(secret), []byte(expectedSecret)) {
+						logger.Log.Info("Valid HMAC demo access for user: %s", user)
+						username = user
+						password = pass
+						autoRegister = true
+						// Автоматически создаем/обновляем демо-пользователя
+						if err := RegisterDemoUser(user, pass); err != nil {
+							c.HTML(http.StatusInternalServerError, "pages/login.html", gin.H{
+								"title": "Вход в систему",
+								"error": "Ошибка создания демо-пользователя",
+							})
+							return
+						}
+					} else {
+						logger.Log.Warn("Invalid HMAC signature for demo access")
+					}
+				}
 			}
 		}
 	}
