@@ -92,7 +92,7 @@
         <!-- Webhook URL -->
         <div class="card">
             <div class="card-header">
-                <h2 class="card-title">🌐 Работа с Webhook URL</h2>
+                <h2 class="card-title"><i data-lucide="globe"></i> Работа с Webhook URL</h2>
             </div>
             <div style="padding: 1.5rem;">
                 <div class="help-section">
@@ -144,7 +144,7 @@
         <!-- Устранение проблем -->
         <div class="card">
             <div class="card-header">
-                <h2 class="card-title">🔧 Устранение проблем</h2>
+                <h2 class="card-title"><i data-lucide="wrench"></i> Устранение проблем</h2>
             </div>
             <div style="padding: 1.5rem;">
                 <div class="help-section">
@@ -204,6 +204,18 @@
     </main>
 
     <style>
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-title i,
+        .card-title svg {
+            display: inline-flex;
+            vertical-align: middle;
+        }
+
         .help-section {
             line-height: 1.6;
         }

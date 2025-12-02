@@ -24,6 +24,9 @@
                         <tr>
                             <th>Название</th>
                             <th>Проект</th>
+                            {{ if eq .role "admin" }}
+                            <th>Автор</th>
+                            {{ end }}
                             <th>Webhook URL</th>
                             <th>Статус</th>
                             <th>Target API</th>
@@ -37,10 +40,19 @@
                             <td><strong>{{ .Name }}</strong></td>
                             <td>
                                 <a href="/projects/{{ .Project.ID }}" style="color: var(--primary); display: inline-flex; align-items: center; gap: 0.25rem;">
-                                    <i data-lucide="folder" style="width: 14px; height: 14px;"></i>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"></path>
+                                    </svg>
                                     {{ .Project.Name }}
                                 </a>
                             </td>
+                            {{ if eq $.role "admin" }}
+                            <td>
+                                <span style="color: var(--text-secondary); font-size: 0.9em;">
+                                    {{ if .Project.CreatedBy }}{{ .Project.CreatedBy.Username }}{{ else }}-{{ end }}
+                                </span>
+                            </td>
+                            {{ end }}
                             <td>
                                 <code style="font-size: 0.75rem;">/webhook/{{ .WebhookToken }}</code>
                                 <button onclick="copyToClipboard('{{ $.appURL }}{{ $.appPath }}/webhook/{{ .WebhookToken }}')" 
@@ -123,8 +135,13 @@
                         {{ end }}
                         {{ else }}
                         <tr>
-                            <td colspan="6" style="text-align: center; padding: 3rem; color: var(--muted-foreground);">
-                                <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
+                            <td colspan="{{ if eq .role "admin" }}7{{ else }}6{{ end }}" style="text-align: center; padding: 3rem; color: var(--muted-foreground);">
+                                <div style="margin-bottom: 1rem;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>
+                                        <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path>
+                                    </svg>
+                                </div>
                                 <h3 style="margin-bottom: 0.5rem;">Интеграций пока нет</h3>
                                 <p style="margin-top: 0.5rem; margin-bottom: 1rem;">Создайте первую интеграцию для начала работы</p>
                                 <a href="/integrations/create" class="btn">

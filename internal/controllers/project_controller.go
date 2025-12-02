@@ -155,12 +155,26 @@ func ProjectCreateIntegration(c *gin.Context) {
 		return
 	}
 
+	// Получаем информацию о пользователе для проверки демо-режима
+	isDemo := false
+	if userID != nil {
+		if uid, ok := userID.(uint); ok {
+			var user models.User
+			if err := database.DB.First(&user, uid).Error; err == nil {
+				isDemo = user.IsDemo
+			}
+		}
+	}
+
 	c.HTML(http.StatusOK, "pages/project_integration_create.html", gin.H{
 		"title":       "Создание интеграции",
 		"CurrentPage": "projects",
 		"project":     project,
 		"username":    session.Get("username"),
 		"role":        role,
+		"isDemo":      isDemo,
+		"appURL":      getAppURL(c),
+		"appPath":     getAppPath(),
 	})
 }
 

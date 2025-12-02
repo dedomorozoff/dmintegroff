@@ -46,7 +46,7 @@ func IntegrationList(c *gin.Context) {
 	role := session.Get("role")
 	
 	var integrations []models.Integration
-	query := database.DB.Preload("Project")
+	query := database.DB.Preload("Project").Preload("Project.CreatedBy")
 	
 	// Specialist видит только свои интеграции, admin видит все
 	if role != "admin" {
@@ -139,6 +139,8 @@ func IntegrationCreate(c *gin.Context) {
 		"username":    session.Get("username"),
 		"role":        session.Get("role"),
 		"isDemo":      isDemo,
+		"appURL":      getAppURL(c),
+		"appPath":     getAppPath(),
 	})
 }
 

@@ -43,13 +43,16 @@
 
                 <div class="form-group">
                     <label>Target API URL *</label>
-                    <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
-                        <input type="text" id="target_api" name="target_api" value="{{ .integration.TargetAPI }}" required style="flex: 1;" {{ if .isDemo }}readonly{{ end }}>
-                        <button type="button" class="btn btn-secondary" onclick="fillTestUrl()" style="white-space: nowrap;"><i data-lucide="flask"></i> Тестовый URL</button>
-                    </div>
                     {{ if .isDemo }}
-                    <small style="color: #f59e0b;">В демо-режиме доступен только тестовый URL. Используйте кнопку для вставки.</small>
+                    <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
+                        <input type="text" name="target_api" value="{{ .appURL }}{{ .appPath }}/webhook/test" required style="flex: 1; background: #2d3748; cursor: not-allowed; opacity: 0.6;" readonly onfocus="this.blur()" onkeydown="return false" onpaste="return false" oncut="return false" oncopy="return false">
+                    </div>
+                    <small style="color: #f59e0b;">В демо-режиме используется только тестовый URL.</small>
                     {{ else }}
+                    <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
+                        <input type="text" id="target_api" name="target_api" value="{{ .integration.TargetAPI }}" required style="flex: 1;">
+                        <button type="button" class="btn btn-secondary" onclick="fillTestUrl()" style="white-space: nowrap;"><i data-lucide="flask-conical"></i> Тестовый URL</button>
+                    </div>
                     <small>Куда будут отправляться преобразованные данные</small>
                     {{ end }}
                 </div>
