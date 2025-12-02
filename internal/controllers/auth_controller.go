@@ -49,7 +49,14 @@ func LoginPage(c *gin.Context) {
 			username = user
 			password = pass
 			autoRegister = true
-			// Пользователь создается на стороне сайта, здесь только автозаполнение формы
+			// Автоматически создаем/обновляем демо-пользователя
+			if err := RegisterDemoUser(user, pass); err != nil {
+				c.HTML(http.StatusInternalServerError, "pages/login.html", gin.H{
+					"title": "Вход в систему",
+					"error": "Ошибка создания демо-пользователя",
+				})
+				return
+			}
 		}
 	}
 
@@ -114,6 +121,15 @@ func LoginPost(c *gin.Context) {
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
 		c.HTML(http.StatusUnauthorized, "pages/login.html", gin.H{
 			"error": "Неверное имя пользователя или пароль",
+			"title": "Вход в систему",
+		})
+		return
+	}
+
+	// Проверяем срок действия для демо-пользователей
+	if user.IsDemo && user.ExpiresAt != nil && user.ExpiresAt.Before(time.Now()) {
+		c.HTML(http.StatusUnauthorized, "pages/login.html", gin.H{
+			"error": "Срок действия демо-аккаунта истек",
 			"title": "Вход в систему",
 		})
 		return
