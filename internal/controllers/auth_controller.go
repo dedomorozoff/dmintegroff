@@ -39,16 +39,13 @@ func LoginPage(c *gin.Context) {
 
 	// Проверяем демо-режим
 	demoMode := os.Getenv("DEMO_MODE") == "true"
-	demoSecret := os.Getenv("DEMO_SECRET")
 	
 	username := ""
 	password := ""
 	autoRegister := false
 
 	// Если демо-режим включен, проверяем заголовки с HMAC-проверкой
-	if demoMode && demoSecret != "" {
-		debugMode := os.Getenv("DEBUG") == "true"
-		
+	if demoMode {
 		// Получаем общий секретный ключ для HMAC
 		sharedSecret := os.Getenv("DEMO_SHARED_SECRET")
 		
@@ -63,26 +60,7 @@ func LoginPage(c *gin.Context) {
 		pass := headerPassword
 		timestampStr := headerTimestamp
 
-		// В DEBUG режиме также проверяем GET-параметры (старый метод, менее безопасный)
-		if debugMode && secret == "" {
-			secret = c.Query("demo_key")
-			user = c.Query("username")
-			pass = c.Query("password")
-			// Для GET-параметров используем простую проверку по старому ключу
-			if secret == demoSecret && user != "" && pass != "" {
-				logger.Log.Warn("Demo access via GET parameters (insecure, deprecated)")
-				username = user
-				password = pass
-				autoRegister = true
-				if err := RegisterDemoUser(user, pass); err != nil {
-					c.HTML(http.StatusInternalServerError, "pages/login.html", gin.H{
-						"title": "Вход в систему",
-						"error": "Ошибка создания демо-пользователя",
-					})
-					return
-				}
-			}
-		} else if secret != "" && user != "" && pass != "" && timestampStr != "" && sharedSecret != "" {
+		if secret != "" && user != "" && pass != "" && timestampStr != "" && sharedSecret != "" {
 			// HMAC-проверка для заголовков
 			
 			// Парсим timestamp
@@ -119,6 +97,8 @@ func LoginPage(c *gin.Context) {
 					}
 				}
 			}
+		} else if demoMode && sharedSecret == "" {
+			logger.Log.Error("DEMO_MODE is enabled but DEMO_SHARED_SECRET is not set!")
 		}
 	}
 
