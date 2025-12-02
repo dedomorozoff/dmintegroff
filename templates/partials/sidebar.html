@@ -7,17 +7,24 @@
 
     <nav class="sidebar-nav">
         <ul>
-            <li><a href="/" {{ if eq .CurrentPage "dashboard" }}class="active"{{ end }}><i data-lucide="layout-dashboard"></i> Панель управления</a></li>
-            <li><a href="/projects" {{ if eq .CurrentPage "projects" }}class="active"{{ end }}><i data-lucide="folder-kanban"></i> Проекты</a></li>
-            <li><a href="/integrations" {{ if eq .CurrentPage "integrations" }}class="active"{{ end }}><i data-lucide="webhook"></i> Интеграции</a></li>
-            <li><a href="/integrations/create" {{ if eq .CurrentPage "integration_create" }}class="active"{{ end }}><i data-lucide="plus"></i> Создать</a></li>
-            <li><a href="/logs" {{ if eq .CurrentPage "logs" }}class="active"{{ end }}><i data-lucide="flask-conical"></i> Тесты интеграций</a></li>
+            <li><a href="/dashboard" {{ if eq .CurrentPage "dashboard" }}class="active" {{ end }}><i
+                        data-lucide="layout-dashboard"></i> Панель управления</a></li>
+            <li><a href="/projects" {{ if eq .CurrentPage "projects" }}class="active" {{ end }}><i
+                        data-lucide="folder-kanban"></i> Проекты</a></li>
+            <li><a href="/integrations" {{ if eq .CurrentPage "integrations" }}class="active" {{ end }}><i
+                        data-lucide="webhook"></i> Интеграции</a></li>
+            <li><a href="/integrations/create" {{ if eq .CurrentPage "integration_create" }}class="active" {{ end }}><i
+                        data-lucide="plus"></i> Создать</a></li>
+            <li><a href="/logs" {{ if eq .CurrentPage "logs" }}class="active" {{ end }}><i
+                        data-lucide="flask-conical"></i> Тесты интеграций</a></li>
         </ul>
     </nav>
 
     <div class="sidebar-settings">
-        <a href="/settings" {{ if eq .CurrentPage "settings" }}class="active"{{ end }}><i data-lucide="settings"></i> Настройки</a>
-        <a href="/help" {{ if eq .CurrentPage "help" }}class="active"{{ end }}><i data-lucide="help-circle"></i> Помощь</a>
+        <a href="/settings" {{ if eq .CurrentPage "settings" }}class="active" {{ end }}><i data-lucide="settings"></i>
+            Настройки</a>
+        <a href="/help" {{ if eq .CurrentPage "help" }}class="active" {{ end }}><i data-lucide="help-circle"></i>
+            Помощь</a>
     </div>
 
     <div class="sidebar-user">

@@ -49,7 +49,12 @@ func SetupRouter() *gin.Engine {
 	authorized.Use(AuthRequired())
 	authorized.Use(InjectUserData())
 	{
-		authorized.GET("/", controllers.DashboardPage)
+		// Редирект с корня на dashboard
+		authorized.GET("/", func(c *gin.Context) {
+			c.Redirect(http.StatusFound, "/dashboard")
+		})
+		
+		authorized.GET("/dashboard", controllers.DashboardPage)
 		authorized.GET("/api/activity", controllers.GetRecentActivity)
 		authorized.GET("/api/stats", controllers.GetRequestStats)
 

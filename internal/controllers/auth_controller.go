@@ -183,7 +183,7 @@ func LoginPost(c *gin.Context) {
 	session.Set("role", user.Role)
 	session.Save()
 
-	c.Redirect(http.StatusFound, "/")
+	c.Redirect(http.StatusFound, "/dashboard")
 }
 
 func Logout(c *gin.Context) {
