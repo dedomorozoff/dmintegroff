@@ -54,11 +54,20 @@ func IntegrationList(c *gin.Context) {
 	}
 	
 	query.Find(&integrations)
+	
+	// Get all projects for import modal
+	var projects []models.Project
+	projectQuery := database.DB.Order("name ASC")
+	if role != "admin" {
+		projectQuery = projectQuery.Where("created_by_id = ?", userID)
+	}
+	projectQuery.Find(&projects)
 
 	c.HTML(http.StatusOK, "pages/integrations.html", gin.H{
 		"title":        "Интеграции",
 		"CurrentPage":  "integrations",
 		"integrations": integrations,
+		"projects":     projects,
 		"username":     session.Get("username"),
 		"role":         role,
 		"appURL":       getAppURL(c),

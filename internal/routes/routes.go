@@ -87,6 +87,16 @@ func SetupRouter() *gin.Engine {
 		authorized.GET("/projects/:id/integrations/create", controllers.ProjectCreateIntegration)
 		authorized.POST("/projects/:id/integrations", controllers.ProjectStoreIntegration)
 		authorized.POST("/projects/:id/integrations/:integration_id/delete", controllers.ProjectDeleteIntegration)
+		
+		// Export/Import
+		authorized.GET("/export/integrations", controllers.ExportIntegrationsHandler)
+		authorized.GET("/export/projects/:id", controllers.ExportProjectIntegrationsHandler)
+		authorized.POST("/import/integrations", controllers.ImportIntegrationsHandler)
+		authorized.POST("/import/validate", controllers.ValidateImportHandler)
+		
+		// Git Export
+		authorized.POST("/export/git/integrations", controllers.ExportToGitHandler)
+		authorized.POST("/export/git/projects/:id", controllers.ExportProjectToGitHandler)
 
 		// Logs
 		authorized.GET("/logs", controllers.LogsPage)

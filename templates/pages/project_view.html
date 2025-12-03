@@ -14,6 +14,9 @@
                     <p>{{ if .project.Description }}{{ .project.Description }}{{ else }}Без описания{{ end }}</p>
                 </div>
                 <div style="display: flex; gap: 0.5rem;">
+                    <a href="/export/projects/{{ .project.ID }}" class="btn btn-secondary">
+                        <i data-lucide="download"></i> Экспорт
+                    </a>
                     <a href="/projects/{{ .project.ID }}/edit" class="btn btn-secondary">
                         <i data-lucide="pencil"></i> Редактировать
                     </a>
