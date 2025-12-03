@@ -202,11 +202,17 @@ func IntegrationStore(c *gin.Context) {
 		}
 	}
 
+	httpMethod := c.PostForm("http_method")
+	if httpMethod == "" {
+		httpMethod = "POST" // Default to POST
+	}
+
 	integration := models.Integration{
 		Name:         c.PostForm("name"),
 		WebhookToken: token,
 		SourceAPI:    c.PostForm("source_api"), // Optional
 		TargetAPI:    targetAPI,
+		HTTPMethod:   httpMethod,
 		Mode:         "listening", // Start in listening mode
 		CreatedByID:  userID,
 		ProjectID:    uint(projectID),
@@ -529,9 +535,15 @@ func IntegrationUpdate(c *gin.Context) {
 		}
 	}
 
+	httpMethod := c.PostForm("http_method")
+	if httpMethod == "" {
+		httpMethod = "POST" // Default to POST
+	}
+
 	integration.Name = c.PostForm("name")
 	integration.SourceAPI = c.PostForm("source_api")
 	integration.TargetAPI = targetAPI
+	integration.HTTPMethod = httpMethod
 
 	database.DB.Save(&integration)
 

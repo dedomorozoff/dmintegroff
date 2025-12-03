@@ -133,7 +133,39 @@ func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 
 	// Send to target
 	jsonData, _ := json.Marshal(transformed)
-	resp, err := http.Post(integration.TargetAPI, "application/json", bytes.NewBuffer(jsonData))
+	
+	// Используем HTTP метод из настроек интеграции
+	httpMethod := integration.HTTPMethod
+	if httpMethod == "" {
+		httpMethod = "POST" // Default to POST
+	}
+	
+	req, err := http.NewRequest(httpMethod, integration.TargetAPI, bytes.NewBuffer(jsonData))
+	if err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"integration_id": integrationID,
+			"target_api":     integration.TargetAPI,
+			"error":          err.Error(),
+		}).Error("Failed to create request to target API")
+		
+		log := models.RequestLog{
+			IntegrationID: integrationID,
+			Method:        httpMethod,
+			URL:           integration.TargetAPI,
+			RequestBody:   string(jsonData),
+			StatusCode:    500,
+			LogType:       "webhook",
+			ErrorMessage:  err.Error(),
+		}
+		CreateLogWithLimit(&log)
+		
+		return err
+	}
+	
+	req.Header.Set("Content-Type", "application/json")
+	
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		logger.Log.WithFields(map[string]interface{}{
 			"integration_id": integrationID,
@@ -144,7 +176,7 @@ func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 		// Логируем ошибку отправки
 		log := models.RequestLog{
 			IntegrationID: integrationID,
-			Method:        "POST",
+			Method:        httpMethod,
 			URL:           integration.TargetAPI,
 			RequestBody:   string(jsonData),
 			StatusCode:    500,
@@ -168,7 +200,7 @@ func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 	// Логируем успешную отправку к target API
 	log := models.RequestLog{
 		IntegrationID: integrationID,
-		Method:        "POST",
+		Method:        httpMethod,
 		URL:           integration.TargetAPI,
 		RequestBody:   string(jsonData),
 		ResponseBody:  string(responseBody),

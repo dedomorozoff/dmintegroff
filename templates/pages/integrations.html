@@ -71,64 +71,66 @@
                             </td>
                             <td>{{ if .TargetAPI }}{{ .TargetAPI }}{{ else }}<span style="color: var(--muted-foreground);">-</span>{{ end }}</td>
                             <td style="text-align: right;">
-                                <div style="display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap;" data-actions-cell>
-                                    {{ if eq .Mode "listening" }}
-                                        <a href="/integrations/{{ .ID }}/configure" class="btn btn-success btn-sm" data-configure-btn>
-                                            <i data-lucide="settings"></i> Настроить
-                                        </a>
-                                        {{ if and .SamplePayload .MappingConfig }}
-                                        <form method="POST" action="/integrations/{{ .ID }}/toggle" style="display: inline;">
-                                            <button type="submit" class="btn btn-success btn-sm" title="Активировать интеграцию">
-                                                <i data-lucide="play"></i> Активировать
-                                            </button>
-                                        </form>
-                                        {{ end }}
-                                        {{ if not .SamplePayload }}
-                                        <span style="color: var(--muted-foreground); font-size: 0.8125rem;" data-waiting-text>Ожидание данных...</span>
-                                        {{ end }}
-                                        <form method="POST" action="/integrations/{{ .ID }}/cancel-listening" style="display: inline;"
-                                            onsubmit="return confirm('Отменить прослушивание? Интеграция будет деактивирована.');">
-                                            <button type="submit" class="btn btn-secondary btn-sm" title="Отменить прослушивание">
-                                                <i data-lucide="x"></i>
-                                            </button>
-                                        </form>
-                                    {{ else if eq .Mode "active" }}
-                                        <a href="/integrations/{{ .ID }}/configure" class="btn btn-success btn-sm" title="Редактировать маппинг">
-                                            <i data-lucide="settings"></i>
-                                        </a>
-                                        <form method="POST" action="/integrations/{{ .ID }}/toggle" style="display: inline;">
-                                            <button type="submit" class="btn btn-secondary btn-sm" title="Деактивировать">
-                                                <i data-lucide="pause"></i>
-                                            </button>
-                                        </form>
-                                        <form method="POST" action="/integrations/{{ .ID }}/reconfigure" style="display: inline;"
-                                            onsubmit="return confirm('Переопределить маппинг с новыми данными? Интеграция будет переведена в режим прослушивания.');">
-                                            <button type="submit" class="btn btn-sm" title="Переопределить маппинг с новыми данными">
-                                                <i data-lucide="refresh-cw"></i>
-                                            </button>
-                                        </form>
-                                    {{ else }}
-                                        <form method="POST" action="/integrations/{{ .ID }}/toggle" style="display: inline;">
-                                            <button type="submit" class="btn btn-success btn-sm" title="Активировать">
-                                                <i data-lucide="play"></i>
-                                            </button>
-                                        </form>
-                                        <form method="POST" action="/integrations/{{ .ID }}/reconfigure" style="display: inline;"
-                                            onsubmit="return confirm('Переопределить маппинг?');">
-                                            <button type="submit" class="btn btn-sm" title="Переопределить маппинг">
-                                                <i data-lucide="refresh-cw"></i>
-                                            </button>
-                                        </form>
+                                <div class="dropdown" style="position: relative; display: inline-flex; align-items: center; gap: 0.5rem;" data-actions-cell>
+                                    {{ if not .SamplePayload }}
+                                    <span style="color: var(--muted-foreground); font-size: 0.8125rem; white-space: nowrap;" data-waiting-text>Ожидание данных...</span>
                                     {{ end }}
-                                    <a href="/integrations/{{ .ID }}/edit" class="btn btn-secondary btn-sm" title="Редактировать">
-                                        <i data-lucide="pencil"></i>
-                                    </a>
-                                    <form method="POST" action="/integrations/{{ .ID }}/delete" style="display: inline;"
-                                        onsubmit="return confirm('Удалить интеграцию {{ .Name }}?');">
-                                        <button type="submit" class="btn btn-danger btn-sm" title="Удалить">
-                                            <i data-lucide="trash-2"></i>
-                                        </button>
-                                    </form>
+                                    <button class="btn btn-secondary btn-sm dropdown-toggle" onclick="toggleDropdown(event, {{ .ID }}, this)" style="padding: 0.5rem 0.75rem;">
+                                        <i data-lucide="more-vertical" style="width: 16px; height: 16px;"></i>
+                                    </button>
+                                    <div class="dropdown-menu" id="dropdown-{{ .ID }}" style="display: none; position: fixed; background: var(--card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); min-width: 200px; z-index: 9999;">
+                                        {{ if eq .Mode "listening" }}
+                                            <a href="/integrations/{{ .ID }}/configure" class="dropdown-item" data-configure-btn>
+                                                <i data-lucide="settings"></i> Настроить маппинг
+                                            </a>
+                                            {{ if and .SamplePayload .MappingConfig }}
+                                            <form method="POST" action="/integrations/{{ .ID }}/toggle" class="dropdown-form">
+                                                <button type="submit" class="dropdown-item">
+                                                    <i data-lucide="play"></i> Активировать
+                                                </button>
+                                            </form>
+                                            {{ end }}
+                                            <form method="POST" action="/integrations/{{ .ID }}/cancel-listening" class="dropdown-form" onsubmit="return confirm('Отменить прослушивание? Интеграция будет деактивирована.');">
+                                                <button type="submit" class="dropdown-item">
+                                                    <i data-lucide="x"></i> Отменить прослушивание
+                                                </button>
+                                            </form>
+                                        {{ else if eq .Mode "active" }}
+                                            <a href="/integrations/{{ .ID }}/configure" class="dropdown-item">
+                                                <i data-lucide="settings"></i> Редактировать маппинг
+                                            </a>
+                                            <form method="POST" action="/integrations/{{ .ID }}/toggle" class="dropdown-form">
+                                                <button type="submit" class="dropdown-item">
+                                                    <i data-lucide="pause"></i> Деактивировать
+                                                </button>
+                                            </form>
+                                            <form method="POST" action="/integrations/{{ .ID }}/reconfigure" class="dropdown-form" onsubmit="return confirm('Переопределить маппинг с новыми данными? Интеграция будет переведена в режим прослушивания.');">
+                                                <button type="submit" class="dropdown-item">
+                                                    <i data-lucide="refresh-cw"></i> Переопределить маппинг
+                                                </button>
+                                            </form>
+                                        {{ else }}
+                                            <form method="POST" action="/integrations/{{ .ID }}/toggle" class="dropdown-form">
+                                                <button type="submit" class="dropdown-item">
+                                                    <i data-lucide="play"></i> Активировать
+                                                </button>
+                                            </form>
+                                            <form method="POST" action="/integrations/{{ .ID }}/reconfigure" class="dropdown-form" onsubmit="return confirm('Переопределить маппинг?');">
+                                                <button type="submit" class="dropdown-item">
+                                                    <i data-lucide="refresh-cw"></i> Переопределить маппинг
+                                                </button>
+                                            </form>
+                                        {{ end }}
+                                        <div class="dropdown-divider"></div>
+                                        <a href="/integrations/{{ .ID }}/edit" class="dropdown-item">
+                                            <i data-lucide="pencil"></i> Редактировать
+                                        </a>
+                                        <form method="POST" action="/integrations/{{ .ID }}/delete" class="dropdown-form" onsubmit="return confirm('Удалить интеграцию {{ .Name }}?');">
+                                            <button type="submit" class="dropdown-item" style="color: var(--destructive);">
+                                                <i data-lucide="trash-2"></i> Удалить
+                                            </button>
+                                        </form>
+                                    </div>
                                 </div>
                             </td>
                         </tr>
@@ -158,6 +160,49 @@
     </main>
 
     <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1rem;
+            color: var(--foreground);
+            text-decoration: none;
+            transition: background 0.2s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        .dropdown-item:hover {
+            background: var(--secondary);
+        }
+
+        .dropdown-item i {
+            width: 16px;
+            height: 16px;
+        }
+
+        .dropdown-form {
+            margin: 0;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 0.25rem 0;
+        }
+
+        .dropdown-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+
     <script>
         lucide.createIcons();
         
@@ -166,6 +211,40 @@
                 alert('Скопировано: ' + text);
             });
         }
+
+        function toggleDropdown(event, id, button) {
+            event.stopPropagation();
+            const dropdown = document.getElementById('dropdown-' + id);
+            const allDropdowns = document.querySelectorAll('.dropdown-menu');
+            
+            // Закрываем все другие выпадающие меню
+            allDropdowns.forEach(d => {
+                if (d !== dropdown) {
+                    d.style.display = 'none';
+                }
+            });
+            
+            // Переключаем текущее меню
+            if (dropdown.style.display === 'none') {
+                // Получаем позицию кнопки
+                const rect = button.getBoundingClientRect();
+                
+                // Позиционируем меню под кнопкой справа
+                dropdown.style.top = (rect.bottom + 4) + 'px';
+                dropdown.style.left = (rect.right - 200) + 'px'; // 200px - ширина меню
+                
+                dropdown.style.display = 'block';
+                lucide.createIcons();
+            } else {
+                dropdown.style.display = 'none';
+            }
+        }
+
+        // Закрываем выпадающие меню при клике вне их
+        document.addEventListener('click', function() {
+            const allDropdowns = document.querySelectorAll('.dropdown-menu');
+            allDropdowns.forEach(d => d.style.display = 'none');
+        });
 
         function updateIntegrationStatuses() {
             fetch('/api/integrations')

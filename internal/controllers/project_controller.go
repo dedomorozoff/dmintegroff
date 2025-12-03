@@ -227,11 +227,17 @@ func ProjectStoreIntegration(c *gin.Context) {
 		}
 	}
 
+	httpMethod := c.PostForm("http_method")
+	if httpMethod == "" {
+		httpMethod = "POST" // Default to POST
+	}
+
 	integration := models.Integration{
 		Name:         c.PostForm("name"),
 		WebhookToken: token,
 		SourceAPI:    c.PostForm("source_api"),
 		TargetAPI:    targetAPI,
+		HTTPMethod:   httpMethod,
 		Mode:         "listening",
 		CreatedByID:  userID,
 		ProjectID:    uint(projectID),

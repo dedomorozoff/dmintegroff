@@ -101,9 +101,9 @@ func SetupRouter() *gin.Engine {
 		authorized.POST("/settings/change-password", controllers.ChangePassword)
 	}
 
-	// Public endpoints
-	r.POST("/webhook/:token", controllers.WebhookHandler)
-	r.POST("/webhook/test", controllers.TestEndpoint) // Test webhook endpoint
+	// Public endpoints - принимаем все HTTP методы для webhook
+	r.Any("/webhook/:token", controllers.WebhookHandler)
+	r.Any("/webhook/test", controllers.TestEndpoint) // Test webhook endpoint
 
 	// Error pages - должны быть в конце
 	r.NoRoute(controllers.NotFoundPage)
