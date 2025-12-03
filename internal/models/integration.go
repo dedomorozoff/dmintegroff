@@ -51,4 +51,11 @@ type Integration struct {
 	GraphQLOperationName  string `json:"graphql_operation_name"`                            // Optional operation name
 	GraphQLSchema         string `gorm:"type:text" json:"graphql_schema"`                   // Cached schema
 	GraphQLSchemaUpdatedAt *int64 `json:"graphql_schema_updated_at"`                        // Schema update timestamp
+	
+	// GraphQL Enrichment (for REST integrations)
+	EnrichmentEnabled    bool   `gorm:"default:false" json:"enrichment_enabled"`            // Enable GraphQL enrichment
+	EnrichmentEndpoint   string `json:"enrichment_endpoint"`                                // GraphQL endpoint for enrichment
+	EnrichmentQuery      string `gorm:"type:text" json:"enrichment_query"`                  // GraphQL query for enrichment
+	EnrichmentVariables  string `gorm:"type:text" json:"enrichment_variables"`              // Variable mapping for enrichment
+	EnrichmentMergeMode  string `gorm:"default:'merge'" json:"enrichment_merge_mode"`       // merge, replace, append
 }

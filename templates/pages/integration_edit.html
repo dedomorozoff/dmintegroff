@@ -235,6 +235,10 @@
                     <a href="/integrations/{{ .integration.ID }}/graphql-configure" class="btn btn-primary">
                         <i data-lucide="code"></i> Настроить GraphQL
                     </a>
+                    {{ else if .enrichmentEnabled }}
+                    <a href="/integrations/{{ .integration.ID }}/enrichment-configure" class="btn btn-primary">
+                        <i data-lucide="sparkles"></i> Обогащение данных
+                    </a>
                     {{ end }}
                     <a href="/integrations" class="btn btn-secondary">Отмена</a>
                 </div>

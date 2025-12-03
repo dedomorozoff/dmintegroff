@@ -83,6 +83,20 @@ func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 		return ProcessGraphQLWebhook(integrationID, &integration, payload)
 	}
 
+	// Check if enrichment is enabled for REST integration
+	if integration.EnrichmentEnabled && integration.EnrichmentEndpoint != "" {
+		enrichedPayload, err := EnrichPayloadWithGraphQL(&integration, payload)
+		if err != nil {
+			logger.Log.WithFields(map[string]interface{}{
+				"integration_id": integrationID,
+				"error":          err.Error(),
+			}).Error("Failed to enrich payload with GraphQL")
+			// Continue with original payload if enrichment fails
+		} else {
+			payload = enrichedPayload
+		}
+	}
+
 	var transformed map[string]interface{}
 
 	// Приоритет 1: Используем OutputTemplate, если он задан
@@ -313,4 +327,59 @@ func ProcessGraphQLWebhook(integrationID uint, integration *models.Integration, 
 	}).Info("GraphQL query executed successfully")
 	
 	return nil
+}
+
+// EnrichPayloadWithGraphQL enriches payload with data from GraphQL query
+func EnrichPayloadWithGraphQL(integration *models.Integration, payload map[string]interface{}) (map[string]interface{}, error) {
+	graphqlService := NewGraphQLService()
+	
+	// Create temporary integration for GraphQL query
+	enrichmentIntegration := &models.Integration{
+		GraphQLEndpoint:      integration.EnrichmentEndpoint,
+		GraphQLQuery:         integration.EnrichmentQuery,
+		GraphQLVariables:     integration.EnrichmentVariables,
+		AuthType:             integration.AuthType,
+		BearerToken:          integration.BearerToken,
+		BasicAuthUser:        integration.BasicAuthUser,
+		BasicAuthPass:        integration.BasicAuthPass,
+		OAuth2AccessToken:    integration.OAuth2AccessToken,
+		OAuth2ExpiresAt:      integration.OAuth2ExpiresAt,
+	}
+	
+	// Execute GraphQL query
+	result, err := graphqlService.ExecuteQuery(enrichmentIntegration, payload)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Merge results based on merge mode
+	switch integration.EnrichmentMergeMode {
+	case "replace":
+		// Replace entire payload with GraphQL result
+		return result, nil
+		
+	case "append":
+		// Add GraphQL result as a new field
+		enriched := make(map[string]interface{})
+		for k, v := range payload {
+			enriched[k] = v
+		}
+		enriched["enrichment"] = result
+		return enriched, nil
+		
+	case "merge":
+		fallthrough
+	default:
+		// Merge GraphQL result into payload (default)
+		enriched := make(map[string]interface{})
+		// First copy original payload
+		for k, v := range payload {
+			enriched[k] = v
+		}
+		// Then merge GraphQL result (overwrites existing keys)
+		for k, v := range result {
+			enriched[k] = v
+		}
+		return enriched, nil
+	}
 }

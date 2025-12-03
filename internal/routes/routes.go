@@ -75,6 +75,8 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 		authorized.POST("/integrations/:id/configure", controllers.IntegrationSaveMapping)
 		authorized.GET("/integrations/:id/graphql-configure", controllers.IntegrationGraphQLConfigure)
 		authorized.POST("/integrations/:id/graphql-configure", controllers.IntegrationGraphQLConfigureSave)
+		authorized.GET("/integrations/:id/enrichment-configure", controllers.IntegrationEnrichmentConfigure)
+		authorized.POST("/integrations/:id/enrichment-configure", controllers.IntegrationEnrichmentConfigureSave)
 		authorized.GET("/api/integrations/:id/check", controllers.IntegrationCheckUpdate)
 		authorized.POST("/api/integrations/:id/test-oauth", controllers.IntegrationTestOAuth)
 		

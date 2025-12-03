@@ -543,15 +543,19 @@ func IntegrationEdit(c *gin.Context) {
 		}
 	}
 
+	// Check if enrichment feature is enabled
+	enrichmentEnabled := os.Getenv("ENABLE_GRAPHQL_ENRICHMENT") == "true"
+
 	c.HTML(http.StatusOK, "pages/integration_edit.html", gin.H{
-		"title":       "Редактирование интеграции",
-		"CurrentPage": "integrations",
-		"integration": integration,
-		"username":    session.Get("username"),
-		"role":        session.Get("role"),
-		"isDemo":      isDemo,
-		"appURL":      getAppURL(c),
-		"appPath":     getAppPath(),
+		"title":             "Редактирование интеграции",
+		"CurrentPage":       "integrations",
+		"integration":       integration,
+		"username":          session.Get("username"),
+		"role":              session.Get("role"),
+		"isDemo":            isDemo,
+		"appURL":            getAppURL(c),
+		"appPath":           getAppPath(),
+		"enrichmentEnabled": enrichmentEnabled,
 	})
 }
 
@@ -938,6 +942,129 @@ func IntegrationGraphQLConfigureSave(c *gin.Context) {
 	integration.GraphQLQuery = req.GraphQLQuery
 	integration.GraphQLVariables = req.GraphQLVariables
 	integration.GraphQLOperationName = req.GraphQLOperationName
+
+	if err := database.DB.Save(&integration).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка сохранения"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true})
+}
+
+// IntegrationEnrichmentConfigure shows enrichment configuration page
+func IntegrationEnrichmentConfigure(c *gin.Context) {
+	// Check if enrichment feature is enabled
+	if os.Getenv("ENABLE_GRAPHQL_ENRICHMENT") != "true" {
+		c.HTML(http.StatusForbidden, "pages/error.html", gin.H{
+			"title":   "Функция недоступна",
+			"message": "Функция обогащения данных отключена. Включите ENABLE_GRAPHQL_ENRICHMENT в .env",
+		})
+		return
+	}
+
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
+
+	integrationID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.HTML(http.StatusBadRequest, "pages/error.html", gin.H{
+			"title":   "Ошибка",
+			"message": "Неверный ID интеграции",
+		})
+		return
+	}
+
+	var integration models.Integration
+	query := database.DB.Preload("Project").Preload("CreatedBy")
+
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+
+	if err := query.First(&integration, integrationID).Error; err != nil {
+		c.HTML(http.StatusNotFound, "pages/error.html", gin.H{
+			"title":   "Не найдено",
+			"message": "Интеграция не найдена",
+		})
+		return
+	}
+
+	// Check if it's a REST integration
+	if integration.APIType != "rest" && integration.APIType != "" {
+		c.HTML(http.StatusBadRequest, "pages/error.html", gin.H{
+			"title":   "Ошибка",
+			"message": "Обогащение доступно только для REST интеграций",
+		})
+		return
+	}
+
+	c.HTML(http.StatusOK, "pages/integration_enrichment_configure.html", gin.H{
+		"title":       "Обогащение данных",
+		"integration": integration,
+		"username":    session.Get("username"),
+		"role":        role,
+	})
+}
+
+// IntegrationEnrichmentConfigureSave saves enrichment configuration
+func IntegrationEnrichmentConfigureSave(c *gin.Context) {
+	// Check if enrichment feature is enabled
+	if os.Getenv("ENABLE_GRAPHQL_ENRICHMENT") != "true" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Функция обогащения данных отключена"})
+		return
+	}
+
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
+
+	integrationID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID интеграции"})
+		return
+	}
+
+	var integration models.Integration
+	query := database.DB
+
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+
+	if err := query.First(&integration, integrationID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Интеграция не найдена"})
+		return
+	}
+
+	var req struct {
+		EnrichmentEnabled   bool   `json:"enrichment_enabled"`
+		EnrichmentEndpoint  string `json:"enrichment_endpoint"`
+		EnrichmentQuery     string `json:"enrichment_query"`
+		EnrichmentVariables string `json:"enrichment_variables"`
+		EnrichmentMergeMode string `json:"enrichment_merge_mode"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Validate JSON if provided
+	if req.EnrichmentVariables != "" {
+		var test map[string]interface{}
+		if err := json.Unmarshal([]byte(req.EnrichmentVariables), &test); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный JSON в маппинге переменных"})
+			return
+		}
+	}
+
+	// Update integration
+	integration.EnrichmentEnabled = req.EnrichmentEnabled
+	integration.EnrichmentEndpoint = req.EnrichmentEndpoint
+	integration.EnrichmentQuery = req.EnrichmentQuery
+	integration.EnrichmentVariables = req.EnrichmentVariables
+	integration.EnrichmentMergeMode = req.EnrichmentMergeMode
 
 	if err := database.DB.Save(&integration).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка сохранения"})
