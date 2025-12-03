@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"strings"
@@ -22,6 +23,118 @@ type OAuth2TokenResponse struct {
 	ExpiresIn    int    `json:"expires_in"`
 	RefreshToken string `json:"refresh_token,omitempty"`
 	Scope        string `json:"scope,omitempty"`
+}
+
+// RetryConfig defines retry behavior with exponential backoff
+type RetryConfig struct {
+	MaxAttempts     int           // Maximum number of retry attempts
+	InitialDelay    time.Duration // Initial delay before first retry
+	MaxDelay        time.Duration // Maximum delay between retries
+	Multiplier      float64       // Exponential backoff multiplier
+	RetryableStatus []int         // HTTP status codes that should trigger retry
+}
+
+// DefaultRetryConfig returns default retry configuration
+func DefaultRetryConfig() RetryConfig {
+	return RetryConfig{
+		MaxAttempts:  3,
+		InitialDelay: 1 * time.Second,
+		MaxDelay:     30 * time.Second,
+		Multiplier:   2.0,
+		RetryableStatus: []int{
+			http.StatusTooManyRequests,      // 429
+			http.StatusInternalServerError,  // 500
+			http.StatusBadGateway,           // 502
+			http.StatusServiceUnavailable,   // 503
+			http.StatusGatewayTimeout,       // 504
+		},
+	}
+}
+
+// isRetryableStatus checks if the HTTP status code should trigger a retry
+func (rc RetryConfig) isRetryableStatus(statusCode int) bool {
+	for _, code := range rc.RetryableStatus {
+		if code == statusCode {
+			return true
+		}
+	}
+	return false
+}
+
+// calculateDelay calculates the delay for the given attempt using exponential backoff
+func (rc RetryConfig) calculateDelay(attempt int) time.Duration {
+	delay := float64(rc.InitialDelay) * math.Pow(rc.Multiplier, float64(attempt))
+	if delay > float64(rc.MaxDelay) {
+		delay = float64(rc.MaxDelay)
+	}
+	return time.Duration(delay)
+}
+
+// retryWithBackoff executes an HTTP request with exponential backoff retry logic
+func retryWithBackoff(req *http.Request, client *http.Client, config RetryConfig) (*http.Response, error) {
+	var lastErr error
+	var resp *http.Response
+	
+	// Save original body for retries
+	var bodyBytes []byte
+	if req.Body != nil {
+		bodyBytes, _ = io.ReadAll(req.Body)
+		req.Body.Close()
+	}
+
+	for attempt := 0; attempt < config.MaxAttempts; attempt++ {
+		// Restore body for each attempt
+		if bodyBytes != nil {
+			req.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
+		}
+		
+		// Execute request
+		resp, lastErr = client.Do(req)
+		
+		// Success - return immediately
+		if lastErr == nil && !config.isRetryableStatus(resp.StatusCode) {
+			return resp, nil
+		}
+
+		// Log retry attempt
+		if lastErr != nil {
+			logger.Log.WithFields(map[string]interface{}{
+				"attempt": attempt + 1,
+				"max":     config.MaxAttempts,
+				"error":   lastErr.Error(),
+				"url":     req.URL.String(),
+			}).Warn("Request failed, will retry")
+		} else {
+			logger.Log.WithFields(map[string]interface{}{
+				"attempt":     attempt + 1,
+				"max":         config.MaxAttempts,
+				"status_code": resp.StatusCode,
+				"url":         req.URL.String(),
+			}).Warn("Request returned retryable status, will retry")
+			
+			// Close response body before retry
+			if resp != nil && resp.Body != nil {
+				resp.Body.Close()
+			}
+		}
+
+		// Don't sleep after last attempt
+		if attempt < config.MaxAttempts-1 {
+			delay := config.calculateDelay(attempt)
+			logger.Log.WithFields(map[string]interface{}{
+				"delay_seconds": delay.Seconds(),
+			}).Debug("Waiting before retry")
+			time.Sleep(delay)
+		}
+	}
+
+	// All retries exhausted
+	if lastErr != nil {
+		return nil, fmt.Errorf("request failed after %d attempts: %w", config.MaxAttempts, lastErr)
+	}
+	
+	// Return the last response with error
+	return nil, fmt.Errorf("request failed after %d attempts with status %d", config.MaxAttempts, resp.StatusCode)
 }
 
 // GetAccessToken retrieves a valid access token for the integration
@@ -84,16 +197,18 @@ func fetchNewAccessToken(integration *models.Integration) (string, error) {
 	))
 	req.Header.Set("Authorization", "Basic "+auth)
 
-	// Execute request
+	// Execute request with retry logic
 	client := &http.Client{
 		Timeout: 30 * time.Second,
 	}
-	resp, err := client.Do(req)
+	
+	retryConfig := DefaultRetryConfig()
+	resp, err := retryWithBackoff(req, client, retryConfig)
 	if err != nil {
 		logger.Log.WithFields(map[string]interface{}{
 			"integration_id": integration.ID,
 			"error":          err.Error(),
-		}).Error("Failed to request OAuth2 token")
+		}).Error("Failed to request OAuth2 token after retries")
 		return "", fmt.Errorf("failed to request token: %w", err)
 	}
 	defer resp.Body.Close()

@@ -185,14 +185,16 @@ func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 		return err
 	}
 	
+	// Execute request with retry logic
 	client := &http.Client{}
-	resp, err := client.Do(req)
+	retryConfig := DefaultRetryConfig()
+	resp, err := retryWithBackoff(req, client, retryConfig)
 	if err != nil {
 		logger.Log.WithFields(map[string]interface{}{
 			"integration_id": integrationID,
 			"target_api":     integration.TargetAPI,
 			"error":          err.Error(),
-		}).Error("Failed to send webhook to target API")
+		}).Error("Failed to send webhook to target API after retries")
 		
 		// Логируем ошибку отправки
 		log := models.RequestLog{
