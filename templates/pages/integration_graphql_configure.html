@@ -1,0 +1,378 @@
+{{ define "pages/integration_graphql_configure.html" }}
+{{ template "partials/head.html" . }}
+    {{ template "partials/sidebar.html" . }}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <h1>🚀 Настройка GraphQL: {{ .integration.Name }}</h1>
+            <p>Настройте GraphQL query/mutation и маппинг переменных</p>
+        </div>
+
+        <div class="info-box">
+            <i data-lucide="info"></i>
+            <div>
+                <strong>Как это работает:</strong><br>
+                1. Настройте GraphQL query или mutation<br>
+                2. Укажите маппинг переменных из webhook payload<br>
+                3. Протестируйте запрос с тестовыми данными<br>
+                4. Активируйте интеграцию
+            </div>
+        </div>
+
+        <!-- Connection Test -->
+        <div class="card">
+            <h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i data-lucide="plug"></i> Тест подключения
+            </h3>
+            
+            <div class="form-group">
+                <label>GraphQL Endpoint</label>
+                <input type="text" id="graphql_endpoint" value="{{ .integration.GraphQLEndpoint }}" readonly 
+                       style="background: #2d3748; cursor: not-allowed;">
+            </div>
+
+            <div style="display: flex; gap: 1rem;">
+                <button type="button" class="btn btn-primary" onclick="testConnection()">
+                    <i data-lucide="zap"></i> Тест подключения
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="introspectSchema()">
+                    <i data-lucide="search"></i> Introspect Schema
+                </button>
+            </div>
+
+            <div id="connection-result" style="margin-top: 1rem; display: none;"></div>
+        </div>
+
+        <!-- GraphQL Query Configuration -->
+        <div class="card">
+            <h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i data-lucide="code"></i> GraphQL Query/Mutation
+            </h3>
+
+            <div class="form-group">
+                <label>Operation Name (опционально)</label>
+                <input type="text" id="operation_name" value="{{ .integration.GraphQLOperationName }}" 
+                       placeholder="GetUser, CreateOrder, UpdateProfile">
+                <small>Имя операции для идентификации в логах</small>
+            </div>
+
+            <div class="form-group">
+                <label>GraphQL Query/Mutation *</label>
+                <textarea id="graphql_query" rows="15" style="font-family: 'Courier New', monospace; font-size: 0.9rem;">{{ .integration.GraphQLQuery }}</textarea>
+                <small>Используйте переменные ($var) или placeholders ({{`{{field.path}}`}})</small>
+            </div>
+
+            <div class="info-box">
+                <i data-lucide="lightbulb"></i>
+                <div>
+                    <strong>Примеры:</strong>
+                    <pre style="margin-top: 0.5rem; padding: 0.5rem; background: #1f2937; border-radius: 4px; overflow-x: auto;">
+<strong>Query с переменными:</strong>
+query GetUser($id: ID!) {
+  user(id: $id) {
+    id
+    name
+    email
+  }
+}
+
+<strong>Mutation с переменными:</strong>
+mutation CreateUser($name: String!, $email: String!) {
+  createUser(input: {
+    name: $name
+    email: $email
+  }) {
+    id
+  }
+}
+
+<strong>Query с placeholders:</strong>
+query {
+  user(id: {{`{{user.id}}`}}) {
+    name
+    email
+  }
+}</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Variable Mapping -->
+        <div class="card">
+            <h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i data-lucide="git-branch"></i> Маппинг переменных
+            </h3>
+
+            <div class="info-box" style="margin-bottom: 1rem;">
+                <i data-lucide="info"></i>
+                <div>
+                    <strong>Как работает маппинг:</strong><br>
+                    Укажите соответствие между GraphQL переменными и полями из webhook payload.<br>
+                    Используйте dot notation для вложенных полей: <code>user.profile.age</code>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Variable Mapping (JSON)</label>
+                <textarea id="graphql_variables" rows="10" style="font-family: 'Courier New', monospace; font-size: 0.9rem;">{{ .integration.GraphQLVariables }}</textarea>
+                <small>JSON объект: {"graphqlVar": "payload.field.path"}</small>
+            </div>
+
+            <div class="info-box">
+                <i data-lucide="lightbulb"></i>
+                <div>
+                    <strong>Пример маппинга:</strong>
+                    <pre style="margin-top: 0.5rem; padding: 0.5rem; background: #1f2937; border-radius: 4px;">
+{
+  "id": "user.id",
+  "name": "user.name",
+  "email": "user.contact.email",
+  "age": "user.profile.age"
+}</pre>
+                    <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">
+                        Для webhook payload: <code>{"user": {"id": "123", "name": "John", ...}}</code>
+                    </p>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 1rem;">
+                <button type="button" class="btn btn-secondary" onclick="validateJSON('graphql_variables')">
+                    <i data-lucide="check-circle"></i> Проверить JSON
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="formatJSON('graphql_variables')">
+                    <i data-lucide="align-left"></i> Форматировать
+                </button>
+            </div>
+        </div>
+
+        <!-- Test Query -->
+        <div class="card">
+            <h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i data-lucide="flask-conical"></i> Тестирование запроса
+            </h3>
+
+            <div class="form-group">
+                <label>Тестовый Payload (JSON)</label>
+                <textarea id="test_payload" rows="10" style="font-family: 'Courier New', monospace; font-size: 0.9rem;">{{ if .integration.SamplePayload }}{{ .integration.SamplePayload }}{{ else }}{
+  "user": {
+    "id": "123",
+    "name": "John Doe",
+    "email": "john@example.com"
+  }
+}{{ end }}</textarea>
+                <small>Пример webhook payload для тестирования</small>
+            </div>
+
+            <button type="button" class="btn btn-primary" onclick="testQuery()">
+                <i data-lucide="play"></i> Выполнить тест
+            </button>
+
+            <div id="test-result" style="margin-top: 1rem; display: none;"></div>
+        </div>
+
+        <!-- Save Configuration -->
+        <div class="card">
+            <div style="display: flex; gap: 1rem;">
+                <button type="button" class="btn btn-success" onclick="saveConfiguration()">
+                    <i data-lucide="save"></i> Сохранить настройки
+                </button>
+                <a href="/integrations/{{ .integration.ID }}/edit" class="btn btn-secondary">
+                    <i data-lucide="arrow-left"></i> Назад
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        lucide.createIcons();
+
+        const integrationId = {{ .integration.ID }};
+
+        async function testConnection() {
+            const endpoint = document.getElementById('graphql_endpoint').value;
+            const resultDiv = document.getElementById('connection-result');
+            
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="info-box"><i data-lucide="loader"></i> Тестирование подключения...</div>';
+            lucide.createIcons();
+
+            try {
+                const response = await fetch('/api/graphql/test-connection', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        endpoint: endpoint,
+                        auth_type: '{{ .integration.AuthType }}',
+                        bearer_token: '{{ .integration.BearerToken }}',
+                        basic_auth_user: '{{ .integration.BasicAuthUser }}',
+                        basic_auth_pass: '{{ .integration.BasicAuthPass }}'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.innerHTML = '<div class="info-box" style="background: #d1fae5; border-color: #10b981; color: #065f46;"><i data-lucide="check-circle"></i> ✅ Подключение успешно!</div>';
+                } else {
+                    resultDiv.innerHTML = `<div class="info-box" style="background: #fee2e2; border-color: #ef4444; color: #991b1b;"><i data-lucide="x-circle"></i> ❌ Ошибка: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="info-box" style="background: #fee2e2; border-color: #ef4444; color: #991b1b;"><i data-lucide="x-circle"></i> ❌ Ошибка: ${error.message}</div>`;
+            }
+
+            lucide.createIcons();
+        }
+
+        async function introspectSchema() {
+            const resultDiv = document.getElementById('connection-result');
+            
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="info-box"><i data-lucide="loader"></i> Получение схемы...</div>';
+            lucide.createIcons();
+
+            try {
+                const response = await fetch(`/api/graphql/introspect/${integrationId}`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (data.schema) {
+                    resultDiv.innerHTML = '<div class="info-box" style="background: #d1fae5; border-color: #10b981; color: #065f46;"><i data-lucide="check-circle"></i> ✅ Схема успешно получена и сохранена!</div>';
+                } else {
+                    resultDiv.innerHTML = `<div class="info-box" style="background: #fee2e2; border-color: #ef4444; color: #991b1b;"><i data-lucide="x-circle"></i> ❌ Ошибка: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="info-box" style="background: #fee2e2; border-color: #ef4444; color: #991b1b;"><i data-lucide="x-circle"></i> ❌ Ошибка: ${error.message}</div>`;
+            }
+
+            lucide.createIcons();
+        }
+
+        async function testQuery() {
+            const query = document.getElementById('graphql_query').value;
+            const variables = document.getElementById('graphql_variables').value;
+            const operationName = document.getElementById('operation_name').value;
+            const testPayload = document.getElementById('test_payload').value;
+            const resultDiv = document.getElementById('test-result');
+
+            // Validate JSON
+            try {
+                if (variables) JSON.parse(variables);
+                JSON.parse(testPayload);
+            } catch (e) {
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `<div class="info-box" style="background: #fee2e2; border-color: #ef4444; color: #991b1b;"><i data-lucide="x-circle"></i> ❌ Ошибка JSON: ${e.message}</div>`;
+                lucide.createIcons();
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="info-box"><i data-lucide="loader"></i> Выполнение запроса...</div>';
+            lucide.createIcons();
+
+            try {
+                const response = await fetch('/api/graphql/test-query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        integration_id: integrationId,
+                        query: query,
+                        variables: variables ? JSON.parse(variables) : {},
+                        operation_name: operationName,
+                        test_payload: JSON.parse(testPayload)
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="info-box" style="background: #d1fae5; border-color: #10b981; color: #065f46;">
+                            <i data-lucide="check-circle"></i> ✅ Запрос выполнен успешно!
+                        </div>
+                        <div style="margin-top: 1rem;">
+                            <strong>Результат:</strong>
+                            <pre style="margin-top: 0.5rem; padding: 1rem; background: #1f2937; border-radius: 4px; overflow-x: auto; color: #10b981;">${JSON.stringify(data.data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="info-box" style="background: #fee2e2; border-color: #ef4444; color: #991b1b;">
+                            <i data-lucide="x-circle"></i> ❌ Ошибка: ${data.error}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="info-box" style="background: #fee2e2; border-color: #ef4444; color: #991b1b;"><i data-lucide="x-circle"></i> ❌ Ошибка: ${error.message}</div>`;
+            }
+
+            lucide.createIcons();
+        }
+
+        async function saveConfiguration() {
+            const query = document.getElementById('graphql_query').value;
+            const variables = document.getElementById('graphql_variables').value;
+            const operationName = document.getElementById('operation_name').value;
+
+            // Validate JSON
+            try {
+                if (variables) JSON.parse(variables);
+            } catch (e) {
+                alert('Ошибка в JSON маппинга переменных: ' + e.message);
+                return;
+            }
+
+            if (!query.trim()) {
+                alert('GraphQL query не может быть пустым');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/integrations/${integrationId}/graphql-configure`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        graphql_query: query,
+                        graphql_variables: variables,
+                        graphql_operation_name: operationName
+                    })
+                });
+
+                if (response.ok) {
+                    alert('✅ Настройки сохранены!');
+                    window.location.href = `/integrations/${integrationId}/edit`;
+                } else {
+                    const data = await response.json();
+                    alert('❌ Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+                }
+            } catch (error) {
+                alert('❌ Ошибка: ' + error.message);
+            }
+        }
+
+        function validateJSON(fieldId) {
+            const field = document.getElementById(fieldId);
+            try {
+                JSON.parse(field.value);
+                alert('✅ JSON валиден!');
+            } catch (e) {
+                alert('❌ Ошибка JSON: ' + e.message);
+            }
+        }
+
+        function formatJSON(fieldId) {
+            const field = document.getElementById(fieldId);
+            try {
+                const obj = JSON.parse(field.value);
+                field.value = JSON.stringify(obj, null, 2);
+            } catch (e) {
+                alert('❌ Ошибка JSON: ' + e.message);
+            }
+        }
+    </script>
+</body>
+</html>
+{{ end }}

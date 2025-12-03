@@ -231,6 +231,11 @@
 
                 <div style="display: flex; gap: 1rem; margin-top: 2rem;">
                     <button type="submit" class="btn btn-success"><i data-lucide="save"></i> Сохранить изменения</button>
+                    {{ if eq .integration.APIType "graphql" }}
+                    <a href="/integrations/{{ .integration.ID }}/graphql-configure" class="btn btn-primary">
+                        <i data-lucide="code"></i> Настроить GraphQL
+                    </a>
+                    {{ end }}
                     <a href="/integrations" class="btn btn-secondary">Отмена</a>
                 </div>
             </form>

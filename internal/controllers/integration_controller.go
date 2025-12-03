@@ -836,3 +836,113 @@ func IntegrationTestOAuth(c *gin.Context) {
 		"message": "OAuth2 connection successful",
 	})
 }
+
+// IntegrationGraphQLConfigure shows GraphQL configuration page
+func IntegrationGraphQLConfigure(c *gin.Context) {
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
+
+	integrationID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.HTML(http.StatusBadRequest, "pages/error.html", gin.H{
+			"title":   "Ошибка",
+			"message": "Неверный ID интеграции",
+		})
+		return
+	}
+
+	var integration models.Integration
+	query := database.DB.Preload("Project").Preload("CreatedBy")
+
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+
+	if err := query.First(&integration, integrationID).Error; err != nil {
+		c.HTML(http.StatusNotFound, "pages/error.html", gin.H{
+			"title":   "Не найдено",
+			"message": "Интеграция не найдена",
+		})
+		return
+	}
+
+	// Check if it's a GraphQL integration
+	if integration.APIType != "graphql" {
+		c.HTML(http.StatusBadRequest, "pages/error.html", gin.H{
+			"title":   "Ошибка",
+			"message": "Это не GraphQL интеграция",
+		})
+		return
+	}
+
+	c.HTML(http.StatusOK, "pages/integration_graphql_configure.html", gin.H{
+		"title":       "Настройка GraphQL",
+		"integration": integration,
+		"username":    session.Get("username"),
+		"role":        role,
+	})
+}
+
+// IntegrationGraphQLConfigureSave saves GraphQL configuration
+func IntegrationGraphQLConfigureSave(c *gin.Context) {
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
+
+	integrationID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID интеграции"})
+		return
+	}
+
+	var integration models.Integration
+	query := database.DB
+
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+
+	if err := query.First(&integration, integrationID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Интеграция не найдена"})
+		return
+	}
+
+	// Check if it's a GraphQL integration
+	if integration.APIType != "graphql" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Это не GraphQL интеграция"})
+		return
+	}
+
+	var req struct {
+		GraphQLQuery         string `json:"graphql_query"`
+		GraphQLVariables     string `json:"graphql_variables"`
+		GraphQLOperationName string `json:"graphql_operation_name"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Validate JSON if provided
+	if req.GraphQLVariables != "" {
+		var test map[string]interface{}
+		if err := json.Unmarshal([]byte(req.GraphQLVariables), &test); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный JSON в маппинге переменных"})
+			return
+		}
+	}
+
+	// Update integration
+	integration.GraphQLQuery = req.GraphQLQuery
+	integration.GraphQLVariables = req.GraphQLVariables
+	integration.GraphQLOperationName = req.GraphQLOperationName
+
+	if err := database.DB.Save(&integration).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка сохранения"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true})
+}

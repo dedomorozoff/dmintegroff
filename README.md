@@ -227,6 +227,10 @@ curl -X POST http://localhost:8080/test \
 - **[🔄 Работа с массивами](docs/ARRAY_WILDCARD.md)** - Wildcard `{{array.*}}`
 - **[🎨 Подсветка синтаксиса](docs/JSON_HIGHLIGHTING.md)** - Цветной JSON
 - **[🔐 Руководство по OAuth](docs/OAUTH_GUIDE.md)** - Настройка аутентификации
+- **[🚀 Руководство по GraphQL](docs/GRAPHQL_GUIDE.md)** - Работа с GraphQL API
+- **[📚 Примеры GraphQL](docs/GRAPHQL_EXAMPLES.md)** - 10 практических примеров
+- **[🔄 REST + GraphQL](docs/GRAPHQL_REST_ENRICHMENT.md)** - Обогащение данных
+- **[💡 Пример REST + GraphQL](docs/GRAPHQL_REST_EXAMPLE.md)** - Практический пример
 
 ### Разработчикам
 - **[📘 Техническая документация](docs/TECHNICAL_DOCS.md)** - Архитектура и API
@@ -246,20 +250,25 @@ MIT License - см. файл [LICENSE](LICENSE)
 - **Basic Auth** - HTTP базовая аутентификация
 - **Тестирование OAuth** - Проверка настроек перед активацией
 
-## 🐛 Известные проблемы
-
-- Отсутствует retry механизм при ошибках отправки
-- Нет поддержки webhook подписей
+### 🚀 GraphQL Support
+- **GraphQL Client** - Отправка queries и mutations к GraphQL API
+- **Schema Introspection** - Автоматическое получение схемы API
+- **Variable Mapping** - Маппинг полей webhook → GraphQL переменные
+- **Placeholder Support** - Динамическая подстановка {{field.path}}
+- **Testing** - Тест подключения и выполнения запросов
+- **REST + GraphQL** - Обогащение REST данных через GraphQL (через оркестратор)
 
 ## 🗺 Roadmap
 
 - [x] Поддержка OAuth для Target API
-- [ ] Retry механизм с экспоненциальной задержкой
-- [ ] Webhook подписи для безопасности
-- [ ] Экспорт/импорт конфигураций
-- [ ] Метрики и мониторинг
+- [x] Retry механизм с экспоненциальной задержкой
+- [x] Webhook подписи для безопасности
+- [x] Экспорт/импорт конфигураций
+- [x] Метрики и мониторинг
+- [x] Поддержка GraphQL
 - [ ] Docker образ
-- [ ] Поддержка GraphQL
+- [ ] GraphQL Server mode
+- [ ] GraphQL Subscriptions
 
 ---
 

@@ -78,6 +78,11 @@ func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 		return err
 	}
 
+	// Check if this is a GraphQL integration
+	if integration.APIType == "graphql" {
+		return ProcessGraphQLWebhook(integrationID, &integration, payload)
+	}
+
 	var transformed map[string]interface{}
 
 	// Приоритет 1: Используем OutputTemplate, если он задан
@@ -259,5 +264,53 @@ func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 		"status_code":    resp.StatusCode,
 	}).Info("Webhook processed successfully")
 
+	return nil
+}
+
+// ProcessGraphQLWebhook processes webhook for GraphQL integrations
+func ProcessGraphQLWebhook(integrationID uint, integration *models.Integration, payload map[string]interface{}) error {
+	graphqlService := NewGraphQLService()
+	
+	// Execute GraphQL query
+	result, err := graphqlService.ExecuteQuery(integration, payload)
+	if err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"integration_id": integrationID,
+			"error":          err.Error(),
+		}).Error("Failed to execute GraphQL query")
+		
+		// Log error
+		log := models.RequestLog{
+			IntegrationID: integrationID,
+			Method:        "POST",
+			URL:           integration.GraphQLEndpoint,
+			RequestBody:   integration.GraphQLQuery,
+			StatusCode:    500,
+			LogType:       "graphql",
+			ErrorMessage:  err.Error(),
+		}
+		CreateLogWithLimit(&log)
+		
+		return err
+	}
+	
+	// Log successful GraphQL request
+	resultJSON, _ := json.Marshal(result)
+	log := models.RequestLog{
+		IntegrationID: integrationID,
+		Method:        "POST",
+		URL:           integration.GraphQLEndpoint,
+		RequestBody:   integration.GraphQLQuery,
+		ResponseBody:  string(resultJSON),
+		StatusCode:    200,
+		LogType:       "graphql",
+	}
+	CreateLogWithLimit(&log)
+	
+	logger.Log.WithFields(map[string]interface{}{
+		"integration_id": integrationID,
+		"endpoint":       integration.GraphQLEndpoint,
+	}).Info("GraphQL query executed successfully")
+	
 	return nil
 }

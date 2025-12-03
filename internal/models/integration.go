@@ -42,4 +42,13 @@ type Integration struct {
 	WebhookSignatureSecret    string `json:"webhook_signature_secret"`                                 // Secret key for HMAC signature
 	WebhookSignatureHeader    string `gorm:"default:'X-Webhook-Signature'" json:"webhook_signature_header"` // Header name for signature
 	WebhookSignatureAlgorithm string `gorm:"default:'sha256'" json:"webhook_signature_algorithm"`      // Algorithm: sha256, sha512, sha1
+	
+	// GraphQL Configuration
+	APIType               string `gorm:"default:'rest'" json:"api_type"`                    // rest, graphql, graphql_server
+	GraphQLEndpoint       string `json:"graphql_endpoint"`                                  // GraphQL endpoint URL
+	GraphQLQuery          string `gorm:"type:text" json:"graphql_query"`                    // GraphQL query template
+	GraphQLVariables      string `gorm:"type:text" json:"graphql_variables"`                // JSON mapping for variables
+	GraphQLOperationName  string `json:"graphql_operation_name"`                            // Optional operation name
+	GraphQLSchema         string `gorm:"type:text" json:"graphql_schema"`                   // Cached schema
+	GraphQLSchemaUpdatedAt *int64 `json:"graphql_schema_updated_at"`                        // Schema update timestamp
 }
