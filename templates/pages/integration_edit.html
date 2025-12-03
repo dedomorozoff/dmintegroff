@@ -75,6 +75,85 @@
                     <small>Для документации, откуда ожидаются данные</small>
                 </div>
 
+                <!-- Authentication Section -->
+                <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #374151;">
+                    <h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i data-lucide="shield-check"></i> Аутентификация Target API
+                    </h3>
+                    
+                    <div class="form-group">
+                        <label>Тип аутентификации</label>
+                        <select name="auth_type" id="auth_type" onchange="toggleAuthFields()">
+                            <option value="none" {{ if eq .integration.AuthType "none" }}selected{{ end }}>Без аутентификации</option>
+                            <option value="oauth2" {{ if eq .integration.AuthType "oauth2" }}selected{{ end }}>OAuth 2.0</option>
+                            <option value="bearer" {{ if eq .integration.AuthType "bearer" }}selected{{ end }}>Bearer Token</option>
+                            <option value="basic" {{ if eq .integration.AuthType "basic" }}selected{{ end }}>Basic Auth</option>
+                        </select>
+                    </div>
+
+                    <!-- OAuth 2.0 Fields -->
+                    <div id="oauth2-fields" style="display: none;">
+                        <div class="form-group">
+                            <label>Token URL *</label>
+                            <input type="text" name="oauth2_token_url" value="{{ .integration.OAuth2TokenURL }}" placeholder="https://api.example.com/oauth/token">
+                            <small>Endpoint для получения access token</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Client ID *</label>
+                            <input type="text" name="oauth2_client_id" value="{{ .integration.OAuth2ClientID }}">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Client Secret *</label>
+                            <input type="password" name="oauth2_client_secret" placeholder="Оставьте пустым, чтобы не менять">
+                            <small>Оставьте пустым, если не хотите менять текущий секрет</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Scope (опционально)</label>
+                            <input type="text" name="oauth2_scope" value="{{ .integration.OAuth2Scope }}" placeholder="read write">
+                            <small>Области доступа через пробел</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Grant Type</label>
+                            <select name="oauth2_grant_type">
+                                <option value="client_credentials" {{ if eq .integration.OAuth2GrantType "client_credentials" }}selected{{ end }}>client_credentials</option>
+                                <option value="password" {{ if eq .integration.OAuth2GrantType "password" }}selected{{ end }}>password</option>
+                            </select>
+                        </div>
+
+                        <button type="button" class="btn btn-secondary" onclick="testOAuth()">
+                            <i data-lucide="flask-conical"></i> Тест OAuth
+                        </button>
+                        <div id="oauth-test-result" style="margin-top: 1rem;"></div>
+                    </div>
+
+                    <!-- Bearer Token Fields -->
+                    <div id="bearer-fields" style="display: none;">
+                        <div class="form-group">
+                            <label>Bearer Token *</label>
+                            <input type="password" name="bearer_token" placeholder="Оставьте пустым, чтобы не менять">
+                            <small>Статический токен для Authorization: Bearer</small>
+                        </div>
+                    </div>
+
+                    <!-- Basic Auth Fields -->
+                    <div id="basic-fields" style="display: none;">
+                        <div class="form-group">
+                            <label>Username *</label>
+                            <input type="text" name="basic_auth_user" value="{{ .integration.BasicAuthUser }}">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Password *</label>
+                            <input type="password" name="basic_auth_pass" placeholder="Оставьте пустым, чтобы не менять">
+                            <small>Оставьте пустым, если не хотите менять текущий пароль</small>
+                        </div>
+                    </div>
+                </div>
+
                 <div style="display: flex; gap: 1rem; margin-top: 2rem;">
                     <button type="submit" class="btn btn-success"><i data-lucide="save"></i> Сохранить изменения</button>
                     <a href="/integrations" class="btn btn-secondary">Отмена</a>
@@ -105,6 +184,40 @@
                 console.error('Failed to copy:', err);
             });
         }
+
+        function toggleAuthFields() {
+            const authType = document.getElementById('auth_type').value;
+            document.getElementById('oauth2-fields').style.display = authType === 'oauth2' ? 'block' : 'none';
+            document.getElementById('bearer-fields').style.display = authType === 'bearer' ? 'block' : 'none';
+            document.getElementById('basic-fields').style.display = authType === 'basic' ? 'block' : 'none';
+        }
+
+        async function testOAuth() {
+            const resultDiv = document.getElementById('oauth-test-result');
+            resultDiv.innerHTML = '<div class="info-box"><i data-lucide="loader"></i> Тестирование OAuth...</div>';
+            lucide.createIcons();
+
+            try {
+                const response = await fetch('/api/integrations/{{ .integration.ID }}/test-oauth', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.innerHTML = '<div class="success-box"><i data-lucide="check-circle"></i> ' + data.message + '</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="error-box"><i data-lucide="x-circle"></i> Ошибка: ' + data.error + '</div>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<div class="error-box"><i data-lucide="x-circle"></i> Ошибка: ' + error.message + '</div>';
+            }
+            lucide.createIcons();
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleAuthFields();
+        });
     </script>
     
     {{ template "partials/scripts.html" . }}

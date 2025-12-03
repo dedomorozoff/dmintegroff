@@ -20,4 +20,20 @@ type Integration struct {
 	Project        Project  `gorm:"constraint:OnDelete:CASCADE;" json:"project"`
 	CreatedByID    uint     `gorm:"not null;index" json:"created_by_id"`
 	CreatedBy      User     `gorm:"constraint:OnDelete:CASCADE;" json:"created_by"`
+	
+	// OAuth 2.0 Configuration
+	AuthType         string `gorm:"default:'none'" json:"auth_type"`           // none, oauth2, bearer, basic
+	OAuth2TokenURL   string `json:"oauth2_token_url"`                          // OAuth2 token endpoint
+	OAuth2ClientID   string `json:"oauth2_client_id"`                          // OAuth2 client ID
+	OAuth2ClientSecret string `json:"oauth2_client_secret"`                    // OAuth2 client secret (encrypted)
+	OAuth2Scope      string `json:"oauth2_scope"`                              // OAuth2 scopes (space-separated)
+	OAuth2GrantType  string `gorm:"default:'client_credentials'" json:"oauth2_grant_type"` // client_credentials, password, etc.
+	BearerToken      string `json:"bearer_token"`                              // Static bearer token
+	BasicAuthUser    string `json:"basic_auth_user"`                           // Basic auth username
+	BasicAuthPass    string `json:"basic_auth_pass"`                           // Basic auth password
+	
+	// OAuth2 Runtime Data (managed by system)
+	OAuth2AccessToken  string `json:"-"` // Current access token (not exposed in JSON)
+	OAuth2RefreshToken string `json:"-"` // Refresh token (not exposed in JSON)
+	OAuth2ExpiresAt    int64  `json:"-"` // Token expiration timestamp
 }

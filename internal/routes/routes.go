@@ -72,6 +72,7 @@ func SetupRouter() *gin.Engine {
 		authorized.GET("/integrations/:id/configure", controllers.IntegrationConfigure)
 		authorized.POST("/integrations/:id/configure", controllers.IntegrationSaveMapping)
 		authorized.GET("/api/integrations/:id/check", controllers.IntegrationCheckUpdate)
+		authorized.POST("/api/integrations/:id/test-oauth", controllers.IntegrationTestOAuth)
 
 		// Projects
 		authorized.GET("/projects", controllers.ProjectList)

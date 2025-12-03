@@ -15,7 +15,7 @@
             Для создания интеграции необходимо сначала создать проект.<br>
             <a href="/projects/create" class="btn btn-success" style="margin-top: 1rem;">➕ Создать проект</a>
         </div>
-        {{ else }}
+        {{ else if .isFirstIntegration }}
         <div class="info-box">
             <strong><i data-lucide="info"></i> Как это работает:</strong><br>
             1. Создайте интеграцию и получите уникальный webhook URL<br>
@@ -77,6 +77,78 @@
                     <small>Проект обязателен для создания интеграции. <a href="/projects/create" style="color: var(--accent-primary);">Создать новый проект</a></small>
                 </div>
 
+                <!-- Authentication Section -->
+                <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #374151;">
+                    <h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i data-lucide="shield-check"></i> Аутентификация Target API
+                    </h3>
+                    
+                    <div class="form-group">
+                        <label>Тип аутентификации</label>
+                        <select name="auth_type" id="auth_type" onchange="toggleAuthFields()">
+                            <option value="none" selected>Без аутентификации</option>
+                            <option value="oauth2">OAuth 2.0</option>
+                            <option value="bearer">Bearer Token</option>
+                            <option value="basic">Basic Auth</option>
+                        </select>
+                    </div>
+
+                    <!-- OAuth 2.0 Fields -->
+                    <div id="oauth2-fields" style="display: none;">
+                        <div class="form-group">
+                            <label>Token URL *</label>
+                            <input type="text" name="oauth2_token_url" placeholder="https://api.example.com/oauth/token">
+                            <small>Endpoint для получения access token</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Client ID *</label>
+                            <input type="text" name="oauth2_client_id">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Client Secret *</label>
+                            <input type="password" name="oauth2_client_secret">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Scope (опционально)</label>
+                            <input type="text" name="oauth2_scope" placeholder="read write">
+                            <small>Области доступа через пробел</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Grant Type</label>
+                            <select name="oauth2_grant_type">
+                                <option value="client_credentials" selected>client_credentials</option>
+                                <option value="password">password</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Bearer Token Fields -->
+                    <div id="bearer-fields" style="display: none;">
+                        <div class="form-group">
+                            <label>Bearer Token *</label>
+                            <input type="password" name="bearer_token">
+                            <small>Статический токен для Authorization: Bearer</small>
+                        </div>
+                    </div>
+
+                    <!-- Basic Auth Fields -->
+                    <div id="basic-fields" style="display: none;">
+                        <div class="form-group">
+                            <label>Username *</label>
+                            <input type="text" name="basic_auth_user">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Password *</label>
+                            <input type="password" name="basic_auth_pass">
+                        </div>
+                    </div>
+                </div>
+
                 <div style="display: flex; gap: 1rem; margin-top: 2rem;">
                     <button type="submit" class="btn btn-success">✅ Создать интеграцию</button>
                     <a href="/integrations" class="btn btn-secondary">Отмена</a>
@@ -97,6 +169,13 @@
             input.value = testUrl;
             input.setAttribute('readonly', 'readonly');
             input.focus();
+        }
+
+        function toggleAuthFields() {
+            const authType = document.getElementById('auth_type').value;
+            document.getElementById('oauth2-fields').style.display = authType === 'oauth2' ? 'block' : 'none';
+            document.getElementById('bearer-fields').style.display = authType === 'bearer' ? 'block' : 'none';
+            document.getElementById('basic-fields').style.display = authType === 'basic' ? 'block' : 'none';
         }
     </script>
 </body>

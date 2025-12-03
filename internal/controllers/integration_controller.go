@@ -132,15 +132,25 @@ func IntegrationCreate(c *gin.Context) {
 		}
 	}
 
+	// Проверяем, есть ли уже интеграции у пользователя
+	var integrationCount int64
+	countQuery := database.DB.Model(&models.Integration{})
+	if role != "admin" {
+		countQuery = countQuery.Where("created_by_id = ?", userID)
+	}
+	countQuery.Count(&integrationCount)
+	isFirstIntegration := integrationCount == 0
+
 	c.HTML(http.StatusOK, "pages/integration_create.html", gin.H{
-		"title":       "Создание интеграции",
-		"CurrentPage": "integration_create",
-		"projects":    projects,
-		"username":    session.Get("username"),
-		"role":        session.Get("role"),
-		"isDemo":      isDemo,
-		"appURL":      getAppURL(c),
-		"appPath":     getAppPath(),
+		"title":              "Создание интеграции",
+		"CurrentPage":        "integration_create",
+		"projects":           projects,
+		"username":           session.Get("username"),
+		"role":               session.Get("role"),
+		"isDemo":             isDemo,
+		"appURL":             getAppURL(c),
+		"appPath":            getAppPath(),
+		"isFirstIntegration": isFirstIntegration,
 	})
 }
 
@@ -216,6 +226,17 @@ func IntegrationStore(c *gin.Context) {
 		Mode:         "listening", // Start in listening mode
 		CreatedByID:  userID,
 		ProjectID:    uint(projectID),
+		
+		// OAuth and authentication fields
+		AuthType:           c.PostForm("auth_type"),
+		OAuth2TokenURL:     c.PostForm("oauth2_token_url"),
+		OAuth2ClientID:     c.PostForm("oauth2_client_id"),
+		OAuth2ClientSecret: c.PostForm("oauth2_client_secret"),
+		OAuth2Scope:        c.PostForm("oauth2_scope"),
+		OAuth2GrantType:    c.PostForm("oauth2_grant_type"),
+		BearerToken:        c.PostForm("bearer_token"),
+		BasicAuthUser:      c.PostForm("basic_auth_user"),
+		BasicAuthPass:      c.PostForm("basic_auth_pass"),
 	}
 
 	if err := database.DB.Create(&integration).Error; err != nil {
@@ -544,6 +565,31 @@ func IntegrationUpdate(c *gin.Context) {
 	integration.SourceAPI = c.PostForm("source_api")
 	integration.TargetAPI = targetAPI
 	integration.HTTPMethod = httpMethod
+	
+	// Update OAuth and authentication fields
+	integration.AuthType = c.PostForm("auth_type")
+	integration.OAuth2TokenURL = c.PostForm("oauth2_token_url")
+	integration.OAuth2ClientID = c.PostForm("oauth2_client_id")
+	
+	// Only update secret if provided (don't overwrite with empty)
+	if newSecret := c.PostForm("oauth2_client_secret"); newSecret != "" {
+		integration.OAuth2ClientSecret = newSecret
+	}
+	
+	integration.OAuth2Scope = c.PostForm("oauth2_scope")
+	integration.OAuth2GrantType = c.PostForm("oauth2_grant_type")
+	
+	// Update bearer token if provided
+	if newToken := c.PostForm("bearer_token"); newToken != "" {
+		integration.BearerToken = newToken
+	}
+	
+	integration.BasicAuthUser = c.PostForm("basic_auth_user")
+	
+	// Only update password if provided
+	if newPass := c.PostForm("basic_auth_pass"); newPass != "" {
+		integration.BasicAuthPass = newPass
+	}
 
 	database.DB.Save(&integration)
 
@@ -691,4 +737,42 @@ func IntegrationCancelListening(c *gin.Context) {
 
 	database.DB.Save(&integration)
 	c.Redirect(http.StatusFound, "/integrations")
+}
+
+// IntegrationTestOAuth - тестирование OAuth конфигурации
+func IntegrationTestOAuth(c *gin.Context) {
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
+	idStr := c.Param("id")
+	id, _ := strconv.ParseUint(idStr, 10, 32)
+
+	var integration models.Integration
+	query := database.DB
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+	if err := query.First(&integration, uint(id)).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Integration not found"})
+		return
+	}
+
+	if integration.AuthType != "oauth2" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Integration is not configured for OAuth2"})
+		return
+	}
+
+	// Test OAuth connection
+	if err := services.TestOAuth2Connection(&integration); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "OAuth2 connection successful",
+	})
 }

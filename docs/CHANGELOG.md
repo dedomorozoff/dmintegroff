@@ -1,5 +1,97 @@
 # 📝 История изменений
 
+## [2024-12-03] - OAuth 2.0 и аутентификация
+
+### ✨ Новые возможности
+
+#### Аутентификация
+- **OAuth 2.0** - автоматическое получение и обновление access токенов
+- **Bearer Token** - поддержка статических токенов авторизации
+- **Basic Auth** - HTTP базовая аутентификация
+- **Тестирование OAuth** - проверка настроек перед активацией
+- **Автоматическое обновление токенов** - система следит за сроком действия
+- **Безопасное хранение** - все секреты хранятся в БД
+
+#### OAuth 2.0 функции
+- **Client Credentials Grant** - для server-to-server интеграций
+- **Кэширование токенов** - минимизация запросов к OAuth серверу
+- **Автоматический refresh** - токены обновляются за 60 секунд до истечения
+- **Поддержка Scope** - настройка областей доступа
+- **Гибкие Grant Types** - client_credentials, password и другие
+
+#### UI улучшения
+- **Секция аутентификации** в формах создания/редактирования
+- **Динамические поля** - показываются только для выбранного типа
+- **Кнопка "Тест OAuth"** - проверка настроек в один клик
+- **Визуальная обратная связь** - success/error сообщения
+- **Защита паролей** - поля типа password для секретов
+
+### 🔧 Технические изменения
+
+#### База данных
+- Добавлены поля аутентификации в таблицу `integrations`:
+  - `auth_type` - тип аутентификации (none, oauth2, bearer, basic)
+  - `oauth2_token_url` - endpoint для получения токена
+  - `oauth2_client_id` - идентификатор клиента
+  - `oauth2_client_secret` - секретный ключ
+  - `oauth2_scope` - области доступа
+  - `oauth2_grant_type` - тип авторизации
+  - `bearer_token` - статический токен
+  - `basic_auth_user` - имя пользователя для Basic Auth
+  - `basic_auth_pass` - пароль для Basic Auth
+  - `oauth2_access_token` - текущий access token (runtime)
+  - `oauth2_refresh_token` - refresh token (runtime)
+  - `oauth2_expires_at` - время истечения токена (runtime)
+- Миграции: `007_add_oauth_support_sqlite.sql`, `007_add_oauth_support.sql`
+
+#### Новые модули
+- `internal/services/oauth_service.go` - OAuth 2.0 логика
+  - `GetAccessToken()` - получение валидного токена
+  - `fetchNewAccessToken()` - запрос нового токена
+  - `AddAuthHeaders()` - добавление заголовков аутентификации
+  - `TestOAuth2Connection()` - тестирование настроек
+
+#### Обновленные модули
+- `internal/models/integration.go` - добавлены поля OAuth
+- `internal/services/integration_service.go` - интеграция с OAuth
+- `internal/controllers/integration_controller.go` - обработка OAuth полей
+- `internal/routes/routes.go` - новый endpoint `/api/integrations/:id/test-oauth`
+- `templates/pages/integration_edit.html` - UI для OAuth
+- `templates/pages/integration_create.html` - UI для OAuth
+- `static/css/modern.css` - стили для success-box
+
+### 📚 Документация
+- `docs/OAUTH_GUIDE.md` - полное руководство по OAuth
+- `docs/OAUTH_EXAMPLES.md` - примеры настройки популярных API
+- `docs/OAUTH_MIGRATION.md` - инструкции по обновлению
+- `README.md` - обновлен roadmap и список возможностей
+
+### 🔐 Безопасность
+- Секреты не отображаются в JSON API
+- Токены автоматически обновляются
+- Поддержка HTTPS для production
+- Логи не содержат токены и пароли
+
+### 🧪 Примеры интеграций
+Добавлены примеры для:
+- Salesforce
+- Microsoft Dynamics 365
+- HubSpot
+- Zoho CRM
+- Pipedrive
+- Slack
+- Google Sheets API
+- Airtable
+- Notion
+- Mailchimp
+
+### ⚡ Производительность
+- Кэширование токенов снижает нагрузку на OAuth серверы
+- Токены обновляются только при необходимости
+- Минимальное количество запросов к БД
+
+---
+
 ## [2024-11-30] - Кастомные JSON шаблоны
 
 ### ✨ Новые возможности
