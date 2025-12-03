@@ -1,0 +1,372 @@
+{{ define "pages/metrics_dashboard.html" }}
+{{ template "partials/head.html" . }}
+{{ template "partials/sidebar.html" . }}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <h1>Метрики и мониторинг</h1>
+            <p>Состояние системы и производительность</p>
+        </div>
+
+        <style>
+            .status-healthy {
+                color: var(--success);
+            }
+            .status-degraded {
+                color: var(--warning);
+            }
+            .status-unhealthy {
+                color: var(--destructive);
+            }
+            .metric-value {
+                font-size: 2rem;
+                font-weight: 600;
+                color: var(--text-primary);
+            }
+            .metric-label {
+                font-size: 0.875rem;
+                color: var(--text-secondary);
+            }
+            .component-card {
+                padding: 1rem;
+                background: var(--secondary);
+                border-radius: 8px;
+                margin-bottom: 1rem;
+            }
+            .refresh-indicator {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                padding: 0.5rem 1rem;
+                background: var(--card-bg);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                font-size: 0.875rem;
+                color: var(--text-secondary);
+                z-index: 1000;
+            }
+        </style>
+
+        <div class="container-fluid">
+        <!-- System Status -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i data-lucide="heart-pulse"></i> Состояние системы
+                </h2>
+            </div>
+            <div style="padding: 1.5rem;">
+                <div class="stats-grid" id="systemStatus">
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div>
+                                <p class="stat-card-title">Общий статус</p>
+                                <p class="stat-card-value status-healthy">Загрузка...</p>
+                            </div>
+                            <div class="stat-card-icon" style="background: color-mix(in srgb, var(--success) 10%, transparent);">
+                                <i data-lucide="circle" style="color: var(--success);"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div>
+                                <p class="stat-card-title">Uptime</p>
+                                <p class="stat-card-value">--</p>
+                            </div>
+                            <div class="stat-card-icon" style="background: color-mix(in srgb, var(--primary) 10%, transparent);">
+                                <i data-lucide="clock" style="color: var(--primary);"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div>
+                                <p class="stat-card-title">Версия</p>
+                                <p class="stat-card-value">--</p>
+                            </div>
+                            <div class="stat-card-icon" style="background: color-mix(in srgb, var(--primary) 10%, transparent);">
+                                <i data-lucide="package" style="color: var(--primary);"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div>
+                                <p class="stat-card-title">Последняя проверка</p>
+                                <p class="stat-card-value" style="font-size: 1rem;">--</p>
+                            </div>
+                            <div class="stat-card-icon" style="background: color-mix(in srgb, var(--primary) 10%, transparent);">
+                                <i data-lucide="refresh-cw" style="color: var(--primary);"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Components Status -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i data-lucide="cpu"></i> Компоненты системы
+                </h2>
+            </div>
+            <div style="padding: 1.5rem;" id="componentsStatus">
+                <p style="color: var(--text-secondary);">Загрузка...</p>
+            </div>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i data-lucide="link"></i> Быстрые ссылки
+                </h2>
+            </div>
+            <div style="padding: 1.5rem;">
+                <div class="quick-actions-grid">
+                    <a href="/metrics" target="_blank" class="btn btn-secondary quick-action-btn">
+                        <div class="quick-action-header">
+                            <i data-lucide="file-code"></i>
+                            <span>Prometheus метрики</span>
+                            <span class="quick-action-arrow"><i data-lucide="external-link"></i></span>
+                        </div>
+                        <span class="quick-action-desc">Сырые метрики в формате Prometheus</span>
+                    </a>
+                    <a href="/metrics/health" target="_blank" class="btn btn-secondary quick-action-btn">
+                        <div class="quick-action-header">
+                            <i data-lucide="heart-pulse"></i>
+                            <span>Health Check JSON</span>
+                            <span class="quick-action-arrow"><i data-lucide="external-link"></i></span>
+                        </div>
+                        <span class="quick-action-desc">Детальная проверка здоровья</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Auto-refresh indicator -->
+    <div class="refresh-indicator" id="autoRefreshBadge">
+        <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+        Авто-обновление: 30с
+    </div>
+
+    </main>
+
+{{ template "partials/scripts.html" . }}
+    <script>
+        let autoRefreshInterval;
+
+        function formatUptime(uptime) {
+            // uptime приходит как число наносекунд или строка типа "5h30m15s"
+            if (typeof uptime === 'number') {
+                // Конвертируем наносекунды в секунды
+                const totalSeconds = Math.floor(uptime / 1000000000);
+                const hours = Math.floor(totalSeconds / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                const seconds = totalSeconds % 60;
+                
+                const parts = [];
+                if (hours > 0) {
+                    parts.push(`${hours} ${hours === 1 ? 'час' : hours < 5 ? 'часа' : 'часов'}`);
+                }
+                if (minutes > 0) {
+                    parts.push(`${minutes} ${minutes === 1 ? 'минута' : minutes < 5 && minutes > 1 ? 'минуты' : 'минут'}`);
+                }
+                if (seconds > 0 && hours === 0) {
+                    parts.push(`${seconds} ${seconds === 1 ? 'секунда' : seconds < 5 && seconds > 1 ? 'секунды' : 'секунд'}`);
+                }
+                
+                return parts.length > 0 ? parts.join(' ') : '0 секунд';
+            }
+            
+            // Если строка типа "5h30m15s"
+            if (typeof uptime === 'string') {
+                const cleanUptime = uptime.replace(/\.\d+/, '');
+                
+                let hours = 0, minutes = 0, seconds = 0;
+                
+                const hoursMatch = cleanUptime.match(/(\d+)h/);
+                if (hoursMatch) hours = parseInt(hoursMatch[1]);
+                
+                const minutesMatch = cleanUptime.match(/(\d+)m/);
+                if (minutesMatch) minutes = parseInt(minutesMatch[1]);
+                
+                const secondsMatch = cleanUptime.match(/(\d+)s/);
+                if (secondsMatch) seconds = parseInt(secondsMatch[1]);
+                
+                const parts = [];
+                if (hours > 0) {
+                    parts.push(`${hours} ${hours === 1 ? 'час' : hours < 5 ? 'часа' : 'часов'}`);
+                }
+                if (minutes > 0) {
+                    parts.push(`${minutes} ${minutes === 1 ? 'минута' : minutes < 5 && minutes > 1 ? 'минуты' : 'минут'}`);
+                }
+                if (seconds > 0 && hours === 0) {
+                    parts.push(`${seconds} ${seconds === 1 ? 'секунда' : seconds < 5 && seconds > 1 ? 'секунды' : 'секунд'}`);
+                }
+                
+                return parts.length > 0 ? parts.join(' ') : '0 секунд';
+            }
+            
+            return uptime;
+        }
+
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString('ru-RU');
+        }
+
+        function getStatusIcon(status) {
+            switch(status) {
+                case 'healthy':
+                    return '<i data-lucide="check-circle" class="status-healthy" style="width: 16px; height: 16px;"></i>';
+                case 'degraded':
+                    return '<i data-lucide="alert-triangle" class="status-degraded" style="width: 16px; height: 16px;"></i>';
+                case 'unhealthy':
+                    return '<i data-lucide="x-circle" class="status-unhealthy" style="width: 16px; height: 16px;"></i>';
+                default:
+                    return '<i data-lucide="help-circle" style="width: 16px; height: 16px;"></i>';
+            }
+        }
+
+        function getStatusClass(status) {
+            switch(status) {
+                case 'healthy':
+                    return 'status-healthy';
+                case 'degraded':
+                    return 'status-degraded';
+                case 'unhealthy':
+                    return 'status-unhealthy';
+                default:
+                    return '';
+            }
+        }
+
+        async function loadMetrics() {
+            try {
+                const response = await fetch('/metrics/health');
+                const data = await response.json();
+
+                // Update system status
+                const statusHtml = `
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div>
+                                <p class="stat-card-title">Общий статус</p>
+                                <p class="stat-card-value ${getStatusClass(data.status)}">${data.status === 'healthy' ? 'Работает' : data.status === 'degraded' ? 'Деградация' : 'Недоступен'}</p>
+                            </div>
+                            <div class="stat-card-icon" style="background: color-mix(in srgb, ${data.status === 'healthy' ? 'var(--success)' : data.status === 'degraded' ? 'var(--warning)' : 'var(--destructive)'} 10%, transparent);">
+                                <i data-lucide="circle" style="color: ${data.status === 'healthy' ? 'var(--success)' : data.status === 'degraded' ? 'var(--warning)' : 'var(--destructive)'};"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div>
+                                <p class="stat-card-title">Uptime</p>
+                                <p class="stat-card-value">${formatUptime(data.uptime)}</p>
+                            </div>
+                            <div class="stat-card-icon" style="background: color-mix(in srgb, var(--primary) 10%, transparent);">
+                                <i data-lucide="clock" style="color: var(--primary);"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div>
+                                <p class="stat-card-title">Версия</p>
+                                <p class="stat-card-value">${data.version}</p>
+                            </div>
+                            <div class="stat-card-icon" style="background: color-mix(in srgb, var(--primary) 10%, transparent);">
+                                <i data-lucide="package" style="color: var(--primary);"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div>
+                                <p class="stat-card-title">Последняя проверка</p>
+                                <p class="stat-card-value" style="font-size: 1rem;">${formatTimestamp(data.timestamp)}</p>
+                            </div>
+                            <div class="stat-card-icon" style="background: color-mix(in srgb, var(--primary) 10%, transparent);">
+                                <i data-lucide="refresh-cw" style="color: var(--primary);"></i>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('systemStatus').innerHTML = statusHtml;
+                lucide.createIcons();
+
+                // Update components
+                let componentsHtml = '<div class="stats-grid">';
+                for (const [name, component] of Object.entries(data.components)) {
+                    const nameRu = name === 'database' ? 'База данных' : name === 'disk' ? 'Диск' : name === 'memory' ? 'Память' : name;
+                    componentsHtml += `
+                        <div class="component-card">
+                            <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 0.5rem;">
+                                <h3 style="font-size: 1rem; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                                    ${getStatusIcon(component.status)}
+                                    ${nameRu}
+                                </h3>
+                                <span class="badge badge-${component.status === 'healthy' ? 'success' : component.status === 'degraded' ? 'warning' : 'danger'}" style="margin-left: auto;">
+                                    ${component.status === 'healthy' ? 'Работает' : component.status === 'degraded' ? 'Деградация' : 'Недоступен'}
+                                </span>
+                            </div>
+                            <p style="color: var(--text-secondary); font-size: 0.875rem; margin: 0.5rem 0;">${component.message}</p>
+                            ${component.details ? `
+                                <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border);">
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.5rem; font-size: 0.875rem;">
+                                        ${Object.entries(component.details).map(([key, value]) => 
+                                            `<div style="color: var(--text-secondary);">${key}: <strong style="color: var(--text-primary);">${value}</strong></div>`
+                                        ).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }
+                componentsHtml += '</div>';
+                document.getElementById('componentsStatus').innerHTML = componentsHtml;
+                lucide.createIcons();
+
+            } catch (error) {
+                console.error('Error loading metrics:', error);
+                document.getElementById('systemStatus').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i data-lucide="alert-circle"></i>
+                        <span>Ошибка загрузки метрик: ${error.message}</span>
+                    </div>
+                `;
+                lucide.createIcons();
+            }
+        }
+
+        // Load metrics on page load
+        loadMetrics();
+
+        // Auto-refresh every 30 seconds
+        autoRefreshInterval = setInterval(loadMetrics, 30000);
+
+        // Update auto-refresh badge
+        let countdown = 30;
+        setInterval(() => {
+            countdown--;
+            if (countdown <= 0) countdown = 30;
+            const badge = document.getElementById('autoRefreshBadge');
+            if (badge) {
+                badge.innerHTML = `
+                    <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+                    Авто-обновление: ${countdown}с
+                `;
+                lucide.createIcons();
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
+{{ end }}

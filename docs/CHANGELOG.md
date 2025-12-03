@@ -1,5 +1,120 @@
 # 📝 История изменений
 
+## [2024-12-04] - Метрики и мониторинг
+
+### ✨ Новые возможности
+
+#### Prometheus метрики
+- **12 метрик** для мониторинга всех компонентов системы
+- **Webhook метрики** - total, success, failure, retries, duration
+- **OAuth метрики** - token refresh, cache hit/miss, duration
+- **Retry метрики** - количество попыток на запрос
+- **Signature метрики** - generated, verified
+- **System gauges** - active integrations, queue size
+- **Labels** для детальной аналитики по интеграциям и проектам
+
+#### Health Check endpoints
+- **GET /metrics/health** - полная проверка здоровья системы
+  - Статус: healthy/degraded/unhealthy
+  - Проверка всех компонентов (БД, диск, память)
+  - Детальная информация и метрики
+  - Timestamp, uptime, версия
+- **GET /metrics/health/live** - liveness probe для Kubernetes
+- **GET /metrics/health/ready** - readiness probe для Kubernetes
+
+#### Интеграции
+- **Prometheus** - сбор метрик через /metrics endpoint
+- **Grafana** - примеры дашбордов и панелей
+- **Kubernetes** - health probes для deployment
+- **Alerting** - примеры правил для критичных событий
+
+#### Метрики по категориям
+
+**Webhook:**
+- `dmintegroff_webhook_total` - всего запросов
+- `dmintegroff_webhook_success_total` - успешных
+- `dmintegroff_webhook_failure_total` - неудачных (с типом ошибки)
+- `dmintegroff_webhook_retries_total` - retry попыток
+- `dmintegroff_webhook_duration_seconds` - время выполнения (histogram)
+
+**OAuth:**
+- `dmintegroff_oauth_token_refresh_total` - обновления токенов
+- `dmintegroff_oauth_token_cache_total` - кэш hit/miss
+- `dmintegroff_oauth_duration_seconds` - время получения токена
+
+**Retry:**
+- `dmintegroff_retry_attempts` - количество попыток (histogram)
+
+**Signatures:**
+- `dmintegroff_signature_generated_total` - сгенерировано
+- `dmintegroff_signature_verified_total` - проверено (valid/invalid)
+
+**System:**
+- `dmintegroff_active_integrations` - активных интеграций (gauge)
+- `dmintegroff_queue_size` - размер очереди (gauge)
+
+### 🔧 Технические изменения
+
+#### Backend
+- `internal/services/metrics_service.go` - сервис Prometheus метрик
+- `internal/services/health_service.go` - сервис health checks
+- `internal/controllers/metrics_controller.go` - HTTP контроллеры
+- Структуры: `MetricsService`, `HealthService`, `HealthCheck`, `ComponentHealth`
+- Методы записи метрик для всех компонентов
+
+#### API Endpoints
+- `GET /metrics` - Prometheus метрики
+- `GET /metrics/health` - полная проверка здоровья
+- `GET /metrics/health/live` - liveness probe
+- `GET /metrics/health/ready` - readiness probe
+
+#### Зависимости
+- `github.com/prometheus/client_golang` v1.23.2 - Prometheus клиент
+- `github.com/DATA-DOG/go-sqlmock` v1.5.2 - моки для тестов БД
+
+### 📚 Документация
+- `docs/METRICS_MONITORING.md` - полное руководство (1000+ строк)
+- `docs/METRICS_EXAMPLES.md` - примеры использования
+- `METRICS_CHECKLIST.md` - чеклист реализации
+- `METRICS_SUMMARY.md` - краткая сводка
+
+### 🧪 Тесты
+- `internal/services/metrics_service_test.go` - 13 тестов
+- `internal/services/health_service_test.go` - 8 тестов
+- ✅ Все 21 тест проходят
+
+### 📊 Примеры использования
+
+#### Prometheus запросы
+```promql
+# Успешность webhook
+sum(rate(dmintegroff_webhook_success_total[5m])) /
+sum(rate(dmintegroff_webhook_total[5m])) * 100
+
+# P95 время выполнения
+histogram_quantile(0.95,
+  rate(dmintegroff_webhook_duration_seconds_bucket[5m])
+)
+
+# OAuth кэш hit rate
+sum(rate(dmintegroff_oauth_token_cache_total{result="hit"}[5m])) /
+sum(rate(dmintegroff_oauth_token_cache_total[5m])) * 100
+```
+
+#### Kubernetes deployment
+```yaml
+livenessProbe:
+  httpGet:
+    path: /metrics/health/live
+    port: 8080
+readinessProbe:
+  httpGet:
+    path: /metrics/health/ready
+    port: 8080
+```
+
+---
+
 ## [2024-12-03] - Экспорт/Импорт конфигураций
 
 ### ✨ Новые возможности

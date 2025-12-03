@@ -4,15 +4,17 @@ import (
 	"dmintegroff/internal/controllers"
 	"dmintegroff/internal/logger"
 	"dmintegroff/internal/models"
+	"dmintegroff/internal/services"
 	"net/http"
 	"os"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func SetupRouter() *gin.Engine {
+func SetupRouter(healthService *services.HealthService) *gin.Engine {
 	r := gin.Default()
 
 	// Настройка доверенных прокси (только localhost для разработки)
@@ -110,6 +112,19 @@ func SetupRouter() *gin.Engine {
 		// Settings
 		authorized.GET("/settings", controllers.SettingsPage)
 		authorized.POST("/settings/change-password", controllers.ChangePassword)
+		
+		// Metrics Dashboard (защищённый)
+		authorized.GET("/metrics/dashboard", controllers.NewMetricsController(healthService).Dashboard)
+	}
+
+	// Metrics API endpoints (публичные для Prometheus/Kubernetes)
+	metricsGroup := r.Group("/metrics")
+	{
+		metricsController := controllers.NewMetricsController(healthService)
+		metricsGroup.GET("", gin.WrapH(promhttp.Handler()))
+		metricsGroup.GET("/health", metricsController.Health)
+		metricsGroup.GET("/health/live", metricsController.Liveness)
+		metricsGroup.GET("/health/ready", metricsController.Readiness)
 	}
 
 	// Public endpoints - принимаем все HTTP методы для webhook
