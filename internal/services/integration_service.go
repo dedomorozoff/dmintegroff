@@ -164,6 +164,27 @@ func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 	
 	req.Header.Set("Content-Type", "application/json")
 	
+	// Add webhook signature
+	if err := AddSignatureToRequest(req, jsonData, &integration); err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"integration_id": integrationID,
+			"error":          err.Error(),
+		}).Error("Failed to add webhook signature")
+		
+		log := models.RequestLog{
+			IntegrationID: integrationID,
+			Method:        httpMethod,
+			URL:           integration.TargetAPI,
+			RequestBody:   string(jsonData),
+			StatusCode:    500,
+			LogType:       "webhook",
+			ErrorMessage:  "Signature generation failed: " + err.Error(),
+		}
+		CreateLogWithLimit(&log)
+		
+		return err
+	}
+	
 	// Add authentication headers
 	if err := AddAuthHeaders(req, &integration); err != nil {
 		logger.Log.WithFields(map[string]interface{}{

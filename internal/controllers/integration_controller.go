@@ -217,6 +217,17 @@ func IntegrationStore(c *gin.Context) {
 		httpMethod = "POST" // Default to POST
 	}
 
+	// Webhook signature fields
+	webhookSignatureEnabled := c.PostForm("webhook_signature_enabled") == "true"
+	webhookSignatureHeader := c.PostForm("webhook_signature_header")
+	if webhookSignatureHeader == "" {
+		webhookSignatureHeader = "X-Webhook-Signature"
+	}
+	webhookSignatureAlgorithm := c.PostForm("webhook_signature_algorithm")
+	if webhookSignatureAlgorithm == "" {
+		webhookSignatureAlgorithm = "sha256"
+	}
+
 	integration := models.Integration{
 		Name:         c.PostForm("name"),
 		WebhookToken: token,
@@ -237,6 +248,18 @@ func IntegrationStore(c *gin.Context) {
 		BearerToken:        c.PostForm("bearer_token"),
 		BasicAuthUser:      c.PostForm("basic_auth_user"),
 		BasicAuthPass:      c.PostForm("basic_auth_pass"),
+		
+		// Webhook signature fields
+		WebhookSignatureEnabled:   webhookSignatureEnabled,
+		WebhookSignatureSecret:    c.PostForm("webhook_signature_secret"),
+		WebhookSignatureHeader:    webhookSignatureHeader,
+		WebhookSignatureAlgorithm: webhookSignatureAlgorithm,
+	}
+	
+	// Validate signature config if enabled
+	if err := services.ValidateSignatureConfig(&integration); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Webhook signature configuration error: " + err.Error()})
+		return
 	}
 
 	if err := database.DB.Create(&integration).Error; err != nil {
@@ -589,6 +612,34 @@ func IntegrationUpdate(c *gin.Context) {
 	// Only update password if provided
 	if newPass := c.PostForm("basic_auth_pass"); newPass != "" {
 		integration.BasicAuthPass = newPass
+	}
+	
+	// Update webhook signature fields
+	integration.WebhookSignatureEnabled = c.PostForm("webhook_signature_enabled") == "true"
+	
+	// Only update secret if provided (don't overwrite with empty)
+	if newSecret := c.PostForm("webhook_signature_secret"); newSecret != "" {
+		integration.WebhookSignatureSecret = newSecret
+	}
+	
+	webhookSignatureHeader := c.PostForm("webhook_signature_header")
+	if webhookSignatureHeader != "" {
+		integration.WebhookSignatureHeader = webhookSignatureHeader
+	} else {
+		integration.WebhookSignatureHeader = "X-Webhook-Signature"
+	}
+	
+	webhookSignatureAlgorithm := c.PostForm("webhook_signature_algorithm")
+	if webhookSignatureAlgorithm != "" {
+		integration.WebhookSignatureAlgorithm = webhookSignatureAlgorithm
+	} else {
+		integration.WebhookSignatureAlgorithm = "sha256"
+	}
+	
+	// Validate signature config if enabled
+	if err := services.ValidateSignatureConfig(&integration); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Webhook signature configuration error: " + err.Error()})
+		return
 	}
 
 	database.DB.Save(&integration)

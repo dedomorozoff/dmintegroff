@@ -36,4 +36,10 @@ type Integration struct {
 	OAuth2AccessToken  string `json:"-"` // Current access token (not exposed in JSON)
 	OAuth2RefreshToken string `json:"-"` // Refresh token (not exposed in JSON)
 	OAuth2ExpiresAt    int64  `json:"-"` // Token expiration timestamp
+	
+	// Webhook Signature Configuration
+	WebhookSignatureEnabled   bool   `gorm:"default:false" json:"webhook_signature_enabled"`           // Enable webhook signature verification
+	WebhookSignatureSecret    string `json:"webhook_signature_secret"`                                 // Secret key for HMAC signature
+	WebhookSignatureHeader    string `gorm:"default:'X-Webhook-Signature'" json:"webhook_signature_header"` // Header name for signature
+	WebhookSignatureAlgorithm string `gorm:"default:'sha256'" json:"webhook_signature_algorithm"`      // Algorithm: sha256, sha512, sha1
 }

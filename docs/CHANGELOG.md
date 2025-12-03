@@ -1,5 +1,119 @@
 # 📝 История изменений
 
+## [2024-12-03] - Webhook подписи для безопасности
+
+### ✨ Новые возможности
+
+#### HMAC подписи для webhook
+- **Webhook подписи (HMAC)** - криптографическая защита webhook запросов
+- **Поддержка алгоритмов** - SHA-256, SHA-512, SHA-1
+- **Гибкая конфигурация** - настраиваемые заголовки и алгоритмы
+- **Автоматическая генерация секретов** - криптографически безопасные ключи
+- **Constant-time сравнение** - защита от timing атак
+
+#### Возможности подписей
+- **Аутентификация источника** - проверка, что запрос от доверенного источника
+- **Целостность данных** - гарантия, что данные не изменены
+- **Защита от подделки** - невозможно отправить поддельный webhook
+- **Совместимость** - поддержка форматов GitHub, Stripe, Slack
+
+#### Конфигурация
+- `WebhookSignatureEnabled` - включение/выключение подписей
+- `WebhookSignatureSecret` - секретный ключ для HMAC
+- `WebhookSignatureHeader` - имя заголовка (по умолчанию: X-Webhook-Signature)
+- `WebhookSignatureAlgorithm` - алгоритм (sha256, sha512, sha1)
+
+### 🔧 Технические изменения
+
+#### База данных
+- Миграции `008_add_webhook_signatures.sql` и `008_add_webhook_signatures_sqlite.sql`
+- Добавлены поля в таблицу `integrations`:
+  - `webhook_signature_enabled` - флаг включения подписей
+  - `webhook_signature_secret` - секретный ключ
+  - `webhook_signature_header` - имя заголовка
+  - `webhook_signature_algorithm` - алгоритм хеширования
+
+#### Новые модули
+- `internal/services/webhook_signature.go` - сервис подписей
+  - `GenerateSignature()` - генерация HMAC подписи
+  - `VerifySignature()` - проверка подписи (constant-time)
+  - `AddSignatureToRequest()` - добавление подписи в исходящий запрос
+  - `VerifyIncomingSignature()` - проверка входящей подписи
+  - `GenerateRandomSecret()` - генерация безопасного секрета
+  - `ValidateSignatureConfig()` - валидация конфигурации
+
+#### Обновленные модули
+- `internal/models/integration.go` - добавлены поля webhook подписей
+- `internal/services/integration_service.go` - интеграция подписей в ProcessWebhook
+
+#### Формат подписи
+```
+X-Webhook-Signature: sha256=5d41402abc4b2a76b9719d911017c592
+```
+
+### 🧪 Тестирование
+- `internal/services/webhook_signature_test.go` - полный набор тестов
+- ✅ Генерация подписи для всех алгоритмов (4 теста)
+- ✅ Верификация подписи (4 теста)
+- ✅ Добавление подписи в запрос (4 теста)
+- ✅ Проверка входящей подписи (5 тестов)
+- ✅ Генерация случайного секрета (3 теста)
+- ✅ Валидация конфигурации (6 тестов)
+- **Все тесты проходят успешно** ✅
+
+### 📚 Документация
+- `docs/WEBHOOK_SIGNATURES.md` - полное руководство
+  - Обзор и принцип работы
+  - Конфигурация и параметры
+  - Поддерживаемые алгоритмы
+  - Примеры использования
+  - Интеграция с популярными сервисами
+  - Безопасность и лучшие практики
+  - Troubleshooting
+  - API Reference
+
+### 🔐 Безопасность
+
+#### Защита от атак
+- **Timing attacks** - constant-time сравнение через `hmac.Equal()`
+- **Replay attacks** - рекомендации по добавлению timestamp
+- **MITM attacks** - проверка целостности данных
+- **Brute force** - минимальная длина секрета 16 символов
+
+#### Лучшие практики
+- Используйте SHA-256 или SHA-512
+- Генерируйте длинные секреты (32+ байта)
+- Храните секреты безопасно (env, vault)
+- Периодически ротируйте секреты
+- Всегда проверяйте подписи на стороне получателя
+
+### 📊 Примеры интеграций
+
+#### GitHub Webhooks
+```go
+WebhookSignatureHeader: "X-Hub-Signature-256"
+WebhookSignatureAlgorithm: "sha256"
+```
+
+#### Stripe Webhooks
+```go
+WebhookSignatureHeader: "Stripe-Signature"
+WebhookSignatureAlgorithm: "sha256"
+```
+
+#### Slack Webhooks
+```go
+WebhookSignatureHeader: "X-Slack-Signature"
+WebhookSignatureAlgorithm: "sha256"
+```
+
+### ⚡ Производительность
+- **Минимальные накладные расходы** - HMAC вычисляется быстро
+- **Кэширование не требуется** - подпись генерируется для каждого запроса
+- **Масштабируемость** - не влияет на throughput
+
+---
+
 ## [2024-12-03] - Retry механизм с экспоненциальной задержкой
 
 ### ✨ Новые возможности

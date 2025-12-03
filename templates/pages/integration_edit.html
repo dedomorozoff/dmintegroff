@@ -154,6 +154,81 @@
                     </div>
                 </div>
 
+                <!-- Webhook Signature Section -->
+                <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #374151;">
+                    <h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i data-lucide="key"></i> Webhook подписи (HMAC)
+                    </h3>
+                    
+                    <div class="info-box" style="margin-bottom: 1rem;">
+                        <i data-lucide="info"></i>
+                        <div>
+                            <strong>Защита webhook запросов</strong>
+                            <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">
+                                HMAC подписи обеспечивают аутентичность и целостность данных. 
+                                Получатель может проверить, что запрос действительно от вас и не был изменен.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" name="webhook_signature_enabled" id="webhook_signature_enabled" 
+                                   value="true" {{ if .integration.WebhookSignatureEnabled }}checked{{ end }}
+                                   onchange="toggleSignatureFields()" style="width: auto; margin: 0;">
+                            Включить webhook подписи
+                        </label>
+                        <small>Добавлять HMAC подпись к каждому исходящему webhook</small>
+                    </div>
+
+                    <div id="signature-fields" style="display: none;">
+                        <div class="form-group">
+                            <label>Секретный ключ *</label>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <input type="text" name="webhook_signature_secret" id="webhook_signature_secret" 
+                                       value="{{ .integration.WebhookSignatureSecret }}" 
+                                       placeholder="Введите секретный ключ или сгенерируйте" style="flex: 1;">
+                                <button type="button" class="btn btn-secondary" onclick="generateSecret()" 
+                                        style="white-space: nowrap;">
+                                    <i data-lucide="refresh-cw"></i> Сгенерировать
+                                </button>
+                            </div>
+                            <small>Минимум 16 символов. Используется для генерации HMAC подписи</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Имя заголовка</label>
+                            <input type="text" name="webhook_signature_header" 
+                                   value="{{ if .integration.WebhookSignatureHeader }}{{ .integration.WebhookSignatureHeader }}{{ else }}X-Webhook-Signature{{ end }}" 
+                                   placeholder="X-Webhook-Signature">
+                            <small>Имя HTTP заголовка для подписи (по умолчанию: X-Webhook-Signature)</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Алгоритм хеширования</label>
+                            <select name="webhook_signature_algorithm">
+                                <option value="sha256" {{ if or (eq .integration.WebhookSignatureAlgorithm "sha256") (eq .integration.WebhookSignatureAlgorithm "") }}selected{{ end }}>SHA-256 (рекомендуется)</option>
+                                <option value="sha512" {{ if eq .integration.WebhookSignatureAlgorithm "sha512" }}selected{{ end }}>SHA-512 (максимальная безопасность)</option>
+                                <option value="sha1" {{ if eq .integration.WebhookSignatureAlgorithm "sha1" }}selected{{ end }}>SHA-1 (устаревший)</option>
+                            </select>
+                            <small>SHA-256 рекомендуется для большинства случаев</small>
+                        </div>
+
+                        <div class="info-box">
+                            <i data-lucide="lightbulb"></i>
+                            <div>
+                                <strong>Формат подписи:</strong>
+                                <code style="display: block; margin-top: 0.5rem; padding: 0.5rem; background: #1f2937; border-radius: 4px;">
+                                    X-Webhook-Signature: sha256=5d41402abc4b2a76b9719d911017c592...
+                                </code>
+                                <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">
+                                    Совместимо с GitHub, Stripe, Slack форматами
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div style="display: flex; gap: 1rem; margin-top: 2rem;">
                     <button type="submit" class="btn btn-success"><i data-lucide="save"></i> Сохранить изменения</button>
                     <a href="/integrations" class="btn btn-secondary">Отмена</a>
@@ -214,9 +289,23 @@
             lucide.createIcons();
         }
 
+        function toggleSignatureFields() {
+            const enabled = document.getElementById('webhook_signature_enabled').checked;
+            document.getElementById('signature-fields').style.display = enabled ? 'block' : 'none';
+        }
+
+        function generateSecret() {
+            // Генерируем криптографически безопасный случайный ключ (32 байта = 64 hex символа)
+            const array = new Uint8Array(32);
+            crypto.getRandomValues(array);
+            const secret = Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+            document.getElementById('webhook_signature_secret').value = secret;
+        }
+
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             toggleAuthFields();
+            toggleSignatureFields();
         });
     </script>
     
