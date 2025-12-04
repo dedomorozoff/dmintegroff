@@ -151,6 +151,17 @@ func LoginPost(c *gin.Context) {
 	username := c.PostForm("username")
 	password := c.PostForm("password")
 
+	// Проверяем демо-режим и блокируем доступ для admin
+	demoMode := os.Getenv("DEMO_MODE") == "true"
+	if demoMode && username == "admin" {
+		logger.Log.Warn("Attempt to login as admin in demo mode blocked")
+		c.HTML(http.StatusForbidden, "pages/login.html", gin.H{
+			"error": "Доступ к аккаунту admin запрещен в демо-режиме",
+			"title": "Вход в систему",
+		})
+		return
+	}
+
 	var user models.User
 	if err := database.DB.Where("username = ?", username).First(&user).Error; err != nil {
 		c.HTML(http.StatusUnauthorized, "pages/login.html", gin.H{
