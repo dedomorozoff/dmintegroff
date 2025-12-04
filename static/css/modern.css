@@ -567,6 +567,7 @@ pre {
     
     .main-content {
         margin-left: 0;
+        padding: 1rem;
     }
     
     .stats-grid {
@@ -580,6 +581,45 @@ pre {
     
     table {
         min-width: 600px;
+    }
+    
+    .bottom-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .quick-actions-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .activity-item {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .activity-time {
+        align-self: flex-start;
+    }
+    
+    .activity-message {
+        white-space: normal;
+    }
+    
+    .progress-container {
+        padding: 0 1rem 1rem 1rem;
+    }
+    
+    .steps-list {
+        padding: 0 1rem 1rem 1rem;
+    }
+    
+    .step-item {
+        font-size: 0.875rem;
+        gap: 0.625rem;
+    }
+    
+    .step-text {
+        font-size: 0.875rem;
+        line-height: 1.5;
     }
 }
 
@@ -633,10 +673,49 @@ pre {
 }
 
 /* Getting Started Steps */
+.progress-container {
+    padding: 0 1.5rem 1rem 1.5rem;
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    gap: 0.5rem;
+}
+
+.progress-label {
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+}
+
+.progress-value {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--primary);
+    white-space: nowrap;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background: var(--secondary);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: var(--primary);
+    transition: width 0.3s ease;
+}
+
 .steps-list {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    padding: 0 1.5rem 1.5rem 1.5rem;
 }
 
 .step-item {
@@ -644,6 +723,7 @@ pre {
     align-items: flex-start;
     gap: 0.75rem;
     font-size: 0.875rem;
+    min-width: 0;
 }
 
 .step-icon {
@@ -663,6 +743,10 @@ pre {
 
 .step-text {
     color: var(--card-foreground);
+    flex: 1;
+    min-width: 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .step-text.completed {
@@ -724,6 +808,12 @@ pre {
     gap: 1.5rem;
 }
 
+@media (max-width: 900px) {
+    .bottom-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* Lucide Icons Support */
 i[data-lucide],
 svg[data-lucide] {
@@ -769,21 +859,64 @@ h3 svg[data-lucide] {
     }
 }
 
-@media (max-width: 768px) {
-    .sidebar {
-        transform: translateX(-100%);
+@media (max-width: 480px) {
+    .card {
+        padding: 0.75rem;
     }
     
-    .main-content {
-        margin-left: 0;
+    .card-header {
+        padding: 0.75rem;
+        padding-bottom: 0.75rem;
+        margin-bottom: 0.75rem;
     }
     
-    .stats-grid {
-        grid-template-columns: 1fr;
+    .card-title {
+        font-size: 0.9375rem;
     }
     
-    .quick-actions-grid {
-        grid-template-columns: 1fr;
+    .progress-container {
+        padding: 0 0.75rem 0.75rem 0.75rem;
+    }
+    
+    .progress-label,
+    .progress-value {
+        font-size: 0.8125rem;
+    }
+    
+    .steps-list {
+        gap: 0.5rem;
+        padding: 0 0.75rem 0.75rem 0.75rem;
+    }
+    
+    .step-item {
+        font-size: 0.8125rem;
+        gap: 0.5rem;
+        flex-wrap: nowrap;
+        padding: 0.5rem;
+        margin: -0.5rem;
+    }
+    
+    .step-item[style*="cursor: pointer"] {
+        padding: 0.5rem;
+        margin: -0.5rem;
+    }
+    
+    .step-icon {
+        width: 18px;
+        height: 18px;
+    }
+    
+    .step-text {
+        font-size: 0.8125rem;
+        line-height: 1.4;
+    }
+    
+    .activity-list {
+        gap: 0.75rem;
+    }
+    
+    .activity-header {
+        flex-wrap: wrap;
     }
 }
 

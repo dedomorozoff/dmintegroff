@@ -6,7 +6,9 @@ import (
 	"dmintegroff/internal/models"
 	"dmintegroff/internal/routes"
 	"dmintegroff/internal/services"
+	"fmt"
 	"log"
+	"os"
 
 	"github.com/joho/godotenv"
 )
@@ -34,6 +36,17 @@ func main() {
 
 	r := routes.SetupRouter(healthService)
 
-	logger.Log.Info("Server starting on :8080")
-	r.Run(":8080")
+	host := os.Getenv("HOST")
+	if host == "" {
+		host = "0.0.0.0"
+	}
+	
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	addr := fmt.Sprintf("%s:%s", host, port)
+	logger.Log.Info("Server starting on " + addr)
+	r.Run(addr)
 }
