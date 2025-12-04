@@ -8,6 +8,17 @@
             <h1>Создание интеграции</h1>
             <p>Настройте новую интеграцию между системами</p>
         </div>
+        
+        <div class="page-header-mobile">
+            <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Меню">
+                <i data-lucide="menu"></i>
+            </button>
+            <a href="/dashboard">
+                <img src="/static/img/logo.png" alt="dmIntegroff" class="page-header-logo">
+            </a>
+            <h1 class="page-header-title">Создание интеграции</h1>
+        </div>
+        <div class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
 
         {{ if not .projects }}
         <div class="info-box" style="background: #fff3cd; border-color: #ffc107; color: #856404;">

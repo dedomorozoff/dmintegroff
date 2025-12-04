@@ -26,6 +26,7 @@ func main() {
 	// Define commands
 	resetPassword := flag.Bool("reset-password", false, "Сбросить пароль администратора")
 	generateSecret := flag.Bool("generate-secret", false, "Сгенерировать случайный URL для приложения")
+	generateDemoKey := flag.Bool("generate-demo-key", false, "Сгенерировать демо API ключ")
 	migrate := flag.Bool("migrate", false, "Выполнить миграцию базы данных")
 	flag.Parse()
 
@@ -40,6 +41,8 @@ func main() {
 		resetAdminPassword()
 	} else if *generateSecret {
 		generateRandomSecret()
+	} else if *generateDemoKey {
+		generateDemoAPIKey()
 	} else {
 		showMenu()
 	}
@@ -50,6 +53,7 @@ func showMenu() {
 	fmt.Println("1. Выполнить миграцию базы данных")
 	fmt.Println("2. Сбросить пароль администратора")
 	fmt.Println("3. Сгенерировать случайный URL")
+	fmt.Println("4. Сгенерировать демо API ключ")
 	fmt.Println("0. Выход")
 	fmt.Print("\nВыберите действие: ")
 
@@ -64,6 +68,8 @@ func showMenu() {
 		resetAdminPassword()
 	case "3":
 		generateRandomSecret()
+	case "4":
+		generateDemoAPIKey()
 	case "0":
 		fmt.Println("Выход...")
 	default:
@@ -122,6 +128,28 @@ func generateRandomSecret() {
 	fmt.Println("После этого приложение будет доступно по адресу:")
 	fmt.Printf("   http://localhost:8080/%s\n\n", randomPath)
 	fmt.Println("⚠️  Не забудьте перезапустить сервер!")
+}
+
+func generateDemoAPIKey() {
+	fmt.Println("\n=== Генерация демо API ключа ===")
+	
+	// Generate random API key
+	bytes := make([]byte, 32)
+	if _, err := rand.Read(bytes); err != nil {
+		log.Fatal("Ошибка генерации:", err)
+	}
+	apiKey := hex.EncodeToString(bytes)
+
+	fmt.Printf("\n🔑 Демо API ключ:\n")
+	fmt.Printf("   %s\n\n", apiKey)
+	fmt.Println("Используйте этот ключ для тестирования интеграций.")
+	fmt.Println("Добавьте его в заголовок Authorization:")
+	fmt.Printf("   Authorization: Bearer %s\n\n", apiKey)
+	fmt.Println("Пример curl запроса:")
+	fmt.Printf("   curl -X POST http://localhost:8080/api/endpoint \\\n")
+	fmt.Printf("     -H \"Authorization: Bearer %s\" \\\n", apiKey)
+	fmt.Printf("     -H \"Content-Type: application/json\" \\\n")
+	fmt.Printf("     -d '{\"test\": \"data\"}'\n\n")
 }
 
 func runMigration() {

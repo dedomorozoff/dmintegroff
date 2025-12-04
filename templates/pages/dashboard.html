@@ -4,10 +4,25 @@
 
     <!-- Main Content -->
     <main class="main-content">
+        <!-- Page Header -->
         <div class="page-header">
             <h1>Панель управления</h1>
             <p>Обзор всех интеграций и статистики</p>
         </div>
+        
+        <!-- Mobile Header -->
+        <div class="page-header-mobile">
+            <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Меню">
+                <i data-lucide="menu"></i>
+            </button>
+            <a href="/dashboard">
+                <img src="/static/img/logo.png" alt="dmIntegroff" class="page-header-logo">
+            </a>
+            <h1 class="page-header-title">Панель управления</h1>
+        </div>
+        
+        <!-- Sidebar Overlay -->
+        <div class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
 
         <!-- Stats -->
         <div class="stats-grid">
@@ -572,5 +587,25 @@
 
     // Обновляем активность каждые 30 секунд
     setInterval(updateActivity, 30000);
+    
+    // Mobile Sidebar Toggle
+    function toggleMobileSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.querySelector('.sidebar-overlay');
+        sidebar.classList.toggle('mobile-open');
+        overlay.classList.toggle('active');
+    }
+    
+    function closeMobileSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.querySelector('.sidebar-overlay');
+        sidebar.classList.remove('mobile-open');
+        overlay.classList.remove('active');
+    }
+    
+    // Закрытие sidebar при клике на ссылку
+    document.querySelectorAll('.sidebar a').forEach(link => {
+        link.addEventListener('click', closeMobileSidebar);
+    });
 </script>
 {{ end }}

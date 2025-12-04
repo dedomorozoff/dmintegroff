@@ -209,6 +209,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const table = document.querySelector('table');
     if (!table) return;
     
+    // Проверяем есть ли интеграции (строки с data-integration-id)
+    const rows = table.querySelectorAll('tbody tr[data-integration-id]');
+    if (rows.length === 0) return; // Нет интеграций - не добавляем чекбоксы
+    
     // Add header checkbox
     const headerRow = table.querySelector('thead tr');
     const th = document.createElement('th');
@@ -217,7 +221,6 @@ document.addEventListener('DOMContentLoaded', function() {
     headerRow.insertBefore(th, headerRow.firstChild);
     
     // Add row checkboxes
-    const rows = table.querySelectorAll('tbody tr');
     rows.forEach(row => {
         const integrationId = row.getAttribute('data-integration-id');
         const td = document.createElement('td');

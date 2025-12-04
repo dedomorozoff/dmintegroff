@@ -32,12 +32,23 @@
                 </div>
             </div>
         </div>
+        
+        <div class="page-header-mobile">
+            <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Меню">
+                <i data-lucide="menu"></i>
+            </button>
+            <a href="/dashboard">
+                <img src="/static/img/logo.png" alt="dmIntegroff" class="page-header-logo">
+            </a>
+            <h1 class="page-header-title">{{ .project.Name }}</h1>
+        </div>
+        <div class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
 
         <!-- Интеграции в проекте -->
         <div class="card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                 <h2 class="card-title">Интеграции в проекте</h2>
-                <a href="/projects/{{ .project.ID }}/integrations/create" class="btn btn-success">
+                <a href="/projects/{{ .project.ID }}/integrations/create" class="btn btn-success hide-on-mobile">
                     <i data-lucide="plus"></i> Создать интеграцию
                 </a>
             </div>
