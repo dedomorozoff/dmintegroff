@@ -1,4 +1,4 @@
-# 🚀 GraphQL Support Guide
+# GraphQL Support Guide
 
 ## Обзор
 
@@ -8,7 +8,7 @@ dmIntegroff теперь поддерживает GraphQL API в дополне�
 - Использовать интроспекцию схемы
 - Тестировать GraphQL запросы перед активацией
 
-## 📋 Возможности
+## Возможности
 
 ### 1. GraphQL Client
 - Отправка queries и mutations
@@ -31,16 +31,16 @@ dmIntegroff теперь поддерживает GraphQL API в дополне�
 - Тест выполнения запросов с тестовыми данными
 - Просмотр результатов в реальном времени
 
-## 🎯 Создание GraphQL интеграции
+## Создание GraphQL интеграции
 
 ### Шаг 1: Создание интеграции
 
 1. Перейдите в **"Интеграции"** → **"Создать"**
 2. Выберите **API Type: GraphQL**
 3. Укажите:
-   - **Название**: Описательное имя интеграции
-   - **GraphQL Endpoint**: URL GraphQL API (например, `https://api.example.com/graphql`)
-   - **Проект**: Выберите проект для организации
+- **Название**: Описательное имя интеграции
+- **GraphQL Endpoint**: URL GraphQL API (например, `https://api.example.com/graphql`)
+- **Проект**: Выберите проект для организации
 
 ### Шаг 2: Настройка аутентификации (опционально)
 
@@ -80,26 +80,26 @@ Password: your-password
 #### Пример Query
 ```graphql
 query GetUser($userId: ID!) {
-  user(id: $userId) {
-    id
-    name
-    email
-    profile {
-      age
-      city
-    }
-  }
+ user(id: $userId) {
+ id
+ name
+ email
+ profile {
+ age
+ city
+ }
+ }
 }
 ```
 
 #### Пример Mutation
 ```graphql
 mutation CreateUser($input: CreateUserInput!) {
-  createUser(input: $input) {
-    id
-    name
-    email
-  }
+ createUser(input: $input) {
+ id
+ name
+ email
+ }
 }
 ```
 
@@ -109,8 +109,8 @@ mutation CreateUser($input: CreateUserInput!) {
 
 ```json
 {
-  "userId": "user.id",
-  "input": "user"
+ "userId": "user.id",
+ "input": "user"
 }
 ```
 
@@ -124,11 +124,11 @@ mutation CreateUser($input: CreateUserInput!) {
 2. Укажите тестовый payload:
 ```json
 {
-  "user": {
-    "id": "123",
-    "name": "John Doe",
-    "email": "john@example.com"
-  }
+ "user": {
+ "id": "123",
+ "name": "John Doe",
+ "email": "john@example.com"
+ }
 }
 ```
 3. Просмотрите результат выполнения
@@ -137,7 +137,7 @@ mutation CreateUser($input: CreateUserInput!) {
 
 Нажмите **"Activate"** для активации интеграции.
 
-## 📝 Примеры использования
+## Примеры использования
 
 ### Пример 1: REST → GraphQL Query
 
@@ -146,26 +146,26 @@ mutation CreateUser($input: CreateUserInput!) {
 **Webhook payload**:
 ```json
 {
-  "user_id": "123"
+ "user_id": "123"
 }
 ```
 
 **GraphQL Query**:
 ```graphql
 query GetUser($id: ID!) {
-  user(id: $id) {
-    id
-    name
-    email
-    createdAt
-  }
+ user(id: $id) {
+ id
+ name
+ email
+ createdAt
+ }
 }
 ```
 
 **Variable Mapping**:
 ```json
 {
-  "id": "user_id"
+ "id": "user_id"
 }
 ```
 
@@ -178,33 +178,33 @@ query GetUser($id: ID!) {
 **Webhook payload**:
 ```json
 {
-  "name": "John Doe",
-  "email": "john@example.com",
-  "age": 30
+ "name": "John Doe",
+ "email": "john@example.com",
+ "age": 30
 }
 ```
 
 **GraphQL Mutation**:
 ```graphql
 mutation CreateUser($name: String!, $email: String!, $age: Int!) {
-  createUser(input: {
-    name: $name
-    email: $email
-    age: $age
-  }) {
-    id
-    name
-    email
-  }
+ createUser(input: {
+ name: $name
+ email: $email
+ age: $age
+ }) {
+ id
+ name
+ email
+ }
 }
 ```
 
 **Variable Mapping**:
 ```json
 {
-  "name": "name",
-  "email": "email",
-  "age": "age"
+ "name": "name",
+ "email": "email",
+ "age": "age"
 }
 ```
 
@@ -213,37 +213,37 @@ mutation CreateUser($name: String!, $email: String!, $age: Int!) {
 **Webhook payload**:
 ```json
 {
-  "user": {
-    "profile": {
-      "firstName": "John",
-      "lastName": "Doe"
-    },
-    "contact": {
-      "email": "john@example.com"
-    }
-  }
+ "user": {
+ "profile": {
+ "firstName": "John",
+ "lastName": "Doe"
+ },
+ "contact": {
+ "email": "john@example.com"
+ }
+ }
 }
 ```
 
 **GraphQL Mutation**:
 ```graphql
 mutation UpdateUser($firstName: String!, $lastName: String!, $email: String!) {
-  updateUser(input: {
-    firstName: $firstName
-    lastName: $lastName
-    email: $email
-  }) {
-    id
-  }
+ updateUser(input: {
+ firstName: $firstName
+ lastName: $lastName
+ email: $email
+ }) {
+ id
+ }
 }
 ```
 
 **Variable Mapping**:
 ```json
 {
-  "firstName": "user.profile.firstName",
-  "lastName": "user.profile.lastName",
-  "email": "user.contact.email"
+ "firstName": "user.profile.firstName",
+ "lastName": "user.profile.lastName",
+ "email": "user.contact.email"
 }
 ```
 
@@ -254,25 +254,25 @@ mutation UpdateUser($firstName: String!, $lastName: String!, $email: String!) {
 **GraphQL Query**:
 ```graphql
 query {
-  user(id: {{user.id}}) {
-    name
-    email
-  }
+ user(id: {{user.id}}) {
+ name
+ email
+ }
 }
 ```
 
 **Webhook payload**:
 ```json
 {
-  "user": {
-    "id": "123"
-  }
+ "user": {
+ "id": "123"
+ }
 }
 ```
 
 Система автоматически заменит `{{user.id}}` на `"123"`.
 
-## 🔧 API Endpoints
+## API Endpoints
 
 ### Introspect Schema
 ```http
@@ -284,8 +284,8 @@ POST /api/graphql/introspect/:id
 **Response**:
 ```json
 {
-  "schema": "...",
-  "updated_at": 1234567890
+ "schema": "...",
+ "updated_at": 1234567890
 }
 ```
 
@@ -299,8 +299,8 @@ GET /api/graphql/schema/:id
 **Response**:
 ```json
 {
-  "schema": "...",
-  "updated_at": 1234567890
+ "schema": "...",
+ "updated_at": 1234567890
 }
 ```
 
@@ -310,17 +310,17 @@ POST /api/graphql/test-connection
 Content-Type: application/json
 
 {
-  "endpoint": "https://api.example.com/graphql",
-  "auth_type": "bearer",
-  "bearer_token": "your-token"
+ "endpoint": "https://api.example.com/graphql",
+ "auth_type": "bearer",
+ "bearer_token": "your-token"
 }
 ```
 
 **Response**:
 ```json
 {
-  "success": true,
-  "message": "GraphQL connection successful"
+ "success": true,
+ "message": "GraphQL connection successful"
 }
 ```
 
@@ -330,28 +330,28 @@ POST /api/graphql/test-query
 Content-Type: application/json
 
 {
-  "integration_id": 1,
-  "query": "query { user(id: \"123\") { name } }",
-  "variables": {},
-  "test_payload": {
-    "user_id": "123"
-  }
+ "integration_id": 1,
+ "query": "query { user(id: \"123\") { name } }",
+ "variables": {},
+ "test_payload": {
+ "user_id": "123"
+ }
 }
 ```
 
 **Response**:
 ```json
 {
-  "success": true,
-  "data": {
-    "user": {
-      "name": "John Doe"
-    }
-  }
+ "success": true,
+ "data": {
+ "user": {
+ "name": "John Doe"
+ }
+ }
 }
 ```
 
-## 🎨 UI Components
+## UI Components
 
 ### GraphQL Query Editor
 - Syntax highlighting для GraphQL
@@ -369,7 +369,7 @@ Content-Type: application/json
 - Поиск по схеме
 - Документация полей
 
-## 🔍 Troubleshooting
+## Troubleshooting
 
 ### Ошибка: "GraphQL connection test failed"
 
@@ -405,7 +405,7 @@ Content-Type: application/json
 2. Убедитесь, что пути к полям корректны
 3. Используйте "Test Query" с тестовым payload
 
-## 📊 Логирование
+## Логирование
 
 Все GraphQL запросы логируются в разделе **"Логи"**:
 - Тип: `graphql`
@@ -414,7 +414,7 @@ Content-Type: application/json
 - Response Body: Результат выполнения
 - Status Code: HTTP статус
 
-## 🔐 Безопасность
+## Безопасность
 
 ### Аутентификация
 - Поддержка OAuth 2.0 с автоматическим обновлением токенов
@@ -426,27 +426,27 @@ Content-Type: application/json
 - HTTPS для production
 - Валидация всех входных данных
 
-## 🚀 Best Practices
+## Best Practices
 
 ### 1. Используйте переменные
 Вместо:
 ```graphql
 query {
-  user(id: "123") { name }
+ user(id: "123") { name }
 }
 ```
 
 Используйте:
 ```graphql
 query GetUser($id: ID!) {
-  user(id: $id) { name }
+ user(id: $id) { name }
 }
 ```
 
 ### 2. Указывайте operation names
 ```graphql
 query GetUser($id: ID!) {
-  user(id: $id) { name }
+ user(id: $id) { name }
 }
 ```
 
@@ -464,13 +464,13 @@ query GetUser($id: ID!) {
 - Проверяйте поле `errors` в ответе
 - Логируйте все ошибки для отладки
 
-## 📚 Дополнительные ресурсы
+## Дополнительные ресурсы
 
 - [GraphQL Official Documentation](https://graphql.org/)
 - [GraphQL Best Practices](https://graphql.org/learn/best-practices/)
 - [GraphQL Schema Design](https://graphql.org/learn/schema/)
 
-## 🎓 Примеры популярных GraphQL API
+## Примеры популярных GraphQL API
 
 ### GitHub GraphQL API
 ```
@@ -492,6 +492,6 @@ Auth: Bearer Token or Admin Secret
 
 ---
 
-**Дата**: 2024-12-04  
-**Версия**: 1.0  
-**Статус**: ✅ Готово к использованию
+**Дата**: 2024-12-04 
+**Версия**: 1.0 
+**Статус**: Готово к использованию

@@ -1,4 +1,4 @@
-# 🎨 Подсветка синтаксиса JSON
+# Подсветка синтаксиса JSON
 
 ## Обзор
 
@@ -10,11 +10,11 @@
 
 | Элемент | Цвет | Пример |
 |---------|------|--------|
-| **Строки** | 🟢 Зеленый (#98c379) | `"Hello World"` |
+| **Строки** | Зеленый (#98c379) | `"Hello World"` |
 | **Числа** | 🟠 Оранжевый (#d19a66) | `42`, `3.14` |
 | **Булевы** | 🔵 Голубой (#56b6c2) | `true`, `false` |
 | **null** | 🟣 Фиолетовый (#c678dd) | `null` |
-| **Ключи** | 🔴 Красный (#e06c75) | `"name":` |
+| **Ключи** | Красный (#e06c75) | `"name":` |
 | **Плейсхолдеры** | 💙 Синий (#61afef) | `{{user.name}}` |
 
 ### Специальная подсветка плейсхолдеров
@@ -29,10 +29,10 @@
 ### Простой JSON
 ```json
 {
-  "name": "Иван",
-  "age": 30,
-  "active": true,
-  "balance": null
+ "name": "Иван",
+ "age": 30,
+ "active": true,
+ "balance": null
 }
 ```
 
@@ -46,9 +46,9 @@
 ### JSON с плейсхолдерами
 ```json
 {
-  "userName": "{{user.name}}",
-  "userAge": {{user.age}},
-  "isActive": {{user.active}}
+ "userName": "{{user.name}}",
+ "userAge": {{user.age}},
+ "isActive": {{user.active}}
 }
 ```
 
@@ -61,21 +61,21 @@
 ### Сложная структура
 ```json
 {
-  "customer": {
-    "fullName": "{{user.profile.name}}",
-    "contacts": {
-      "email": "{{user.email}}",
-      "phone": "{{user.phone}}"
-    },
-    "stats": {
-      "orders": {{user.orders.count}},
-      "verified": {{user.verified}}
-    }
-  },
-  "metadata": {
-    "source": "webhook",
-    "version": "1.0"
-  }
+ "customer": {
+ "fullName": "{{user.profile.name}}",
+ "contacts": {
+ "email": "{{user.email}}",
+ "phone": "{{user.phone}}"
+ },
+ "stats": {
+ "orders": {{user.orders.count}},
+ "verified": {{user.verified}}
+ }
+ },
+ "metadata": {
+ "source": "webhook",
+ "version": "1.0"
+ }
 }
 ```
 
@@ -101,8 +101,8 @@
 
 ### Файлы
 ```
-static/js/json-highlight.js      - JavaScript для подсветки
-static/css/json-highlight.css    - Стили для подсветки
+static/js/json-highlight.js - JavaScript для подсветки
+static/css/json-highlight.css - Стили для подсветки
 ```
 
 ### Принцип работы
@@ -113,27 +113,27 @@ static/css/json-highlight.css    - Стили для подсветки
 
 ### Классы CSS
 ```css
-.json-editor          - Textarea для ввода
-.json-preview         - Div с подсветкой
-.json-string          - Строки
-.json-number          - Числа
-.json-boolean         - Булевы значения
-.json-null            - null
-.json-key             - Ключи объектов
-.json-placeholder     - Плейсхолдеры в строках
+.json-editor - Textarea для ввода
+.json-preview - Div с подсветкой
+.json-string - Строки
+.json-number - Числа
+.json-boolean - Булевы значения
+.json-null - null
+.json-key - Ключи объектов
+.json-placeholder - Плейсхолдеры в строках
 .json-placeholder-raw - Плейсхолдеры вне строк
 ```
 
 ## Особенности
 
-### ✅ Преимущества
+### Преимущества
 - Легко читать JSON
 - Плейсхолдеры выделяются
 - Ошибки видны сразу
 - Не мешает вводу текста
 - Работает без задержек
 
-### ⚠️ Ограничения
+### Ограничения
 - Не проверяет валидность JSON (для этого есть кнопка "Проверить шаблон")
 - Не показывает номера строк (можно добавить при необходимости)
 - Не поддерживает автодополнение (можно добавить в будущем)
@@ -146,13 +146,13 @@ static/css/json-highlight.css    - Стили для подсветки
 ```css
 /* Строки */
 .json-string {
-    color: #98c379; /* Измените на свой цвет */
+ color: #98c379; /* Измените на свой цвет */
 }
 
 /* Плейсхолдеры */
 .json-placeholder {
-    color: #61afef;
-    background: rgba(97, 175, 239, 0.1);
+ color: #61afef;
+ background: rgba(97, 175, 239, 0.1);
 }
 ```
 
@@ -178,12 +178,12 @@ text = text.replace(/ваш_паттерн/g, '<span class="ваш-класс">$
 ### Базовый пример
 ```html
 <div class="json-editor-container">
-    <textarea id="myEditor" class="json-editor"></textarea>
-    <div id="myEditor_preview" class="json-preview"></div>
+ <textarea id="myEditor" class="json-editor"></textarea>
+ <div id="myEditor_preview" class="json-preview"></div>
 </div>
 
 <script>
-    new JSONHighlighter('myEditor', 'myEditor_preview');
+ new JSONHighlighter('myEditor', 'myEditor_preview');
 </script>
 ```
 
@@ -196,10 +196,10 @@ text = text.replace(/ваш_паттерн/g, '<span class="ваш-класс">$
 
 ## Поддержка браузеров
 
-- ✅ Chrome 90+
-- ✅ Firefox 88+
-- ✅ Safari 14+
-- ✅ Edge 90+
+- Chrome 90+
+- Firefox 88+
+- Safari 14+
+- Edge 90+
 
 ## Производительность
 
@@ -209,4 +209,4 @@ text = text.replace(/ваш_паттерн/g, '<span class="ваш-класс">$
 
 ---
 
-**Приятного использования!** 🎨
+**Приятного использования!** 

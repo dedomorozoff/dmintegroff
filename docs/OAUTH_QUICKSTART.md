@@ -1,4 +1,4 @@
-# ⚡ Быстрый старт с OAuth 2.0
+# Быстрый старт с OAuth 2.0
 
 ## За 5 минут
 
@@ -6,30 +6,30 @@
 
 1. Перейдите в **Интеграции** → **Создать**
 2. Заполните основные поля:
-   - Название: "Моя OAuth интеграция"
-   - Target API URL: `https://api.example.com/data`
-   - HTTP метод: POST
-   - Проект: выберите существующий
+- Название: "Моя OAuth интеграция"
+- Target API URL: `https://api.example.com/data`
+- HTTP метод: POST
+- Проект: выберите существующий
 
 ### Шаг 2: Настройте OAuth
 
 3. Прокрутите до **"Аутентификация Target API"**
 4. Выберите тип: **OAuth 2.0**
 5. Заполните поля:
-   ```
-   Token URL: https://api.example.com/oauth/token
-   Client ID: your_client_id
-   Client Secret: your_client_secret
-   Scope: read write (опционально)
-   Grant Type: client_credentials
-   ```
+ ```
+ Token URL: https://api.example.com/oauth/token
+ Client ID: your_client_id
+ Client Secret: your_client_secret
+ Scope: read write (опционально)
+ Grant Type: client_credentials
+ ```
 
 ### Шаг 3: Проверьте настройки
 
 6. Нажмите **"Тест OAuth"**
 7. Дождитесь результата:
-   - ✅ Успех → переходите к шагу 4
-   - ❌ Ошибка → проверьте учетные данные
+- Успех → переходите к шагу 4
+- Ошибка → проверьте учетные данные
 
 ### Шаг 4: Сохраните и активируйте
 
@@ -39,8 +39,8 @@
 
 ```bash
 curl -X POST http://localhost:8080/webhook/YOUR_TOKEN \
-  -H "Content-Type: application/json" \
-  -d '{"name": "John", "email": "john@example.com"}'
+-H "Content-Type: application/json" \
+-d '{"name": "John", "email": "john@example.com"}'
 ```
 
 ### Шаг 5: Настройте маппинг
@@ -49,7 +49,7 @@ curl -X POST http://localhost:8080/webhook/YOUR_TOKEN \
 12. Выберите поля для трансформации
 13. Сохраните и активируйте
 
-## Готово! 🎉
+## Готово! 
 
 Теперь все запросы на ваш webhook будут:
 1. Трансформироваться согласно маппингу
@@ -80,8 +80,8 @@ Password: your_password
 ## Что дальше?
 
 - [📖 Полное руководство по OAuth](OAUTH_GUIDE.md)
-- [🔧 Примеры популярных API](OAUTH_EXAMPLES.md)
-- [🔄 Миграция существующих интеграций](OAUTH_MIGRATION.md)
+- [ Примеры популярных API](OAUTH_EXAMPLES.md)
+- [ Миграция существующих интеграций](OAUTH_MIGRATION.md)
 
 ## Помощь
 

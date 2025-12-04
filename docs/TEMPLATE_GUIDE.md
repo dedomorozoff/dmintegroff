@@ -1,4 +1,4 @@
-# 📝 Руководство по использованию JSON шаблонов
+# Руководство по использованию JSON шаблонов
 
 ## Обзор
 
@@ -15,8 +15,8 @@ dmIntegroff поддерживает два способа трансформа�
 
 ```json
 {
-  "name": "{{user.name}}",
-  "email": "{{user.email}}"
+ "name": "{{user.name}}",
+ "email": "{{user.email}}"
 }
 ```
 
@@ -26,8 +26,8 @@ dmIntegroff поддерживает два способа трансформа�
 Для строковых значений используйте кавычки:
 ```json
 {
-  "name": "{{user.name}}",
-  "city": "{{address.city}}"
+ "name": "{{user.name}}",
+ "city": "{{address.city}}"
 }
 ```
 
@@ -35,21 +35,21 @@ dmIntegroff поддерживает два способа трансформа�
 Для чисел и булевых значений кавычки **не нужны**:
 ```json
 {
-  "age": {{user.age}},
-  "count": {{items.count}},
-  "active": {{is_active}}
+ "age": {{user.age}},
+ "count": {{items.count}},
+ "active": {{is_active}}
 }
 ```
 
 #### Вложенные объекты
 ```json
 {
-  "user": {
-    "profile": {
-      "name": "{{user.name}}",
-      "age": {{user.age}}
-    }
-  }
+ "user": {
+ "profile": {
+ "name": "{{user.name}}",
+ "age": {{user.age}}
+ }
+ }
 }
 ```
 
@@ -58,19 +58,19 @@ dmIntegroff поддерживает два способа трансформа�
 **Доступ к конкретному элементу:**
 ```json
 {
-  "first_item": "{{items[0].name}}",
-  "second_item": "{{items[1].name}}"
+ "first_item": "{{items[0].name}}",
+ "second_item": "{{items[1].name}}"
 }
 ```
 
 **Копирование всего массива (wildcard):**
 ```json
 {
-  "all_items": {{items.*}}
+ "all_items": {{items.*}}
 }
 ```
 
-> 💡 **Новое!** Используйте `{{array.*}}` для копирования массивов неизвестной длины.  
+> **Новое!** Используйте `{{array.*}}` для копирования массивов неизвестной длины. 
 > Подробнее: [ARRAY_WILDCARD.md](ARRAY_WILDCARD.md)
 
 ### Статические значения
@@ -79,10 +79,10 @@ dmIntegroff поддерживает два способа трансформа�
 
 ```json
 {
-  "user_name": "{{user.name}}",
-  "api_version": "v1",
-  "source": "dmIntegroff",
-  "timestamp": "{{timestamp}}"
+ "user_name": "{{user.name}}",
+ "api_version": "v1",
+ "source": "dmIntegroff",
+ "timestamp": "{{timestamp}}"
 }
 ```
 
@@ -93,31 +93,31 @@ dmIntegroff поддерживает два способа трансформа�
 **Входные данные:**
 ```json
 {
-  "firstName": "Иван",
-  "lastName": "Петров",
-  "email": "ivan@example.com"
+ "firstName": "Иван",
+ "lastName": "Петров",
+ "email": "ivan@example.com"
 }
 ```
 
 **Шаблон:**
 ```json
 {
-  "user": {
-    "name": "{{firstName}}",
-    "surname": "{{lastName}}",
-    "contact": "{{email}}"
-  }
+ "user": {
+ "name": "{{firstName}}",
+ "surname": "{{lastName}}",
+ "contact": "{{email}}"
+ }
 }
 ```
 
 **Результат:**
 ```json
 {
-  "user": {
-    "name": "Иван",
-    "surname": "Петров",
-    "contact": "ivan@example.com"
-  }
+ "user": {
+ "name": "Иван",
+ "surname": "Петров",
+ "contact": "ivan@example.com"
+ }
 }
 ```
 
@@ -126,33 +126,33 @@ dmIntegroff поддерживает два способа трансформа�
 **Входные данные:**
 ```json
 {
-  "user": {
-    "profile": {
-      "name": "Мария",
-      "age": 25
-    },
-    "settings": {
-      "notifications": true
-    }
-  }
+ "user": {
+ "profile": {
+ "name": "Мария",
+ "age": 25
+ },
+ "settings": {
+ "notifications": true
+ }
+ }
 }
 ```
 
 **Шаблон:**
 ```json
 {
-  "userName": "{{user.profile.name}}",
-  "userAge": {{user.profile.age}},
-  "notificationsEnabled": {{user.settings.notifications}}
+ "userName": "{{user.profile.name}}",
+ "userAge": {{user.profile.age}},
+ "notificationsEnabled": {{user.settings.notifications}}
 }
 ```
 
 **Результат:**
 ```json
 {
-  "userName": "Мария",
-  "userAge": 25,
-  "notificationsEnabled": true
+ "userName": "Мария",
+ "userAge": 25,
+ "notificationsEnabled": true
 }
 ```
 
@@ -161,43 +161,43 @@ dmIntegroff поддерживает два способа трансформа�
 **Входные данные:**
 ```json
 {
-  "order": {
-    "id": "12345",
-    "items": [
-      {"name": "Товар 1", "price": 100},
-      {"name": "Товар 2", "price": 200}
-    ]
-  }
+ "order": {
+ "id": "12345",
+ "items": [
+ {"name": "Товар 1", "price": 100},
+ {"name": "Товар 2", "price": 200}
+ ]
+ }
 }
 ```
 
 **Шаблон:**
 ```json
 {
-  "orderId": "{{order.id}}",
-  "firstItem": {
-    "name": "{{order.items[0].name}}",
-    "price": {{order.items[0].price}}
-  },
-  "secondItem": {
-    "name": "{{order.items[1].name}}",
-    "price": {{order.items[1].price}}
-  }
+ "orderId": "{{order.id}}",
+ "firstItem": {
+ "name": "{{order.items[0].name}}",
+ "price": {{order.items[0].price}}
+ },
+ "secondItem": {
+ "name": "{{order.items[1].name}}",
+ "price": {{order.items[1].price}}
+ }
 }
 ```
 
 **Результат:**
 ```json
 {
-  "orderId": "12345",
-  "firstItem": {
-    "name": "Товар 1",
-    "price": 100
-  },
-  "secondItem": {
-    "name": "Товар 2",
-    "price": 200
-  }
+ "orderId": "12345",
+ "firstItem": {
+ "name": "Товар 1",
+ "price": 100
+ },
+ "secondItem": {
+ "name": "Товар 2",
+ "price": 200
+ }
 }
 ```
 
@@ -206,35 +206,35 @@ dmIntegroff поддерживает два способа трансформа�
 **Входные данные:**
 ```json
 {
-  "event": "user_registered",
-  "user": {
-    "id": 123,
-    "email": "user@example.com"
-  }
+ "event": "user_registered",
+ "user": {
+ "id": 123,
+ "email": "user@example.com"
+ }
 }
 ```
 
 **Шаблон:**
 ```json
 {
-  "event_type": "{{event}}",
-  "user_id": {{user.id}},
-  "user_email": "{{user.email}}",
-  "source": "webhook",
-  "version": "1.0",
-  "processed_by": "dmIntegroff"
+ "event_type": "{{event}}",
+ "user_id": {{user.id}},
+ "user_email": "{{user.email}}",
+ "source": "webhook",
+ "version": "1.0",
+ "processed_by": "dmIntegroff"
 }
 ```
 
 **Результат:**
 ```json
 {
-  "event_type": "user_registered",
-  "user_id": 123,
-  "user_email": "user@example.com",
-  "source": "webhook",
-  "version": "1.0",
-  "processed_by": "dmIntegroff"
+ "event_type": "user_registered",
+ "user_id": 123,
+ "user_email": "user@example.com",
+ "source": "webhook",
+ "version": "1.0",
+ "processed_by": "dmIntegroff"
 }
 ```
 
@@ -243,52 +243,52 @@ dmIntegroff поддерживает два способа трансформа�
 **Входные данные (от CRM):**
 ```json
 {
-  "lead": {
-    "contact": {
-      "first_name": "Алексей",
-      "last_name": "Смирнов",
-      "phone": "+7 999 123-45-67",
-      "email": "alex@example.com"
-    },
-    "source": "website",
-    "created_at": "2024-11-30T10:00:00Z"
-  }
+ "lead": {
+ "contact": {
+ "first_name": "Алексей",
+ "last_name": "Смирнов",
+ "phone": "+7 999 123-45-67",
+ "email": "alex@example.com"
+ },
+ "source": "website",
+ "created_at": "2024-11-30T10:00:00Z"
+ }
 }
 ```
 
 **Шаблон (для отправки в другую систему):**
 ```json
 {
-  "customer": {
-    "fullName": "{{lead.contact.first_name}} {{lead.contact.last_name}}",
-    "contacts": {
-      "phone": "{{lead.contact.phone}}",
-      "email": "{{lead.contact.email}}"
-    }
-  },
-  "metadata": {
-    "source": "{{lead.source}}",
-    "timestamp": "{{lead.created_at}}",
-    "integration": "dmIntegroff"
-  }
+ "customer": {
+ "fullName": "{{lead.contact.first_name}} {{lead.contact.last_name}}",
+ "contacts": {
+ "phone": "{{lead.contact.phone}}",
+ "email": "{{lead.contact.email}}"
+ }
+ },
+ "metadata": {
+ "source": "{{lead.source}}",
+ "timestamp": "{{lead.created_at}}",
+ "integration": "dmIntegroff"
+ }
 }
 ```
 
 **Результат:**
 ```json
 {
-  "customer": {
-    "fullName": "Алексей Смирнов",
-    "contacts": {
-      "phone": "+7 999 123-45-67",
-      "email": "alex@example.com"
-    }
-  },
-  "metadata": {
-    "source": "website",
-    "timestamp": "2024-11-30T10:00:00Z",
-    "integration": "dmIntegroff"
-  }
+ "customer": {
+ "fullName": "Алексей Смирнов",
+ "contacts": {
+ "phone": "+7 999 123-45-67",
+ "email": "alex@example.com"
+ }
+ },
+ "metadata": {
+ "source": "website",
+ "timestamp": "2024-11-30T10:00:00Z",
+ "integration": "dmIntegroff"
+ }
 }
 ```
 
@@ -296,36 +296,36 @@ dmIntegroff поддерживает два способа трансформа�
 
 Перед сохранением используйте кнопку **"Проверить шаблон"** для валидации:
 
-✅ **Валидный шаблон:**
+ **Валидный шаблон:**
 ```json
 {
-  "name": "{{user.name}}",
-  "age": {{user.age}}
+ "name": "{{user.name}}",
+ "age": {{user.age}}
 }
 ```
 
-❌ **Невалидный шаблон (пропущена запятая):**
+ **Невалидный шаблон (пропущена запятая):**
 ```json
 {
-  "name": "{{user.name}}"
-  "age": {{user.age}}
+ "name": "{{user.name}}"
+ "age": {{user.age}}
 }
 ```
 
-❌ **Невалидный шаблон (лишняя запятая):**
+ **Невалидный шаблон (лишняя запятая):**
 ```json
 {
-  "name": "{{user.name}}",
-  "age": {{user.age}},
+ "name": "{{user.name}}",
+ "age": {{user.age}},
 }
 ```
 
 ## Советы и рекомендации
 
 ### 1. Используйте правильные кавычки
-- ✅ Строки: `"{{field}}"`
-- ✅ Числа: `{{field}}`
-- ✅ Булевы: `{{field}}`
+- Строки: `"{{field}}"`
+- Числа: `{{field}}`
+- Булевы: `{{field}}`
 
 ### 2. Проверяйте структуру JSON
 Используйте онлайн-валидаторы JSON или встроенную проверку в dmIntegroff.
@@ -361,11 +361,11 @@ dmIntegroff поддерживает два способа трансформа�
 
 | Функция | Простой маппинг | Кастомный шаблон |
 |---------|----------------|------------------|
-| Переименование полей | ✅ | ✅ |
-| Изменение структуры | ❌ | ✅ |
-| Статические значения | ❌ | ✅ |
-| Вложенные объекты | ✅ | ✅ |
-| Массивы | ✅ | ✅ |
+| Переименование полей | | |
+| Изменение структуры | | |
+| Статические значения | | |
+| Вложенные объекты | | |
+| Массивы | | |
 | Сложность настройки | Простая | Средняя |
 
 ## Когда использовать каждый метод
@@ -383,4 +383,4 @@ dmIntegroff поддерживает два способа трансформа�
 
 ---
 
-💡 **Совет:** Начните с простого маппинга, а если его недостаточно - переключитесь на кастомный шаблон.
+ **Совет:** Начните с простого маппинга, а если его недостаточно - переключитесь на кастомный шаблон.

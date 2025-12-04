@@ -9,46 +9,46 @@ dmIntegroff построен по архитектуре MVC с использо
 ```
 dmIntegroff/
 ├── cmd/
-│   └── server/           # Точка входа приложения
-│       └── main.go       # Инициализация и запуск сервера
+│ └── server/ # Точка входа приложения
+│ └── main.go # Инициализация и запуск сервера
 ├── internal/
-│   ├── controllers/      # HTTP обработчики (Controller layer)
-│   │   ├── auth_controller.go
-│   │   ├── integration_controller.go
-│   │   └── logs_controller.go
-│   ├── database/         # Работа с БД
-│   │   └── database.go   # Подключение, миграции, seed
-│   ├── logger/           # Логирование
-│   │   └── logger.go     # Настройка logrus
-│   ├── models/           # Модели данных (Model layer)
-│   │   ├── user.go
-│   │   ├── integration.go
-│   │   └── request_log.go
-│   ├── routes/           # Маршруты и middleware
-│   │   └── routes.go
-│   ├── services/         # Бизнес-логика (Service layer)
-│   │   └── webhook_processor.go
-│   └── utils/            # Утилиты
-│       ├── token.go
-│       ├── json_parser.go          # Парсинг JSON для маппинга
-│       └── template_processor.go   # Обработка JSON шаблонов
+│ ├── controllers/ # HTTP обработчики (Controller layer)
+│ │ ├── auth_controller.go
+│ │ ├── integration_controller.go
+│ │ └── logs_controller.go
+│ ├── database/ # Работа с БД
+│ │ └── database.go # Подключение, миграции, seed
+│ ├── logger/ # Логирование
+│ │ └── logger.go # Настройка logrus
+│ ├── models/ # Модели данных (Model layer)
+│ │ ├── user.go
+│ │ ├── integration.go
+│ │ └── request_log.go
+│ ├── routes/ # Маршруты и middleware
+│ │ └── routes.go
+│ ├── services/ # Бизнес-логика (Service layer)
+│ │ └── webhook_processor.go
+│ └── utils/ # Утилиты
+│ ├── token.go
+│ ├── json_parser.go # Парсинг JSON для маппинга
+│ └── template_processor.go # Обработка JSON шаблонов
 ├── static/
-│   ├── css/
-│   │   ├── common.css           # Старые стили (legacy)
-│   │   ├── modern.css           # Новый дизайн
-│   │   └── json-highlight.css   # Стили подсветки JSON
-│   └── js/
-│       ├── common.js            # Общие JS функции
-│       └── json-highlight.js    # Подсветка синтаксиса JSON
-├── templates/            # HTML шаблоны (View layer)
-│   ├── dashboard.html
-│   ├── integrations.html
-│   ├── integration_create.html
-│   ├── integration_edit.html
-│   ├── integration_configure.html
-│   ├── logs.html
-│   └── login.html
-└── docs/                 # Документация
+│ ├── css/
+│ │ ├── common.css # Старые стили (legacy)
+│ │ ├── modern.css # Новый дизайн
+│ │ └── json-highlight.css # Стили подсветки JSON
+│ └── js/
+│ ├── common.js # Общие JS функции
+│ └── json-highlight.js # Подсветка синтаксиса JSON
+├── templates/ # HTML шаблоны (View layer)
+│ ├── dashboard.html
+│ ├── integrations.html
+│ ├── integration_create.html
+│ ├── integration_edit.html
+│ ├── integration_configure.html
+│ ├── logs.html
+│ └── login.html
+└── docs/ # Документация
 ```
 
 ## База данных
@@ -63,10 +63,10 @@ dmIntegroff/
 #### User (Пользователи)
 ```go
 type User struct {
-    gorm.Model              // ID, CreatedAt, UpdatedAt, DeletedAt
-    Username string         // Уникальное имя пользователя
-    Password string         // Bcrypt хеш пароля
-    Role     string         // "admin" или "specialist"
+ gorm.Model // ID, CreatedAt, UpdatedAt, DeletedAt
+ Username string // Уникальное имя пользователя
+ Password string // Bcrypt хеш пароля
+ Role string // "admin" или "specialist"
 }
 ```
 
@@ -83,16 +83,16 @@ type User struct {
 #### Integration (Интеграции)
 ```go
 type Integration struct {
-    gorm.Model
-    Name          string  // Название интеграции
-    WebhookToken  string  // Уникальный токен для webhook URL
-    SourceAPI     string  // URL источника (опционально, для документации)
-    TargetAPI     string  // URL назначения (куда отправлять данные)
-    MappingConfig string  // JSON конфигурация маппинга полей
-    SamplePayload string  // Пример полученных данных (для настройки)
-    Mode          string  // "listening", "active", "inactive"
-    Status        string  // Статус интеграции (deprecated, используйте Mode)
-    CreatedByID   uint    // Foreign Key на users.ID
+ gorm.Model
+ Name string // Название интеграции
+ WebhookToken string // Уникальный токен для webhook URL
+ SourceAPI string // URL источника (опционально, для документации)
+ TargetAPI string // URL назначения (куда отправлять данные)
+ MappingConfig string // JSON конфигурация маппинга полей
+ SamplePayload string // Пример полученных данных (для настройки)
+ Mode string // "listening", "active", "inactive"
+ Status string // Статус интеграции (deprecated, используйте Mode)
+ CreatedByID uint // Foreign Key на users.ID
 }
 ```
 
@@ -106,12 +106,12 @@ type Integration struct {
 #### RequestLog (Логи запросов)
 ```go
 type RequestLog struct {
-    gorm.Model
-    Method       string  // HTTP метод
-    URL          string  // URL запроса
-    RequestBody  string  // Тело запроса (JSON)
-    ResponseBody string  // Тело ответа (опционально)
-    StatusCode   int     // HTTP статус код
+ gorm.Model
+ Method string // HTTP метод
+ URL string // URL запроса
+ RequestBody string // Тело запроса (JSON)
+ ResponseBody string // Тело ответа (опционально)
+ StatusCode int // HTTP статус код
 }
 ```
 
@@ -133,11 +133,11 @@ type RequestLog struct {
 ```go
 token, _ := utils.GenerateToken(16)
 integration := models.Integration{
-    Name:         name,
-    WebhookToken: token,
-    TargetAPI:    targetAPI,
-    Mode:         "listening",
-    CreatedByID:  userID,
+ Name: name,
+ WebhookToken: token,
+ TargetAPI: targetAPI,
+ Mode: "listening",
+ CreatedByID: userID,
 }
 ```
 
@@ -154,15 +154,15 @@ integration := models.Integration{
 **Пример запроса**:
 ```bash
 curl -X POST http://localhost:8080/webhook/abc123 \
-  -H "Content-Type: application/json" \
-  -d '{"user_id": 123, "name": "John", "email": "john@example.com"}'
+-H "Content-Type: application/json" \
+-d '{"user_id": 123, "name": "John", "email": "john@example.com"}'
 ```
 
 **Ответ**:
 ```json
 {
-  "status": "captured",
-  "message": "Sample data captured. Configure field mapping to activate integration."
+ "status": "captured",
+ "message": "Sample data captured. Configure field mapping to activate integration."
 }
 ```
 
@@ -173,16 +173,16 @@ curl -X POST http://localhost:8080/webhook/abc123 \
 **Процесс**:
 1. Отображается `SamplePayload` в читаемом виде
 2. Для каждого поля можно указать:
-   - Новое имя поля для Target API
-   - Флаг "игнорировать" (не отправлять это поле)
+- Новое имя поля для Target API
+- Флаг "игнорировать" (не отправлять это поле)
 3. Маппинг сохраняется в JSON формате
 
 **Пример MappingConfig**:
 ```json
 {
-  "user_id": "external_id",
-  "name": "client_name",
-  "email": "client_email"
+ "user_id": "external_id",
+ "name": "client_name",
+ "email": "client_email"
 }
 ```
 
@@ -203,35 +203,35 @@ curl -X POST http://localhost:8080/webhook/abc123 \
 **Код обработки** (упрощенно):
 ```go
 func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
-    // 1. Загрузка интеграции
-    var integration models.Integration
-    db.First(&integration, integrationID)
-    
-    // 2. Применение маппинга
-    var mapping map[string]string
-    json.Unmarshal([]byte(integration.MappingConfig), &mapping)
-    
-    transformed := make(map[string]interface{})
-    for targetField, sourceField := range mapping {
-        if value, exists := payload[sourceField]; exists {
-            transformed[targetField] = value
-        }
-    }
-    
-    // 3. Отправка на Target API
-    jsonData, _ := json.Marshal(transformed)
-    resp, err := http.Post(integration.TargetAPI, "application/json", bytes.NewBuffer(jsonData))
-    
-    // 4. Логирование
-    log := models.RequestLog{
-        Method:      "POST",
-        URL:         integration.TargetAPI,
-        RequestBody: string(jsonData),
-        StatusCode:  resp.StatusCode,
-    }
-    db.Create(&log)
-    
-    return err
+ // 1. Загрузка интеграции
+ var integration models.Integration
+ db.First(&integration, integrationID)
+ 
+ // 2. Применение маппинга
+ var mapping map[string]string
+ json.Unmarshal([]byte(integration.MappingConfig), &mapping)
+ 
+ transformed := make(map[string]interface{})
+ for targetField, sourceField := range mapping {
+ if value, exists := payload[sourceField]; exists {
+ transformed[targetField] = value
+ }
+ }
+ 
+ // 3. Отправка на Target API
+ jsonData, _ := json.Marshal(transformed)
+ resp, err := http.Post(integration.TargetAPI, "application/json", bytes.NewBuffer(jsonData))
+ 
+ // 4. Логирование
+ log := models.RequestLog{
+ Method: "POST",
+ URL: integration.TargetAPI,
+ RequestBody: string(jsonData),
+ StatusCode: resp.StatusCode,
+ }
+ db.Create(&log)
+ 
+ return err
 }
 ```
 
@@ -275,7 +275,7 @@ func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 ```go
 secret := os.Getenv("SESSION_SECRET")
 if secret == "" {
-    secret = "secret" // Не используйте в production!
+ secret = "secret" // Не используйте в production!
 }
 store := cookie.NewStore([]byte(secret))
 r.Use(sessions.Sessions("mysession", store))
@@ -295,16 +295,16 @@ err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 ### Middleware авторизации
 ```go
 func AuthRequired() gin.HandlerFunc {
-    return func(c *gin.Context) {
-        session := sessions.Default(c)
-        user := session.Get("user_id")
-        if user == nil {
-            c.Redirect(http.StatusFound, "/login")
-            c.Abort()
-            return
-        }
-        c.Next()
-    }
+ return func(c *gin.Context) {
+ session := sessions.Default(c)
+ user := session.Get("user_id")
+ if user == nil {
+ c.Redirect(http.StatusFound, "/login")
+ c.Abort()
+ return
+ }
+ c.Next()
+ }
 }
 ```
 
@@ -328,11 +328,11 @@ func AuthRequired() gin.HandlerFunc {
 Middleware логирует каждый HTTP запрос:
 ```go
 logger.Log.WithFields(logrus.Fields{
-    "method":  c.Request.Method,
-    "path":    c.Request.URL.Path,
-    "status":  c.Writer.Status(),
-    "latency": latency,
-    "ip":      c.ClientIP(),
+ "method": c.Request.Method,
+ "path": c.Request.URL.Path,
+ "status": c.Writer.Status(),
+ "latency": latency,
+ "ip": c.ClientIP(),
 }).Info("HTTP Request")
 ```
 
@@ -362,13 +362,13 @@ PORT=8080
 ### Основные
 ```go
 require (
-    github.com/gin-gonic/gin v1.11.0
-    github.com/gin-contrib/sessions v1.0.1
-    gorm.io/gorm v1.25.12
-    gorm.io/driver/sqlite v1.5.6
-    golang.org/x/crypto v0.28.0
-    github.com/sirupsen/logrus v1.9.3
-    github.com/joho/godotenv v1.5.1
+ github.com/gin-gonic/gin v1.11.0
+ github.com/gin-contrib/sessions v1.0.1
+ gorm.io/gorm v1.25.12
+ gorm.io/driver/sqlite v1.5.6
+ golang.org/x/crypto v0.28.0
+ github.com/sirupsen/logrus v1.9.3
+ github.com/joho/godotenv v1.5.1
 )
 ```
 
@@ -401,7 +401,7 @@ gin.SetMode(gin.DebugMode) // или gin.ReleaseMode
 ### Просмотр SQL запросов
 ```go
 db, _ := gorm.Open(sqlite.Open("dmIntegroff.db"), &gorm.Config{
-    Logger: logger.Default.LogMode(logger.Info),
+ Logger: logger.Default.LogMode(logger.Info),
 })
 ```
 
@@ -409,8 +409,8 @@ db, _ := gorm.Open(sqlite.Open("dmIntegroff.db"), &gorm.Config{
 ```bash
 # Отправка тестовых данных
 curl -X POST http://localhost:8080/test \
-  -H "Content-Type: application/json" \
-  -d '{"test": "data", "value": 123}'
+-H "Content-Type: application/json" \
+-d '{"test": "data", "value": 123}'
 
 # Просмотр в интерфейсе: /logs
 ```
@@ -506,7 +506,7 @@ result, err := processor.ProcessTemplate(template, sourceData)
 
 **Новое поле в таблице `integrations`:**
 ```sql
-output_template TEXT  -- JSON шаблон с плейсхолдерами
+output_template TEXT -- JSON шаблон с плейсхолдерами
 ```
 
 **Миграция:** `migrations/005_add_output_template_sqlite.sql`
@@ -531,14 +531,14 @@ output_template TEXT  -- JSON шаблон с плейсхолдерами
 **Логика выбора:**
 ```go
 if integration.OutputTemplate != "" {
-    // Используем шаблон
-    result = processor.ProcessTemplate(template, payload)
+ // Используем шаблон
+ result = processor.ProcessTemplate(template, payload)
 } else if integration.MappingConfig != "" {
-    // Используем маппинг
-    result = applyMapping(mapping, payload)
+ // Используем маппинг
+ result = applyMapping(mapping, payload)
 } else {
-    // Passthrough
-    result = payload
+ // Passthrough
+ result = payload
 }
 ```
 

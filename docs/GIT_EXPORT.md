@@ -6,12 +6,12 @@
 
 ## Возможности
 
-- ✅ Экспорт напрямую в локальный Git репозиторий
-- ✅ Автоматический коммит с настраиваемым сообщением
-- ✅ Опциональный автоматический push
-- ✅ Выбор ветки для коммита
-- ✅ Настраиваемый путь к файлу в репозитории
-- ✅ Проверка наличия изменений (не создает пустые коммиты)
+- Экспорт напрямую в локальный Git репозиторий
+- Автоматический коммит с настраиваемым сообщением
+- Опциональный автоматический push
+- Выбор ветки для коммита
+- Настраиваемый путь к файлу в репозитории
+- Проверка наличия изменений (не создает пустые коммиты)
 
 ## Использование
 
@@ -20,22 +20,22 @@
 1. Выберите интеграции с помощью чекбоксов
 2. Нажмите кнопку **Экспорт в Git**
 3. Заполните форму:
-   - **Путь к Git репозиторию** - абсолютный путь (например: `/home/user/my-repo`)
-   - **Путь к файлу** - относительный путь в репозитории (например: `configs/integrations.json`)
-   - **Ветка** - ветка для коммита (по умолчанию: `main`)
-   - **Сообщение коммита** - опционально, будет сгенерировано автоматически
-   - **Автоматический push** - отправить изменения на remote
+- **Путь к Git репозиторию** - абсолютный путь (например: `/home/user/my-repo`)
+- **Путь к файлу** - относительный путь в репозитории (например: `configs/integrations.json`)
+- **Ветка** - ветка для коммита (по умолчанию: `main`)
+- **Сообщение коммита** - опционально, будет сгенерировано автоматически
+- **Автоматический push** - отправить изменения на remote
 4. Нажмите **Экспортировать в Git**
 
 ### Через API
 
 ```bash
 curl -X POST "http://localhost:8080/export/git/integrations?ids=1,2,3" \
-  -H "Cookie: mysession=..." \
-  -F "repo_path=/path/to/repo" \
-  -F "file_path=configs/integrations.json" \
-  -F "branch=main" \
-  -F "auto_push=true"
+-H "Cookie: mysession=..." \
+-F "repo_path=/path/to/repo" \
+-F "file_path=configs/integrations.json" \
+-F "branch=main" \
+-F "auto_push=true"
 ```
 
 
@@ -45,20 +45,20 @@ curl -X POST "http://localhost:8080/export/git/integrations?ids=1,2,3" \
 
 ```bash
 curl -X POST "http://localhost:8080/export/git/integrations?ids=1,2,3" \
-  -F "repo_path=/home/user/config-repo" \
-  -F "file_path=production/integrations.json" \
-  -F "branch=main" \
-  -F "commit_msg=Update production integrations" \
-  -F "auto_push=true"
+-F "repo_path=/home/user/config-repo" \
+-F "file_path=production/integrations.json" \
+-F "branch=main" \
+-F "commit_msg=Update production integrations" \
+-F "auto_push=true"
 ```
 
 ### Экспорт проекта
 
 ```bash
 curl -X POST "http://localhost:8080/export/git/projects/1" \
-  -F "repo_path=/home/user/config-repo" \
-  -F "file_path=projects/project-1.json" \
-  -F "branch=develop"
+-F "repo_path=/home/user/config-repo" \
+-F "file_path=projects/project-1.json" \
+-F "branch=develop"
 ```
 
 ## Workflow примеры
@@ -74,10 +74,10 @@ FILE_PATH="configs/integrations.json"
 
 # Экспорт в Git
 curl -X POST "http://localhost:8080/export/git/integrations?ids=1,2,3" \
-  -F "repo_path=$REPO_PATH" \
-  -F "file_path=$FILE_PATH" \
-  -F "branch=main" \
-  -F "auto_push=true"
+-F "repo_path=$REPO_PATH" \
+-F "file_path=$FILE_PATH" \
+-F "branch=main" \
+-F "auto_push=true"
 ```
 
 ### Версионирование по окружениям
@@ -85,22 +85,22 @@ curl -X POST "http://localhost:8080/export/git/integrations?ids=1,2,3" \
 ```bash
 # Development
 curl -X POST "http://localhost:8080/export/git/projects/1" \
-  -F "repo_path=/repo" \
-  -F "file_path=dev/integrations.json" \
-  -F "branch=develop"
+-F "repo_path=/repo" \
+-F "file_path=dev/integrations.json" \
+-F "branch=develop"
 
 # Staging
 curl -X POST "http://localhost:8080/export/git/projects/2" \
-  -F "repo_path=/repo" \
-  -F "file_path=staging/integrations.json" \
-  -F "branch=staging"
+-F "repo_path=/repo" \
+-F "file_path=staging/integrations.json" \
+-F "branch=staging"
 
 # Production
 curl -X POST "http://localhost:8080/export/git/projects/3" \
-  -F "repo_path=/repo" \
-  -F "file_path=production/integrations.json" \
-  -F "branch=main" \
-  -F "auto_push=true"
+-F "repo_path=/repo" \
+-F "file_path=production/integrations.json" \
+-F "branch=main" \
+-F "auto_push=true"
 ```
 
 ## Требования
@@ -111,7 +111,7 @@ curl -X POST "http://localhost:8080/export/git/projects/3" \
 
 ## Безопасность
 
-⚠️ **Важно:**
+ **Важно:**
 - Файлы содержат чувствительные данные (OAuth секреты, токены)
 - Используйте приватные репозитории
 - Настройте `.gitignore` если нужно исключить секреты

@@ -21,7 +21,7 @@ http://localhost:8080/login?demo_key=demo123&username=test_user&password=test123
 ```
 
 Вы увидите:
-- ✅ Сообщение "Демо-пользователь автоматически зарегистрирован"
+- Сообщение "Демо-пользователь автоматически зарегистрирован"
 - Поля логина и пароля уже заполнены
 - Нажмите "Войти в систему"
 
@@ -31,9 +31,9 @@ http://localhost:8080/login?demo_key=demo123&username=test_user&password=test123
 
 1. Перейдите в "Интеграции" → "Создать интеграцию"
 2. Заполните форму:
-   - **Название**: Тестовая интеграция
-   - **Проект**: Выберите существующий или создайте новый
-   - **Target API**: `https://webhook.site/abc-123-def` (должен начинаться с DEMO_TARGET_URL)
+- **Название**: Тестовая интеграция
+- **Проект**: Выберите существующий или создайте новый
+- **Target API**: `https://webhook.site/abc-123-def` (должен начинаться с DEMO_TARGET_URL)
 3. Сохраните интеграцию
 
 ### 4. Отправка тестового вебхука
@@ -42,8 +42,8 @@ http://localhost:8080/login?demo_key=demo123&username=test_user&password=test123
 
 ```bash
 curl -X POST http://localhost:8080/webhook/YOUR_TOKEN \
-  -H "Content-Type: application/json" \
-  -d '{"test": "data", "user": "demo"}'
+-H "Content-Type: application/json" \
+-d '{"test": "data", "user": "demo"}'
 ```
 
 ### 5. Настройка маппинга
@@ -60,8 +60,8 @@ curl -X POST http://localhost:8080/webhook/YOUR_TOKEN \
 ```bash
 # Это НЕ сработает для демо-пользователя
 curl -X POST http://localhost:8080/webhook/YOUR_TOKEN \
-  -H "Content-Type: application/json" \
-  -d '{"test": "data"}'
+-H "Content-Type: application/json" \
+-d '{"test": "data"}'
 ```
 
 Вы получите ошибку: "demo users can only send webhooks to demo target URL"

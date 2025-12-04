@@ -1,17 +1,17 @@
-# 🔄 GraphQL для обогащения REST данных
+# GraphQL для обогащения REST данных
 
-## 🎯 Концепция
+## Концепция
 
 Вы можете использовать GraphQL для **обогащения** данных из REST webhook перед отправкой в целевой REST API.
 
-## 📊 Схема работы
+## Схема работы
 
 ```
-┌─────────────┐      ┌──────────────┐      ┌─────────────┐      ┌──────────────┐
-│ REST Webhook│ ───> │ dmIntegroff  │ ───> │ GraphQL API │ ───> │ Target REST  │
-│   (JSON)    │      │  Transform   │      │  (Query)    │      │   API (JSON) │
-└─────────────┘      └──────────────┘      └─────────────┘      └──────────────┘
-     Step 1               Step 2                Step 3               Step 4
+┌─────────────┐ ┌──────────────┐ ┌─────────────┐ ┌──────────────┐
+│ REST Webhook│ ───> │ dmIntegroff │ ───> │ GraphQL API │ ───> │ Target REST │
+│ (JSON) │ │ Transform │ │ (Query) │ │ API (JSON) │
+└─────────────┘ └──────────────┘ └─────────────┘ └──────────────┘
+ Step 1 Step 2 Step 3 Step 4
 ```
 
 ### Пример сценария
@@ -21,49 +21,49 @@
 **Шаг 1**: Webhook приходит с минимальными данными
 ```json
 {
-  "user_id": "123",
-  "action": "signup"
+ "user_id": "123",
+ "action": "signup"
 }
 ```
 
 **Шаг 2**: dmIntegroff запрашивает данные из GraphQL
 ```graphql
 query GetUser($id: ID!) {
-  user(id: $id) {
-    name
-    email
-    phone
-    company
-  }
+ user(id: $id) {
+ name
+ email
+ phone
+ company
+ }
 }
 ```
 
 **Шаг 3**: Получаем полные данные
 ```json
 {
-  "user": {
-    "name": "John Doe",
-    "email": "john@example.com",
-    "phone": "+1234567890",
-    "company": "Acme Corp"
-  }
+ "user": {
+ "name": "John Doe",
+ "email": "john@example.com",
+ "phone": "+1234567890",
+ "company": "Acme Corp"
+ }
 }
 ```
 
 **Шаг 4**: Отправляем обогащенные данные в CRM
 ```json
 {
-  "contact": {
-    "name": "John Doe",
-    "email": "john@example.com",
-    "phone": "+1234567890",
-    "company": "Acme Corp",
-    "source": "signup"
-  }
+ "contact": {
+ "name": "John Doe",
+ "email": "john@example.com",
+ "phone": "+1234567890",
+ "company": "Acme Corp",
+ "source": "signup"
+ }
 }
 ```
 
-## 🚀 Как реализовать
+## Как реализовать
 
 ### Вариант 1: Две интеграции (текущая реализация)
 
@@ -99,32 +99,32 @@ const axios = require('axios');
 
 // 1. Получаем webhook
 app.post('/webhook', async (req, res) => {
-  const { user_id, action } = req.body;
-  
-  // 2. Запрашиваем данные из GraphQL через dmIntegroff
-  const graphqlResponse = await axios.post(
-    'http://localhost:8080/webhook/GRAPHQL_TOKEN',
-    { user_id }
-  );
-  
-  // 3. Объединяем данные
-  const enrichedData = {
-    ...graphqlResponse.data.user,
-    action,
-    source: 'webhook'
-  };
-  
-  // 4. Отправляем в REST API через dmIntegroff
-  await axios.post(
-    'http://localhost:8080/webhook/REST_TOKEN',
-    enrichedData
-  );
-  
-  res.json({ success: true });
+ const { user_id, action } = req.body;
+ 
+ // 2. Запрашиваем данные из GraphQL через dmIntegroff
+ const graphqlResponse = await axios.post(
+ 'http://localhost:8080/webhook/GRAPHQL_TOKEN',
+ { user_id }
+ );
+ 
+ // 3. Объединяем данные
+ const enrichedData = {
+ ...graphqlResponse.data.user,
+ action,
+ source: 'webhook'
+ };
+ 
+ // 4. Отправляем в REST API через dmIntegroff
+ await axios.post(
+ 'http://localhost:8080/webhook/REST_TOKEN',
+ enrichedData
+ );
+ 
+ res.json({ success: true });
 });
 ```
 
-## 💡 Практические примеры
+## Практические примеры
 
 ### Пример 1: Обогащение данных пользователя
 
@@ -133,56 +133,56 @@ app.post('/webhook', async (req, res) => {
 **Webhook payload**:
 ```json
 {
-  "user_id": "123",
-  "event": "purchase",
-  "amount": 99.99
+ "user_id": "123",
+ "event": "purchase",
+ "amount": 99.99
 }
 ```
 
 **GraphQL Query** (интеграция 1):
 ```graphql
 query GetUser($id: ID!) {
-  user(id: $id) {
-    name
-    email
-    phone
-    address {
-      city
-      country
-    }
-  }
+ user(id: $id) {
+ name
+ email
+ phone
+ address {
+ city
+ country
+ }
+ }
 }
 ```
 
 **Результат GraphQL**:
 ```json
 {
-  "user": {
-    "name": "John Doe",
-    "email": "john@example.com",
-    "phone": "+1234567890",
-    "address": {
-      "city": "New York",
-      "country": "USA"
-    }
-  }
+ "user": {
+ "name": "John Doe",
+ "email": "john@example.com",
+ "phone": "+1234567890",
+ "address": {
+ "city": "New York",
+ "country": "USA"
+ }
+ }
 }
 ```
 
 **Финальный payload в CRM** (интеграция 2):
 ```json
 {
-  "contact": {
-    "name": "John Doe",
-    "email": "john@example.com",
-    "phone": "+1234567890",
-    "city": "New York",
-    "country": "USA"
-  },
-  "purchase": {
-    "amount": 99.99,
-    "date": "2024-12-04"
-  }
+ "contact": {
+ "name": "John Doe",
+ "email": "john@example.com",
+ "phone": "+1234567890",
+ "city": "New York",
+ "country": "USA"
+ },
+ "purchase": {
+ "amount": 99.99,
+ "date": "2024-12-04"
+ }
 }
 ```
 
@@ -193,22 +193,22 @@ query GetUser($id: ID!) {
 **Webhook payload**:
 ```json
 {
-  "order_id": "ORD-123",
-  "customer_id": "CUST-456"
+ "order_id": "ORD-123",
+ "customer_id": "CUST-456"
 }
 ```
 
 **GraphQL Query**:
 ```graphql
 query ValidateOrder($orderId: ID!, $customerId: ID!) {
-  order(id: $orderId) {
-    id
-    status
-    customer {
-      id
-      verified
-    }
-  }
+ order(id: $orderId) {
+ id
+ status
+ customer {
+ id
+ verified
+ }
+ }
 }
 ```
 
@@ -223,7 +223,7 @@ query ValidateOrder($orderId: ID!, $customerId: ID!) {
 **Webhook payload**:
 ```json
 {
-  "user_id": "123"
+ "user_id": "123"
 }
 ```
 
@@ -232,50 +232,50 @@ query ValidateOrder($orderId: ID!, $customerId: ID!) {
 Query 1 - Данные пользователя:
 ```graphql
 query GetUser($id: ID!) {
-  user(id: $id) {
-    name
-    email
-  }
+ user(id: $id) {
+ name
+ email
+ }
 }
 ```
 
 Query 2 - Заказы пользователя:
 ```graphql
 query GetOrders($userId: ID!) {
-  orders(userId: $userId) {
-    id
-    total
-    date
-  }
+ orders(userId: $userId) {
+ id
+ total
+ date
+ }
 }
 ```
 
 Query 3 - Статистика:
 ```graphql
 query GetStats($userId: ID!) {
-  userStats(userId: $userId) {
-    totalSpent
-    orderCount
-  }
+ userStats(userId: $userId) {
+ totalSpent
+ orderCount
+ }
 }
 ```
 
 **Финальный payload**:
 ```json
 {
-  "user": {
-    "name": "John Doe",
-    "email": "john@example.com"
-  },
-  "orders": [...],
-  "stats": {
-    "totalSpent": 1234.56,
-    "orderCount": 15
-  }
+ "user": {
+ "name": "John Doe",
+ "email": "john@example.com"
+ },
+ "orders": [...],
+ "stats": {
+ "totalSpent": 1234.56,
+ "orderCount": 15
+ }
 }
 ```
 
-## 🔧 Реализация через Node.js/Python
+## Реализация через Node.js/Python
 
 ### Node.js пример
 
@@ -288,32 +288,32 @@ app.use(express.json());
 
 // Webhook endpoint
 app.post('/enrich-webhook', async (req, res) => {
-  try {
-    const payload = req.body;
-    
-    // 1. Запрос в GraphQL через dmIntegroff
-    const graphqlResult = await axios.post(
-      'http://localhost:8080/webhook/GRAPHQL_TOKEN',
-      payload
-    );
-    
-    // 2. Объединение данных
-    const enrichedData = {
-      ...payload,
-      ...graphqlResult.data
-    };
-    
-    // 3. Отправка в REST API через dmIntegroff
-    await axios.post(
-      'http://localhost:8080/webhook/REST_TOKEN',
-      enrichedData
-    );
-    
-    res.json({ success: true });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: error.message });
-  }
+ try {
+ const payload = req.body;
+ 
+ // 1. Запрос в GraphQL через dmIntegroff
+ const graphqlResult = await axios.post(
+ 'http://localhost:8080/webhook/GRAPHQL_TOKEN',
+ payload
+ );
+ 
+ // 2. Объединение данных
+ const enrichedData = {
+ ...payload,
+ ...graphqlResult.data
+ };
+ 
+ // 3. Отправка в REST API через dmIntegroff
+ await axios.post(
+ 'http://localhost:8080/webhook/REST_TOKEN',
+ enrichedData
+ );
+ 
+ res.json({ success: true });
+ } catch (error) {
+ console.error(error);
+ res.status(500).json({ error: error.message });
+ }
 });
 
 app.listen(3000);
@@ -329,33 +329,33 @@ app = Flask(__name__)
 
 @app.route('/enrich-webhook', methods=['POST'])
 def enrich_webhook():
-    payload = request.json
-    
-    # 1. Запрос в GraphQL через dmIntegroff
-    graphql_response = requests.post(
-        'http://localhost:8080/webhook/GRAPHQL_TOKEN',
-        json=payload
-    )
-    
-    # 2. Объединение данных
-    enriched_data = {
-        **payload,
-        **graphql_response.json()
-    }
-    
-    # 3. Отправка в REST API через dmIntegroff
-    requests.post(
-        'http://localhost:8080/webhook/REST_TOKEN',
-        json=enriched_data
-    )
-    
-    return jsonify({'success': True})
+ payload = request.json
+ 
+# 1. Запрос в GraphQL через dmIntegroff
+ graphql_response = requests.post(
+ 'http://localhost:8080/webhook/GRAPHQL_TOKEN',
+ json=payload
+ )
+ 
+# 2. Объединение данных
+ enriched_data = {
+ **payload,
+ **graphql_response.json()
+ }
+ 
+# 3. Отправка в REST API через dmIntegroff
+ requests.post(
+ 'http://localhost:8080/webhook/REST_TOKEN',
+ json=enriched_data
+ )
+ 
+ return jsonify({'success': True})
 
 if __name__ == '__main__':
-    app.run(port=3000)
+ app.run(port=3000)
 ```
 
-## 🎯 Будущая функция: GraphQL Enrichment
+## Будущая функция: GraphQL Enrichment
 
 В будущих версиях планируется добавить встроенную поддержку:
 
@@ -363,34 +363,34 @@ if __name__ == '__main__':
 
 ```
 ┌─────────────────────────────────────────────┐
-│  Обогащение данных                          │
+│ Обогащение данных │
 ├─────────────────────────────────────────────┤
-│                                             │
-│  ☑ Обогатить данные через GraphQL          │
-│                                             │
-│  GraphQL Endpoint:                          │
-│  [https://api.example.com/graphql]          │
-│                                             │
-│  GraphQL Query:                             │
-│  ┌─────────────────────────────────────┐   │
-│  │ query GetUser($id: ID!) {           │   │
-│  │   user(id: $id) {                   │   │
-│  │     name                             │   │
-│  │     email                            │   │
-│  │   }                                  │   │
-│  │ }                                    │   │
-│  └─────────────────────────────────────┘   │
-│                                             │
-│  Маппинг переменных:                        │
-│  ┌─────────────────────────────────────┐   │
-│  │ {                                    │   │
-│  │   "id": "user_id"                   │   │
-│  │ }                                    │   │
-│  └─────────────────────────────────────┘   │
-│                                             │
-│  Объединить результат с исходными данными  │
-│  ☑ Да  ☐ Заменить                          │
-│                                             │
+│ │
+│ Обогатить данные через GraphQL │
+│ │
+│ GraphQL Endpoint: │
+│ [https://api.example.com/graphql] │
+│ │
+│ GraphQL Query: │
+│ ┌─────────────────────────────────────┐ │
+│ │ query GetUser($id: ID!) { │ │
+│ │ user(id: $id) { │ │
+│ │ name │ │
+│ │ email │ │
+│ │ } │ │
+│ │ } │ │
+│ └─────────────────────────────────────┘ │
+│ │
+│ Маппинг переменных: │
+│ ┌─────────────────────────────────────┐ │
+│ │ { │ │
+│ │ "id": "user_id" │ │
+│ │ } │ │
+│ └─────────────────────────────────────┘ │
+│ │
+│ Объединить результат с исходными данными │
+│ Да ☐ Заменить │
+│ │
 └─────────────────────────────────────────────┘
 ```
 
@@ -399,40 +399,40 @@ if __name__ == '__main__':
 ```go
 // Псевдокод будущей реализации
 func ProcessWebhookWithEnrichment(integration *Integration, payload map[string]interface{}) error {
-    // 1. Если включено обогащение
-    if integration.EnrichmentEnabled {
-        // 2. Выполнить GraphQL запрос
-        graphqlResult, err := ExecuteGraphQLQuery(integration.EnrichmentQuery, payload)
-        if err != nil {
-            return err
-        }
-        
-        // 3. Объединить данные
-        if integration.EnrichmentMerge {
-            payload = MergeData(payload, graphqlResult)
-        } else {
-            payload = graphqlResult
-        }
-    }
-    
-    // 4. Продолжить обычную обработку
-    return ProcessWebhook(integration, payload)
+ // 1. Если включено обогащение
+ if integration.EnrichmentEnabled {
+ // 2. Выполнить GraphQL запрос
+ graphqlResult, err := ExecuteGraphQLQuery(integration.EnrichmentQuery, payload)
+ if err != nil {
+ return err
+ }
+ 
+ // 3. Объединить данные
+ if integration.EnrichmentMerge {
+ payload = MergeData(payload, graphqlResult)
+ } else {
+ payload = graphqlResult
+ }
+ }
+ 
+ // 4. Продолжить обычную обработку
+ return ProcessWebhook(integration, payload)
 }
 ```
 
-## 📝 Резюме
+## Резюме
 
 ### Сейчас доступно:
 
-✅ **REST → GraphQL** - webhook преобразуется в GraphQL запрос  
-✅ **GraphQL → REST** - через две интеграции или внешний скрипт  
-✅ **Цепочка интеграций** - через внешний оркестратор
+ **REST → GraphQL** - webhook преобразуется в GraphQL запрос 
+ **GraphQL → REST** - через две интеграции или внешний скрипт 
+ **Цепочка интеграций** - через внешний оркестратор
 
 ### Планируется:
 
-🔮 **Встроенное обогащение** - GraphQL как источник дополнительных данных  
-🔮 **Цепочка шагов** - несколько действий в одной интеграции  
-🔮 **Условная логика** - if/else для разных сценариев
+ **Встроенное обогащение** - GraphQL как источник дополнительных данных 
+ **Цепочка шагов** - несколько действий в одной интеграции 
+ **Условная логика** - if/else для разных сценариев
 
 ### Рекомендации:
 
@@ -442,6 +442,6 @@ func ProcessWebhookWithEnrichment(integration *Integration, payload map[string]i
 
 ---
 
-**Дата**: 2024-12-04  
-**Версия**: 1.0  
-**Статус**: 📝 Документация + 🔮 Roadmap
+**Дата**: 2024-12-04 
+**Версия**: 1.0 
+**Статус**: Документация + Roadmap

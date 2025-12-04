@@ -1,18 +1,18 @@
-# 🔄 Пример: REST + GraphQL интеграция
+# Пример: REST + GraphQL интеграция
 
-## 🎯 Задача
+## Задача
 
 Получаем webhook с `user_id`, нужно:
 1. Получить полные данные пользователя из GraphQL API
 2. Отправить обогащенные данные в CRM (REST API)
 
-## 📊 Архитектура
+## Архитектура
 
 ```
 Webhook (user_id) → dmIntegroff → GraphQL API → dmIntegroff → CRM REST API
 ```
 
-## 🚀 Решение 1: Две интеграции
+## Решение 1: Две интеграции
 
 ### Интеграция 1: REST → GraphQL
 
@@ -26,24 +26,24 @@ Webhook (user_id) → dmIntegroff → GraphQL API → dmIntegroff → CRM REST A
 **GraphQL Query**:
 ```graphql
 query GetUser($id: ID!) {
-  user(id: $id) {
-    id
-    name
-    email
-    phone
-    company
-    address {
-      city
-      country
-    }
-  }
+ user(id: $id) {
+ id
+ name
+ email
+ phone
+ company
+ address {
+ city
+ country
+ }
+ }
 }
 ```
 
 **Variable Mapping**:
 ```json
 {
-  "id": "user_id"
+ "id": "user_id"
 }
 ```
 
@@ -61,16 +61,16 @@ query GetUser($id: ID!) {
 **Output Template**:
 ```json
 {
-  "contact": {
-    "name": "{{user.name}}",
-    "email": "{{user.email}}",
-    "phone": "{{user.phone}}",
-    "company": "{{user.company}}",
-    "city": "{{user.address.city}}",
-    "country": "{{user.address.country}}"
-  },
-  "source": "webhook",
-  "created_at": "{{timestamp}}"
+ "contact": {
+ "name": "{{user.name}}",
+ "email": "{{user.email}}",
+ "phone": "{{user.phone}}",
+ "company": "{{user.company}}",
+ "city": "{{user.address.city}}",
+ "country": "{{user.address.country}}"
+ },
+ "source": "webhook",
+ "created_at": "{{timestamp}}"
 }
 ```
 
@@ -81,8 +81,8 @@ query GetUser($id: ID!) {
 **Шаг 1**: Отправьте webhook в интеграцию 1
 ```bash
 curl -X POST http://localhost:8080/webhook/TOKEN1 \
-  -H "Content-Type: application/json" \
-  -d '{"user_id": "123"}'
+-H "Content-Type: application/json" \
+-d '{"user_id": "123"}'
 ```
 
 **Шаг 2**: Скопируйте результат из логов интеграции 1
@@ -90,25 +90,25 @@ curl -X POST http://localhost:8080/webhook/TOKEN1 \
 **Шаг 3**: Отправьте результат в интеграцию 2
 ```bash
 curl -X POST http://localhost:8080/webhook/TOKEN2 \
-  -H "Content-Type: application/json" \
-  -d '{
-    "user": {
-      "id": "123",
-      "name": "John Doe",
-      "email": "john@example.com",
-      "phone": "+1234567890",
-      "company": "Acme Corp",
-      "address": {
-        "city": "New York",
-        "country": "USA"
-      }
-    }
-  }'
+-H "Content-Type: application/json" \
+-d '{
+ "user": {
+ "id": "123",
+ "name": "John Doe",
+ "email": "john@example.com",
+ "phone": "+1234567890",
+ "company": "Acme Corp",
+ "address": {
+ "city": "New York",
+ "country": "USA"
+ }
+ }
+ }'
 ```
 
 **Недостаток**: Ручное копирование данных между интеграциями
 
-## 🚀 Решение 2: Внешний оркестратор (Node.js)
+## Решение 2: Внешний оркестратор (Node.js)
 
 ### Создайте файл `orchestrator.js`
 
@@ -122,56 +122,56 @@ app.use(express.json());
 // Конфигурация
 const DMINTEGROFF_URL = 'http://localhost:8080';
 const GRAPHQL_TOKEN = 'TOKEN1'; // Токен GraphQL интеграции
-const CRM_TOKEN = 'TOKEN2';     // Токен CRM интеграции
+const CRM_TOKEN = 'TOKEN2'; // Токен CRM интеграции
 
 // Webhook endpoint
 app.post('/webhook/enrich', async (req, res) => {
-  try {
-    console.log('📥 Received webhook:', req.body);
-    
-    // Шаг 1: Получить данные из GraphQL через dmIntegroff
-    console.log('🔍 Fetching user data from GraphQL...');
-    const graphqlResponse = await axios.post(
-      `${DMINTEGROFF_URL}/webhook/${GRAPHQL_TOKEN}`,
-      req.body
-    );
-    
-    console.log('✅ GraphQL response:', graphqlResponse.data);
-    
-    // Шаг 2: Отправить обогащенные данные в CRM через dmIntegroff
-    console.log('📤 Sending to CRM...');
-    const crmResponse = await axios.post(
-      `${DMINTEGROFF_URL}/webhook/${CRM_TOKEN}`,
-      graphqlResponse.data
-    );
-    
-    console.log('✅ CRM response:', crmResponse.data);
-    
-    res.json({
-      success: true,
-      message: 'Data enriched and sent to CRM',
-      graphql_data: graphqlResponse.data,
-      crm_response: crmResponse.data
-    });
-    
-  } catch (error) {
-    console.error('❌ Error:', error.message);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
+ try {
+ console.log(' Received webhook:', req.body);
+ 
+ // Шаг 1: Получить данные из GraphQL через dmIntegroff
+ console.log(' Fetching user data from GraphQL...');
+ const graphqlResponse = await axios.post(
+ `${DMINTEGROFF_URL}/webhook/${GRAPHQL_TOKEN}`,
+ req.body
+ );
+ 
+ console.log(' GraphQL response:', graphqlResponse.data);
+ 
+ // Шаг 2: Отправить обогащенные данные в CRM через dmIntegroff
+ console.log(' Sending to CRM...');
+ const crmResponse = await axios.post(
+ `${DMINTEGROFF_URL}/webhook/${CRM_TOKEN}`,
+ graphqlResponse.data
+ );
+ 
+ console.log(' CRM response:', crmResponse.data);
+ 
+ res.json({
+ success: true,
+ message: 'Data enriched and sent to CRM',
+ graphql_data: graphqlResponse.data,
+ crm_response: crmResponse.data
+ });
+ 
+ } catch (error) {
+ console.error(' Error:', error.message);
+ res.status(500).json({
+ success: false,
+ error: error.message
+ });
+ }
 });
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
+ res.json({ status: 'ok' });
 });
 
 const PORT = 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Orchestrator running on http://localhost:${PORT}`);
-  console.log(`📥 Webhook endpoint: http://localhost:${PORT}/webhook/enrich`);
+ console.log(` Orchestrator running on http://localhost:${PORT}`);
+ console.log(` Webhook endpoint: http://localhost:${PORT}/webhook/enrich`);
 });
 ```
 
@@ -192,37 +192,37 @@ node orchestrator.js
 
 ```bash
 curl -X POST http://localhost:3000/webhook/enrich \
-  -H "Content-Type: application/json" \
-  -d '{"user_id": "123"}'
+-H "Content-Type: application/json" \
+-d '{"user_id": "123"}'
 ```
 
 ### Результат
 
 ```json
 {
-  "success": true,
-  "message": "Data enriched and sent to CRM",
-  "graphql_data": {
-    "user": {
-      "id": "123",
-      "name": "John Doe",
-      "email": "john@example.com",
-      "phone": "+1234567890",
-      "company": "Acme Corp",
-      "address": {
-        "city": "New York",
-        "country": "USA"
-      }
-    }
-  },
-  "crm_response": {
-    "id": "contact_456",
-    "created": true
-  }
+ "success": true,
+ "message": "Data enriched and sent to CRM",
+ "graphql_data": {
+ "user": {
+ "id": "123",
+ "name": "John Doe",
+ "email": "john@example.com",
+ "phone": "+1234567890",
+ "company": "Acme Corp",
+ "address": {
+ "city": "New York",
+ "country": "USA"
+ }
+ }
+ },
+ "crm_response": {
+ "id": "contact_456",
+ "created": true
+ }
 }
 ```
 
-## 🚀 Решение 3: Python оркестратор
+## Решение 3: Python оркестратор
 
 ### Создайте файл `orchestrator.py`
 
@@ -236,59 +236,59 @@ logging.basicConfig(level=logging.INFO)
 
 # Конфигурация
 DMINTEGROFF_URL = 'http://localhost:8080'
-GRAPHQL_TOKEN = 'TOKEN1'  # Токен GraphQL интеграции
-CRM_TOKEN = 'TOKEN2'      # Токен CRM интеграции
+GRAPHQL_TOKEN = 'TOKEN1' # Токен GraphQL интеграции
+CRM_TOKEN = 'TOKEN2' # Токен CRM интеграции
 
 @app.route('/webhook/enrich', methods=['POST'])
 def enrich_webhook():
-    try:
-        payload = request.json
-        logging.info(f'📥 Received webhook: {payload}')
-        
-        # Шаг 1: Получить данные из GraphQL
-        logging.info('🔍 Fetching user data from GraphQL...')
-        graphql_response = requests.post(
-            f'{DMINTEGROFF_URL}/webhook/{GRAPHQL_TOKEN}',
-            json=payload
-        )
-        graphql_response.raise_for_status()
-        graphql_data = graphql_response.json()
-        
-        logging.info(f'✅ GraphQL response: {graphql_data}')
-        
-        # Шаг 2: Отправить в CRM
-        logging.info('📤 Sending to CRM...')
-        crm_response = requests.post(
-            f'{DMINTEGROFF_URL}/webhook/{CRM_TOKEN}',
-            json=graphql_data
-        )
-        crm_response.raise_for_status()
-        crm_data = crm_response.json()
-        
-        logging.info(f'✅ CRM response: {crm_data}')
-        
-        return jsonify({
-            'success': True,
-            'message': 'Data enriched and sent to CRM',
-            'graphql_data': graphql_data,
-            'crm_response': crm_data
-        })
-        
-    except Exception as e:
-        logging.error(f'❌ Error: {str(e)}')
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+ try:
+ payload = request.json
+ logging.info(f' Received webhook: {payload}')
+ 
+# Шаг 1: Получить данные из GraphQL
+ logging.info(' Fetching user data from GraphQL...')
+ graphql_response = requests.post(
+ f'{DMINTEGROFF_URL}/webhook/{GRAPHQL_TOKEN}',
+ json=payload
+ )
+ graphql_response.raise_for_status()
+ graphql_data = graphql_response.json()
+ 
+ logging.info(f' GraphQL response: {graphql_data}')
+ 
+# Шаг 2: Отправить в CRM
+ logging.info(' Sending to CRM...')
+ crm_response = requests.post(
+ f'{DMINTEGROFF_URL}/webhook/{CRM_TOKEN}',
+ json=graphql_data
+ )
+ crm_response.raise_for_status()
+ crm_data = crm_response.json()
+ 
+ logging.info(f' CRM response: {crm_data}')
+ 
+ return jsonify({
+ 'success': True,
+ 'message': 'Data enriched and sent to CRM',
+ 'graphql_data': graphql_data,
+ 'crm_response': crm_data
+ })
+ 
+ except Exception as e:
+ logging.error(f' Error: {str(e)}')
+ return jsonify({
+ 'success': False,
+ 'error': str(e)
+ }), 500
 
 @app.route('/health', methods=['GET'])
 def health():
-    return jsonify({'status': 'ok'})
+ return jsonify({'status': 'ok'})
 
 if __name__ == '__main__':
-    print('🚀 Orchestrator running on http://localhost:3000')
-    print('📥 Webhook endpoint: http://localhost:3000/webhook/enrich')
-    app.run(port=3000, debug=True)
+ print(' Orchestrator running on http://localhost:3000')
+ print(' Webhook endpoint: http://localhost:3000/webhook/enrich')
+ app.run(port=3000, debug=True)
 ```
 
 ### Установите зависимости
@@ -303,42 +303,42 @@ pip install flask requests
 python orchestrator.py
 ```
 
-## 📊 Сравнение решений
+## Сравнение решений
 
 | Решение | Сложность | Гибкость | Производительность |
 |---------|-----------|----------|-------------------|
-| Две интеграции | ⭐ Низкая | ⭐⭐ Средняя | ⭐⭐⭐ Высокая |
-| Node.js оркестратор | ⭐⭐ Средняя | ⭐⭐⭐ Высокая | ⭐⭐ Средняя |
-| Python оркестратор | ⭐⭐ Средняя | ⭐⭐⭐ Высокая | ⭐⭐ Средняя |
+| Две интеграции | Низкая | Средняя | Высокая |
+| Node.js оркестратор | Средняя | Высокая | Средняя |
+| Python оркестратор | Средняя | Высокая | Средняя |
 
-## 💡 Рекомендации
+## Рекомендации
 
 ### Используйте две интеграции если:
-- ✅ Простой сценарий
-- ✅ Не нужна автоматизация
-- ✅ Редкие запросы
+- Простой сценарий
+- Не нужна автоматизация
+- Редкие запросы
 
 ### Используйте оркестратор если:
-- ✅ Нужна автоматизация
-- ✅ Сложная логика
-- ✅ Частые запросы
-- ✅ Нужна обработка ошибок
-- ✅ Нужно логирование
+- Нужна автоматизация
+- Сложная логика
+- Частые запросы
+- Нужна обработка ошибок
+- Нужно логирование
 
-## 🔮 Будущее: Встроенная поддержка
+## Будущее: Встроенная поддержка
 
 В будущих версиях планируется добавить встроенную поддержку цепочек:
 
 ```
 ┌─────────────────────────────────────────┐
-│  Интеграция: User Enrichment            │
+│ Интеграция: User Enrichment │
 ├─────────────────────────────────────────┤
-│                                         │
-│  Шаг 1: Получить webhook (REST)        │
-│  Шаг 2: Обогатить через GraphQL         │
-│  Шаг 3: Трансформировать               │
-│  Шаг 4: Отправить в CRM (REST)         │
-│                                         │
+│ │
+│ Шаг 1: Получить webhook (REST) │
+│ Шаг 2: Обогатить через GraphQL │
+│ Шаг 3: Трансформировать │
+│ Шаг 4: Отправить в CRM (REST) │
+│ │
 └─────────────────────────────────────────┘
 ```
 
@@ -346,6 +346,6 @@ python orchestrator.py
 
 ---
 
-**Дата**: 2024-12-04  
-**Версия**: 1.0  
-**Статус**: ✅ Работает (через оркестратор)
+**Дата**: 2024-12-04 
+**Версия**: 1.0 
+**Статус**: Работает (через оркестратор)

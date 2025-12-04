@@ -8,9 +8,9 @@
 // Retry автоматически применяется при получении токена
 token, err := GetAccessToken(integration)
 if err != nil {
-    // Ошибка после всех попыток retry
-    log.Error("Failed to get OAuth token:", err)
-    return err
+ // Ошибка после всех попыток retry
+ log.Error("Failed to get OAuth token:", err)
+ return err
 }
 
 // Используем токен
@@ -23,10 +23,10 @@ req.Header.Set("Authorization", "Bearer "+token)
 // Retry автоматически применяется при отправке webhook
 err := ProcessWebhook(integrationID, payload)
 if err != nil {
-    // Ошибка после всех попыток retry
-    log.Error("Failed to deliver webhook:", err)
-    // Можно добавить в очередь для повторной обработки
-    addToDeadLetterQueue(integrationID, payload)
+ // Ошибка после всех попыток retry
+ log.Error("Failed to deliver webhook:", err)
+ // Можно добавить в очередь для повторной обработки
+ addToDeadLetterQueue(integrationID, payload)
 }
 ```
 
@@ -37,11 +37,11 @@ if err != nil {
 ```go
 // Создаем кастомную конфигурацию
 config := RetryConfig{
-    MaxAttempts:     5,                        // 5 попыток вместо 3
-    InitialDelay:    500 * time.Millisecond,   // Быстрее начинаем
-    MaxDelay:        60 * time.Second,         // Больше максимум
-    Multiplier:      2.0,
-    RetryableStatus: []int{429, 500, 502, 503, 504},
+ MaxAttempts: 5, // 5 попыток вместо 3
+ InitialDelay: 500 * time.Millisecond, // Быстрее начинаем
+ MaxDelay: 60 * time.Second, // Больше максимум
+ Multiplier: 2.0,
+ RetryableStatus: []int{429, 500, 502, 503, 504},
 }
 
 // Используем кастомную конфигурацию
@@ -54,11 +54,11 @@ resp, err := retryWithBackoff(req, client, config)
 ```go
 // Меньше попыток, больше задержки
 config := RetryConfig{
-    MaxAttempts:     2,                    // Только 2 попытки
-    InitialDelay:    2 * time.Second,      // Начинаем с 2 секунд
-    MaxDelay:        10 * time.Second,     // Максимум 10 секунд
-    Multiplier:      2.0,
-    RetryableStatus: []int{503, 504},      // Только для timeout
+ MaxAttempts: 2, // Только 2 попытки
+ InitialDelay: 2 * time.Second, // Начинаем с 2 секунд
+ MaxDelay: 10 * time.Second, // Максимум 10 секунд
+ Multiplier: 2.0,
+ RetryableStatus: []int{503, 504}, // Только для timeout
 }
 
 resp, err := retryWithBackoff(req, client, config)
@@ -84,30 +84,30 @@ resp, err := retryWithBackoff(req, client, config)
 
 ```go
 func ProcessWebhookWithMetrics(integrationID uint, payload map[string]interface{}) error {
-    startTime := time.Now()
-    
-    err := ProcessWebhook(integrationID, payload)
-    
-    duration := time.Since(startTime)
-    
-    if err != nil {
-        // Логируем неудачу с метриками
-        metrics.RecordWebhookFailure(integrationID, duration)
-        log.WithFields(map[string]interface{}{
-            "integration_id": integrationID,
-            "duration_ms":    duration.Milliseconds(),
-            "error":          err.Error(),
-        }).Error("Webhook failed after retries")
-    } else {
-        // Логируем успех
-        metrics.RecordWebhookSuccess(integrationID, duration)
-        log.WithFields(map[string]interface{}{
-            "integration_id": integrationID,
-            "duration_ms":    duration.Milliseconds(),
-        }).Info("Webhook delivered successfully")
-    }
-    
-    return err
+ startTime := time.Now()
+ 
+ err := ProcessWebhook(integrationID, payload)
+ 
+ duration := time.Since(startTime)
+ 
+ if err != nil {
+ // Логируем неудачу с метриками
+ metrics.RecordWebhookFailure(integrationID, duration)
+ log.WithFields(map[string]interface{}{
+ "integration_id": integrationID,
+ "duration_ms": duration.Milliseconds(),
+ "error": err.Error(),
+ }).Error("Webhook failed after retries")
+ } else {
+ // Логируем успех
+ metrics.RecordWebhookSuccess(integrationID, duration)
+ log.WithFields(map[string]interface{}{
+ "integration_id": integrationID,
+ "duration_ms": duration.Milliseconds(),
+ }).Info("Webhook delivered successfully")
+ }
+ 
+ return err
 }
 ```
 
@@ -115,30 +115,30 @@ func ProcessWebhookWithMetrics(integrationID uint, payload map[string]interface{
 
 ```go
 func SendWebhookWithFallback(integration *models.Integration, payload map[string]interface{}) error {
-    // Пробуем основной endpoint
-    err := ProcessWebhook(integration.ID, payload)
-    if err == nil {
-        return nil // Успех
-    }
-    
-    // Если есть fallback URL, пробуем его
-    if integration.FallbackURL != "" {
-        log.Warn("Primary endpoint failed, trying fallback")
-        
-        originalURL := integration.TargetAPI
-        integration.TargetAPI = integration.FallbackURL
-        
-        err = ProcessWebhook(integration.ID, payload)
-        
-        integration.TargetAPI = originalURL // Восстанавливаем
-        
-        if err == nil {
-            return nil // Fallback сработал
-        }
-    }
-    
-    // Оба endpoint не сработали
-    return fmt.Errorf("both primary and fallback endpoints failed: %w", err)
+ // Пробуем основной endpoint
+ err := ProcessWebhook(integration.ID, payload)
+ if err == nil {
+ return nil // Успех
+ }
+ 
+ // Если есть fallback URL, пробуем его
+ if integration.FallbackURL != "" {
+ log.Warn("Primary endpoint failed, trying fallback")
+ 
+ originalURL := integration.TargetAPI
+ integration.TargetAPI = integration.FallbackURL
+ 
+ err = ProcessWebhook(integration.ID, payload)
+ 
+ integration.TargetAPI = originalURL // Восстанавливаем
+ 
+ if err == nil {
+ return nil // Fallback сработал
+ }
+ }
+ 
+ // Оба endpoint не сработали
+ return fmt.Errorf("both primary and fallback endpoints failed: %w", err)
 }
 ```
 
@@ -146,45 +146,45 @@ func SendWebhookWithFallback(integration *models.Integration, payload map[string
 
 ```go
 type CircuitBreaker struct {
-    failures    int
-    lastFailure time.Time
-    threshold   int
-    timeout     time.Duration
+ failures int
+ lastFailure time.Time
+ threshold int
+ timeout time.Duration
 }
 
 func (cb *CircuitBreaker) IsOpen() bool {
-    if cb.failures >= cb.threshold {
-        if time.Since(cb.lastFailure) < cb.timeout {
-            return true // Circuit открыт
-        }
-        // Timeout прошел, сбрасываем
-        cb.failures = 0
-    }
-    return false
+ if cb.failures >= cb.threshold {
+ if time.Since(cb.lastFailure) < cb.timeout {
+ return true // Circuit открыт
+ }
+ // Timeout прошел, сбрасываем
+ cb.failures = 0
+ }
+ return false
 }
 
 func ProcessWebhookWithCircuitBreaker(
-    integrationID uint, 
-    payload map[string]interface{},
-    cb *CircuitBreaker,
+ integrationID uint, 
+ payload map[string]interface{},
+ cb *CircuitBreaker,
 ) error {
-    // Проверяем circuit breaker
-    if cb.IsOpen() {
-        return errors.New("circuit breaker is open, skipping request")
-    }
-    
-    // Пробуем отправить
-    err := ProcessWebhook(integrationID, payload)
-    
-    if err != nil {
-        cb.failures++
-        cb.lastFailure = time.Now()
-        return err
-    }
-    
-    // Успех - сбрасываем счетчик
-    cb.failures = 0
-    return nil
+ // Проверяем circuit breaker
+ if cb.IsOpen() {
+ return errors.New("circuit breaker is open, skipping request")
+ }
+ 
+ // Пробуем отправить
+ err := ProcessWebhook(integrationID, payload)
+ 
+ if err != nil {
+ cb.failures++
+ cb.lastFailure = time.Now()
+ return err
+ }
+ 
+ // Успех - сбрасываем счетчик
+ cb.failures = 0
+ return nil
 }
 ```
 
@@ -192,28 +192,28 @@ func ProcessWebhookWithCircuitBreaker(
 
 ```go
 func ProcessWebhookBatch(webhooks []WebhookRequest) []error {
-    errors := make([]error, len(webhooks))
-    
-    // Используем goroutines для параллельной обработки
-    var wg sync.WaitGroup
-    for i, webhook := range webhooks {
-        wg.Add(1)
-        go func(idx int, wh WebhookRequest) {
-            defer wg.Done()
-            
-            err := ProcessWebhook(wh.IntegrationID, wh.Payload)
-            if err != nil {
-                errors[idx] = err
-                log.WithFields(map[string]interface{}{
-                    "integration_id": wh.IntegrationID,
-                    "batch_index":    idx,
-                }).Error("Webhook in batch failed")
-            }
-        }(i, webhook)
-    }
-    
-    wg.Wait()
-    return errors
+ errors := make([]error, len(webhooks))
+ 
+ // Используем goroutines для параллельной обработки
+ var wg sync.WaitGroup
+ for i, webhook := range webhooks {
+ wg.Add(1)
+ go func(idx int, wh WebhookRequest) {
+ defer wg.Done()
+ 
+ err := ProcessWebhook(wh.IntegrationID, wh.Payload)
+ if err != nil {
+ errors[idx] = err
+ log.WithFields(map[string]interface{}{
+ "integration_id": wh.IntegrationID,
+ "batch_index": idx,
+ }).Error("Webhook in batch failed")
+ }
+ }(i, webhook)
+ }
+ 
+ wg.Wait()
+ return errors
 }
 ```
 
@@ -221,45 +221,45 @@ func ProcessWebhookBatch(webhooks []WebhookRequest) []error {
 
 ```go
 type RateLimiter struct {
-    tokens    int
-    maxTokens int
-    refillRate time.Duration
-    lastRefill time.Time
-    mu        sync.Mutex
+ tokens int
+ maxTokens int
+ refillRate time.Duration
+ lastRefill time.Time
+ mu sync.Mutex
 }
 
 func (rl *RateLimiter) Allow() bool {
-    rl.mu.Lock()
-    defer rl.mu.Unlock()
-    
-    // Пополняем токены
-    now := time.Now()
-    if now.Sub(rl.lastRefill) >= rl.refillRate {
-        rl.tokens = rl.maxTokens
-        rl.lastRefill = now
-    }
-    
-    // Проверяем доступность
-    if rl.tokens > 0 {
-        rl.tokens--
-        return true
-    }
-    
-    return false
+ rl.mu.Lock()
+ defer rl.mu.Unlock()
+ 
+ // Пополняем токены
+ now := time.Now()
+ if now.Sub(rl.lastRefill) >= rl.refillRate {
+ rl.tokens = rl.maxTokens
+ rl.lastRefill = now
+ }
+ 
+ // Проверяем доступность
+ if rl.tokens > 0 {
+ rl.tokens--
+ return true
+ }
+ 
+ return false
 }
 
 func ProcessWebhookWithRateLimit(
-    integrationID uint,
-    payload map[string]interface{},
-    limiter *RateLimiter,
+ integrationID uint,
+ payload map[string]interface{},
+ limiter *RateLimiter,
 ) error {
-    // Ждем доступности токена
-    for !limiter.Allow() {
-        time.Sleep(100 * time.Millisecond)
-    }
-    
-    // Отправляем с retry
-    return ProcessWebhook(integrationID, payload)
+ // Ждем доступности токена
+ for !limiter.Allow() {
+ time.Sleep(100 * time.Millisecond)
+ }
+ 
+ // Отправляем с retry
+ return ProcessWebhook(integrationID, payload)
 }
 ```
 
@@ -269,29 +269,29 @@ func ProcessWebhookWithRateLimit(
 
 ```go
 type RetryStats struct {
-    TotalRequests   int
-    SuccessFirst    int
-    SuccessRetry    int
-    Failed          int
-    TotalRetries    int
+ TotalRequests int
+ SuccessFirst int
+ SuccessRetry int
+ Failed int
+ TotalRetries int
 }
 
 var stats RetryStats
 
 func TrackRetryStats(err error, attempts int) {
-    stats.TotalRequests++
-    
-    if err == nil {
-        if attempts == 1 {
-            stats.SuccessFirst++
-        } else {
-            stats.SuccessRetry++
-            stats.TotalRetries += (attempts - 1)
-        }
-    } else {
-        stats.Failed++
-        stats.TotalRetries += (attempts - 1)
-    }
+ stats.TotalRequests++
+ 
+ if err == nil {
+ if attempts == 1 {
+ stats.SuccessFirst++
+ } else {
+ stats.SuccessRetry++
+ stats.TotalRetries += (attempts - 1)
+ }
+ } else {
+ stats.Failed++
+ stats.TotalRetries += (attempts - 1)
+ }
 }
 
 // Использование
@@ -313,12 +313,12 @@ grep "will retry" logs/app.log | grep -oP 'status_code=\d+' | sort | uniq -c
 
 # Средняя задержка
 grep "delay_seconds" logs/app.log | grep -oP 'delay_seconds=[\d.]+' | \
-    awk -F= '{sum+=$2; count++} END {print sum/count}'
+ awk -F= '{sum+=$2; count++} END {print sum/count}'
 ```
 
 ## Best Practices
 
-### ✅ Рекомендуется
+### Рекомендуется
 
 1. **Использовать retry для временных ошибок** (5xx, 429)
 2. **Логировать все retry попытки** для анализа
@@ -326,7 +326,7 @@ grep "delay_seconds" logs/app.log | grep -oP 'delay_seconds=[\d.]+' | \
 4. **Настраивать таймауты** с учетом retry
 5. **Использовать circuit breaker** для защиты от каскадных сбоев
 
-### ❌ Не рекомендуется
+### Не рекомендуется
 
 1. **Retry для 4xx ошибок** (кроме 429) - это постоянные ошибки
 2. **Слишком много попыток** - может перегрузить систему

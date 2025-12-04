@@ -1,4 +1,4 @@
-# 📁 Файлы демо-режима
+# Файлы демо-режима
 
 Полный список всех файлов, связанных с демо-режимом.
 
@@ -7,43 +7,43 @@
 ```
 dmintegroff/
 │
-├── 📝 Основная документация
-│   ├── DEMO_MODE_SETUP.md          # Пошаговая установка
-│   ├── QUICK_START_DEMO.md         # Быстрый старт (3 минуты)
-│   ├── DEMO_MODE_SUMMARY.md        # Сводка изменений
-│   ├── CHANGELOG_DEMO_MODE.md      # Детальный changelog
-│   ├── DEVELOPER_NOTES_DEMO.md     # Заметки для разработчиков
-│   ├── DEMO_MODE_FILES.md          # Этот файл
-│   └── GIT_COMMIT_MESSAGE.txt      # Шаблон commit message
+├── Основная документация
+│ ├── DEMO_MODE_SETUP.md # Пошаговая установка
+│ ├── QUICK_START_DEMO.md # Быстрый старт (3 минуты)
+│ ├── DEMO_MODE_SUMMARY.md # Сводка изменений
+│ ├── CHANGELOG_DEMO_MODE.md # Детальный changelog
+│ ├── DEVELOPER_NOTES_DEMO.md # Заметки для разработчиков
+│ ├── DEMO_MODE_FILES.md # Этот файл
+│ └── GIT_COMMIT_MESSAGE.txt # Шаблон commit message
 │
-├── 📚 docs/
-│   ├── DEMO_MODE.md                # Полная документация
-│   ├── DEMO_MODE_EXAMPLE.md        # Примеры использования
-│   ├── DEMO_MODE_FAQ.md            # Часто задаваемые вопросы
-│   └── DEMO_MODE_FLOW.md           # Схемы и диаграммы
+├── docs/
+│ ├── DEMO_MODE.md # Полная документация
+│ ├── DEMO_MODE_EXAMPLE.md # Примеры использования
+│ ├── DEMO_MODE_FAQ.md # Часто задаваемые вопросы
+│ └── DEMO_MODE_FLOW.md # Схемы и диаграммы
 │
 ├── 🗄️ migrations/
-│   ├── 006_add_demo_users.sql      # Миграция для MySQL
-│   └── 006_add_demo_users_sqlite.sql # Миграция для SQLite
+│ ├── 006_add_demo_users.sql # Миграция для MySQL
+│ └── 006_add_demo_users_sqlite.sql # Миграция для SQLite
 │
-├── 🔧 scripts/
-│   └── apply_demo_mode_migration.go # Скрипт применения миграции
+├── scripts/
+│ └── apply_demo_mode_migration.go # Скрипт применения миграции
 │
-├── 💻 internal/
-│   ├── models/
-│   │   └── user.go                 # ✏️ Модель пользователя (изменен)
-│   ├── controllers/
-│   │   └── auth_controller.go      # ✏️ Контроллер авторизации (изменен)
-│   └── services/
-│       └── integration_service.go  # ✏️ Сервис интеграций (изменен)
+├── internal/
+│ ├── models/
+│ │ └── user.go # ✏️ Модель пользователя (изменен)
+│ ├── controllers/
+│ │ └── auth_controller.go # ✏️ Контроллер авторизации (изменен)
+│ └── services/
+│ └── integration_service.go # ✏️ Сервис интеграций (изменен)
 │
-├── 🎨 templates/
-│   └── pages/
-│       └── login.html              # ✏️ Страница логина (изменен)
+├── templates/
+│ └── pages/
+│ └── login.html # ✏️ Страница логина (изменен)
 │
-└── ⚙️ Конфигурация
-    ├── .env.example                # ✏️ Пример конфигурации (изменен)
-    └── README.md                   # ✏️ Главный README (изменен)
+└── Конфигурация
+ ├── .env.example # ✏️ Пример конфигурации (изменен)
+ └── README.md # ✏️ Главный README (изменен)
 ```
 
 ## 📖 Назначение файлов
@@ -87,7 +87,7 @@ dmintegroff/
 | `README.md` | Информация о демо-режиме |
 | `migrations/README.md` | Документация миграции 006 |
 
-## 🚀 С чего начать?
+## С чего начать?
 
 ### Для новых пользователей
 1. Читайте `QUICK_START_DEMO.md` - быстрый старт за 3 минуты
@@ -103,7 +103,7 @@ dmintegroff/
 2. Затем `docs/DEMO_MODE_FLOW.md` - схемы работы
 3. Изучите `CHANGELOG_DEMO_MODE.md` - детали изменений
 
-## 📊 Статистика
+## Статистика
 
 - **Всего файлов**: 19 (12 новых + 7 измененных)
 - **Строк документации**: ~3000
@@ -111,7 +111,7 @@ dmintegroff/
 - **Миграций**: 2 (MySQL + SQLite)
 - **Примеров**: 10+
 
-## 🔍 Поиск информации
+## Поиск информации
 
 ### Хочу узнать...
 
@@ -136,7 +136,7 @@ dmintegroff/
 **Нужна полная информация**
 → `docs/DEMO_MODE.md`
 
-## 📝 Шаблоны
+## Шаблоны
 
 ### Git Commit
 Используйте `GIT_COMMIT_MESSAGE.txt` как шаблон для commit message.
@@ -149,7 +149,7 @@ DEMO_SECRET=your-secret-key
 DEMO_TARGET_URL=https://webhook.site/your-id
 ```
 
-## 🗂️ Категории файлов
+## Категории файлов
 
 ### По типу
 
@@ -220,7 +220,7 @@ DEMO_TARGET_URL=https://webhook.site/your-id
 - internal/services/integration_service.go
 - templates/pages/login.html
 
-## 🎯 Приоритет чтения
+## Приоритет чтения
 
 ### Уровень 1 (Обязательно)
 1. `QUICK_START_DEMO.md` - быстрый старт
@@ -241,7 +241,7 @@ DEMO_TARGET_URL=https://webhook.site/your-id
 10. `DEMO_MODE_FILES.md` - этот файл
 11. `GIT_COMMIT_MESSAGE.txt` - шаблон commit
 
-## 📦 Что включить в релиз
+## Что включить в релиз
 
 ### Обязательные файлы
 - Все файлы в `docs/DEMO_MODE*.md`
@@ -260,7 +260,7 @@ DEMO_TARGET_URL=https://webhook.site/your-id
 - `DEMO_MODE_FILES.md`
 - `GIT_COMMIT_MESSAGE.txt`
 
-## 🔄 Обновление документации
+## Обновление документации
 
 При изменении функционала обновите:
 1. `docs/DEMO_MODE.md` - основная документация
@@ -268,7 +268,7 @@ DEMO_TARGET_URL=https://webhook.site/your-id
 3. `docs/DEMO_MODE_FAQ.md` - если есть новые вопросы
 4. `DEVELOPER_NOTES_DEMO.md` - если изменилась архитектура
 
-## ✅ Чеклист для релиза
+## Чеклист для релиза
 
 - [ ] Все файлы созданы
 - [ ] Документация проверена
@@ -281,6 +281,6 @@ DEMO_TARGET_URL=https://webhook.site/your-id
 
 ---
 
-**Версия**: 1.0  
-**Дата**: 2024-12-01  
-**Статус**: ✅ Готово
+**Версия**: 1.0 
+**Дата**: 2024-12-01 
+**Статус**: Готово

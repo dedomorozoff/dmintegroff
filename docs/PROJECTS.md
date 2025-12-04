@@ -29,8 +29,8 @@
 1. Перейдите в раздел "Проекты" в боковом меню
 2. Нажмите "Создать проект"
 3. Заполните:
-   - **Название** (обязательно) - например, "CRM Integration"
-   - **Описание** (опционально) - краткое описание проекта
+- **Название** (обязательно) - например, "CRM Integration"
+- **Описание** (опционально) - краткое описание проекта
 4. Нажмите "Создать проект"
 
 ### Добавление интеграции в проект
@@ -48,14 +48,14 @@
 
 1. Откройте проект
 2. Найдите интеграцию в списке
-3. Нажмите кнопку "❌" рядом с интеграцией
+3. Нажмите кнопку "" рядом с интеграцией
 4. Подтвердите действие
 
 **Важно:** Интеграция не удаляется, только убирается из проекта.
 
 ### Удаление проекта
 
-⚠️ **Важно:** При удалении проекта автоматически удаляются все его интеграции! Это действие необратимо.
+ **Важно:** При удалении проекта автоматически удаляются все его интеграции! Это действие необратимо.
 
 1. В списке проектов нажмите кнопку "🗑️" рядом с проектом
 2. Подтвердите удаление
@@ -80,14 +80,14 @@
 ### Таблица projects
 ```sql
 CREATE TABLE projects (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    created_at DATETIME(3) NULL,
-    updated_at DATETIME(3) NULL,
-    deleted_at DATETIME(3) NULL,
-    name VARCHAR(191) NOT NULL,
-    description TEXT,
-    created_by_id BIGINT UNSIGNED NOT NULL,
-    FOREIGN KEY (created_by_id) REFERENCES users(id) ON DELETE CASCADE
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ created_at DATETIME(3) NULL,
+ updated_at DATETIME(3) NULL,
+ deleted_at DATETIME(3) NULL,
+ name VARCHAR(191) NOT NULL,
+ description TEXT,
+ created_by_id BIGINT UNSIGNED NOT NULL,
+ FOREIGN KEY (created_by_id) REFERENCES users(id) ON DELETE CASCADE
 );
 ```
 
@@ -157,5 +157,5 @@ go run cmd/server/main.go
 ## Ограничения
 
 - Интеграция может принадлежать только одному проекту одновременно
-- ⚠️ Удаление проекта автоматически удаляет все его интеграции (каскадное удаление)
+- Удаление проекта автоматически удаляет все его интеграции (каскадное удаление)
 - Нельзя переименовать проект через API (только через UI)

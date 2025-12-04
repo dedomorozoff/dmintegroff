@@ -1,4 +1,4 @@
-# 🚀 Быстрый старт демо-режима
+# Быстрый старт демо-режима
 
 ## За 3 минуты
 
@@ -19,7 +19,7 @@ DEMO_SECRET=demo123
 DEMO_TARGET_URL=https://webhook.site/unique-id
 ```
 
-💡 Получите свой webhook.site URL: https://webhook.site
+ Получите свой webhook.site URL: https://webhook.site
 
 ### 3️⃣ Запустите сервер (10 сек)
 
@@ -50,23 +50,23 @@ http://localhost:8080/login?demo_key=demo123&username=demo&password=demo123
 
 ```bash
 curl -X POST http://localhost:8080/webhook/YOUR_TOKEN ^
-  -H "Content-Type: application/json" ^
-  -d "{\"test\": \"hello from demo\"}"
+-H "Content-Type: application/json" ^
+-d "{\"test\": \"hello from demo\"}"
 ```
 
-### ✅ Готово!
+### Готово!
 
 Проверьте webhook.site - вы должны увидеть ваш запрос!
 
 ---
 
-## 🔍 Что дальше?
+## Что дальше?
 
 - 📖 Полная документация: `docs/DEMO_MODE.md`
-- 💡 Примеры: `docs/DEMO_MODE_EXAMPLE.md`
-- ⚙️ Настройка: `DEMO_MODE_SETUP.md`
+- Примеры: `docs/DEMO_MODE_EXAMPLE.md`
+- Настройка: `DEMO_MODE_SETUP.md`
 
-## ⚠️ Важно
+## Важно
 
 - Демо-пользователи удаляются через 24 часа
 - Вебхуки работают только с URL из `DEMO_TARGET_URL`

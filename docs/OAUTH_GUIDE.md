@@ -1,4 +1,4 @@
-# 🔐 Руководство по OAuth 2.0
+# Руководство по OAuth 2.0
 
 ## Обзор
 
@@ -21,11 +21,11 @@ dmIntegroff поддерживает несколько методов ауте�
 1. **Перейдите в редактирование интеграции**
 2. **Выберите тип аутентификации**: OAuth 2.0
 3. **Заполните параметры**:
-   - **Token URL** - endpoint для получения токена (например: `https://api.example.com/oauth/token`)
-   - **Client ID** - идентификатор клиента
-   - **Client Secret** - секретный ключ клиента
-   - **Scope** - области доступа (опционально, через пробел)
-   - **Grant Type** - тип авторизации (по умолчанию: `client_credentials`)
+- **Token URL** - endpoint для получения токена (например: `https://api.example.com/oauth/token`)
+- **Client ID** - идентификатор клиента
+- **Client Secret** - секретный ключ клиента
+- **Scope** - области доступа (опционально, через пробел)
+- **Grant Type** - тип авторизации (по умолчанию: `client_credentials`)
 
 4. **Нажмите "Тест OAuth"** для проверки настроек
 5. **Сохраните интеграцию**
@@ -51,9 +51,9 @@ grant_type=client_credentials&scope=read write
 Ответ:
 ```json
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "token_type": "Bearer",
-  "expires_in": 3600
+ "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+ "token_type": "Bearer",
+ "expires_in": 3600
 }
 ```
 

@@ -14,20 +14,20 @@
 
 ### Экспорт
 
-- ✅ Экспорт выбранных интеграций
-- ✅ Экспорт всех интеграций проекта
-- ✅ Сохранение всех настроек (OAuth, подписи, маппинг)
-- ✅ Метаданные экспорта (дата, автор, версия)
-- ✅ Формат JSON для удобного чтения и редактирования
+- Экспорт выбранных интеграций
+- Экспорт всех интеграций проекта
+- Сохранение всех настроек (OAuth, подписи, маппинг)
+- Метаданные экспорта (дата, автор, версия)
+- Формат JSON для удобного чтения и редактирования
 
 ### Импорт
 
-- ✅ Импорт из JSON файла
-- ✅ Валидация перед импортом
-- ✅ Выбор целевого проекта
-- ✅ Обработка дубликатов (пропуск или обновление)
-- ✅ Генерация новых токенов и секретов
-- ✅ Детальный отчет о результатах импорта
+- Импорт из JSON файла
+- Валидация перед импортом
+- Выбор целевого проекта
+- Обработка дубликатов (пропуск или обновление)
+- Генерация новых токенов и секретов
+- Детальный отчет о результатах импорта
 
 ## Использование
 
@@ -51,13 +51,13 @@
 ```bash
 # Экспорт выбранных интеграций
 curl -X GET "http://localhost:8080/export/integrations?ids=1,2,3" \
-  -H "Cookie: mysession=..." \
-  -o integrations_export.json
+-H "Cookie: mysession=..." \
+-o integrations_export.json
 
 # Экспорт проекта
 curl -X GET "http://localhost:8080/export/projects/1" \
-  -H "Cookie: mysession=..." \
-  -o project_export.json
+-H "Cookie: mysession=..." \
+-o project_export.json
 ```
 
 ### Импорт интеграций
@@ -70,20 +70,20 @@ curl -X GET "http://localhost:8080/export/projects/1" \
 4. Система покажет информацию о файле
 5. Выберите целевой проект
 6. Настройте опции импорта:
-   - **Пропускать дубликаты** - интеграции с существующими именами будут пропущены
-   - **Обновлять существующие** - обновить интеграции с совпадающими именами
-   - **Генерировать новые токены** - создать новые webhook токены и секреты
+- **Пропускать дубликаты** - интеграции с существующими именами будут пропущены
+- **Обновлять существующие** - обновить интеграции с совпадающими именами
+- **Генерировать новые токены** - создать новые webhook токены и секреты
 7. Нажмите **Импортировать**
 
 #### Через API
 
 ```bash
 curl -X POST "http://localhost:8080/import/integrations" \
-  -H "Cookie: mysession=..." \
-  -F "file=@integrations_export.json" \
-  -F "project_id=1" \
-  -F "skip_duplicates=true" \
-  -F "generate_new_tokens=true"
+-H "Cookie: mysession=..." \
+-F "file=@integrations_export.json" \
+-F "project_id=1" \
+-F "skip_duplicates=true" \
+-F "generate_new_tokens=true"
 ```
 
 ## Формат файла экспорта
@@ -92,33 +92,33 @@ curl -X POST "http://localhost:8080/import/integrations" \
 
 ```json
 {
-  "version": "1.0",
-  "exported_at": "2024-12-03T10:30:00Z",
-  "exported_by": "admin",
-  "project_name": "My Project",
-  "integrations": [
-    {
-      "name": "GitHub to Slack",
-      "source_api": "https://github.com",
-      "target_api": "https://hooks.slack.com/services/...",
-      "http_method": "POST",
-      "mode": "listening",
-      "mapping_config": "{\"text\": \"message\"}",
-      "output_template": "{\"text\": \"{{message}}\"}",
-      
-      "auth_type": "oauth2",
-      "oauth2_token_url": "https://oauth.example.com/token",
-      "oauth2_client_id": "client-id",
-      "oauth2_client_secret": "client-secret",
-      "oauth2_scope": "webhooks:write",
-      "oauth2_grant_type": "client_credentials",
-      
-      "webhook_signature_enabled": true,
-      "webhook_signature_secret": "secret-key",
-      "webhook_signature_header": "X-Webhook-Signature",
-      "webhook_signature_algorithm": "sha256"
-    }
-  ]
+ "version": "1.0",
+ "exported_at": "2024-12-03T10:30:00Z",
+ "exported_by": "admin",
+ "project_name": "My Project",
+ "integrations": [
+ {
+ "name": "GitHub to Slack",
+ "source_api": "https://github.com",
+ "target_api": "https://hooks.slack.com/services/...",
+ "http_method": "POST",
+ "mode": "listening",
+ "mapping_config": "{\"text\": \"message\"}",
+ "output_template": "{\"text\": \"{{message}}\"}",
+ 
+ "auth_type": "oauth2",
+ "oauth2_token_url": "https://oauth.example.com/token",
+ "oauth2_client_id": "client-id",
+ "oauth2_client_secret": "client-secret",
+ "oauth2_scope": "webhooks:write",
+ "oauth2_grant_type": "client_credentials",
+ 
+ "webhook_signature_enabled": true,
+ "webhook_signature_secret": "secret-key",
+ "webhook_signature_header": "X-Webhook-Signature",
+ "webhook_signature_algorithm": "sha256"
+ }
+ ]
 }
 ```
 
@@ -167,7 +167,7 @@ curl -X POST "http://localhost:8080/import/integrations" \
 
 ```json
 {
-  "skip_duplicates": true
+ "skip_duplicates": true
 }
 ```
 
@@ -182,7 +182,7 @@ curl -X POST "http://localhost:8080/import/integrations" \
 
 ```json
 {
-  "update_existing": true
+ "update_existing": true
 }
 ```
 
@@ -191,7 +191,7 @@ curl -X POST "http://localhost:8080/import/integrations" \
 - Новые интеграции создаются
 - Webhook токены сохраняются
 
-⚠️ **Внимание:** Нельзя одновременно включить `skip_duplicates` и `update_existing`.
+ **Внимание:** Нельзя одновременно включить `skip_duplicates` и `update_existing`.
 
 ### Генерировать новые токены (Generate New Tokens)
 
@@ -201,7 +201,7 @@ curl -X POST "http://localhost:8080/import/integrations" \
 
 ```json
 {
-  "generate_new_tokens": true
+ "generate_new_tokens": true
 }
 ```
 
@@ -220,13 +220,13 @@ curl -X POST "http://localhost:8080/import/integrations" \
 
 ```json
 {
-  "total_count": 10,
-  "imported_count": 7,
-  "updated_count": 2,
-  "skipped_count": 1,
-  "errors": [
-    "Integration 5 (Invalid API): target API is required"
-  ]
+ "total_count": 10,
+ "imported_count": 7,
+ "updated_count": 2,
+ "skipped_count": 1,
+ "errors": [
+ "Integration 5 (Invalid API): target API is required"
+ ]
 }
 ```
 
@@ -245,8 +245,8 @@ curl -X POST "http://localhost:8080/import/integrations" \
 ```bash
 # Экспорт всех интеграций проекта
 curl -X GET "http://localhost:8080/export/projects/1" \
-  -H "Cookie: mysession=..." \
-  -o backup_$(date +%Y%m%d).json
+-H "Cookie: mysession=..." \
+-o backup_$(date +%Y%m%d).json
 ```
 
 ### Миграция между окружениями
@@ -254,18 +254,18 @@ curl -X GET "http://localhost:8080/export/projects/1" \
 ```bash
 # 1. Экспорт из dev
 curl -X GET "http://localhost:8080/export/projects/1" \
-  -H "Cookie: mysession=..." \
-  -o dev_export.json
+-H "Cookie: mysession=..." \
+-o dev_export.json
 
 # 2. Редактирование URL в файле (опционально)
 sed -i 's/dev.example.com/prod.example.com/g' dev_export.json
 
 # 3. Импорт в production
 curl -X POST "https://prod.example.com/import/integrations" \
-  -H "Cookie: mysession=..." \
-  -F "file=@dev_export.json" \
-  -F "project_id=1" \
-  -F "generate_new_tokens=true"
+-H "Cookie: mysession=..." \
+-F "file=@dev_export.json" \
+-F "project_id=1" \
+-F "generate_new_tokens=true"
 ```
 
 ### Клонирование интеграции
@@ -273,17 +273,17 @@ curl -X POST "https://prod.example.com/import/integrations" \
 ```bash
 # 1. Экспорт одной интеграции
 curl -X GET "http://localhost:8080/export/integrations?ids=5" \
-  -o integration.json
+-o integration.json
 
 # 2. Редактирование названия в файле
 jq '.integrations[0].name = "Copy of " + .integrations[0].name' \
-  integration.json > integration_copy.json
+ integration.json > integration_copy.json
 
 # 3. Импорт в тот же проект
 curl -X POST "http://localhost:8080/import/integrations" \
-  -F "file=@integration_copy.json" \
-  -F "project_id=1" \
-  -F "generate_new_tokens=true"
+-F "file=@integration_copy.json" \
+-F "project_id=1" \
+-F "generate_new_tokens=true"
 ```
 
 ### Версионирование в Git
@@ -291,7 +291,7 @@ curl -X POST "http://localhost:8080/import/integrations" \
 ```bash
 # Экспорт конфигураций
 curl -X GET "http://localhost:8080/export/projects/1" \
-  -o config/integrations.json
+-o config/integrations.json
 
 # Коммит в Git
 git add config/integrations.json
@@ -309,7 +309,7 @@ git push
 - Basic Auth пароли
 - Webhook секреты
 
-⚠️ **Рекомендации:**
+ **Рекомендации:**
 - Не храните файлы экспорта в публичных репозиториях
 - Используйте шифрование для хранения
 - Ограничьте доступ к файлам экспорта
@@ -406,14 +406,14 @@ jq . export.json > export_formatted.json
 **Response:**
 ```json
 {
-  "message": "Import completed",
-  "result": {
-    "total_count": 10,
-    "imported_count": 7,
-    "updated_count": 2,
-    "skipped_count": 1,
-    "errors": []
-  }
+ "message": "Import completed",
+ "result": {
+ "total_count": 10,
+ "imported_count": 7,
+ "updated_count": 2,
+ "skipped_count": 1,
+ "errors": []
+ }
 }
 ```
 
@@ -427,12 +427,12 @@ jq . export.json > export_formatted.json
 **Response:**
 ```json
 {
-  "valid": true,
-  "version": "1.0",
-  "exported_at": "2024-12-03T10:30:00Z",
-  "exported_by": "admin",
-  "project_name": "My Project",
-  "integrations_count": 10
+ "valid": true,
+ "version": "1.0",
+ "exported_at": "2024-12-03T10:30:00Z",
+ "exported_by": "admin",
+ "project_name": "My Project",
+ "integrations_count": 10
 }
 ```
 
@@ -440,15 +440,15 @@ jq . export.json > export_formatted.json
 
 ### Version 1.0 (2024-12-03)
 
-- ✅ Экспорт выбранных интеграций
-- ✅ Экспорт проекта
-- ✅ Импорт с валидацией
-- ✅ Обработка дубликатов
-- ✅ Генерация новых токенов
-- ✅ Веб-интерфейс
-- ✅ API endpoints
-- ✅ Детальные отчеты
-- ✅ 11 unit тестов
+- Экспорт выбранных интеграций
+- Экспорт проекта
+- Импорт с валидацией
+- Обработка дубликатов
+- Генерация новых токенов
+- Веб-интерфейс
+- API endpoints
+- Детальные отчеты
+- 11 unit тестов
 
 ## См. также
 

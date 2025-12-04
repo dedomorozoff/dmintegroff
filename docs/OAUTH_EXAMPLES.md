@@ -1,4 +1,4 @@
-# 🔐 Примеры настройки OAuth 2.0
+# Примеры настройки OAuth 2.0
 
 ## Популярные API
 
@@ -221,14 +221,14 @@ https://[dc].api.mailchimp.com/3.0/lists/[list-id]/members
 
 1. **Нажмите "Тест OAuth"** в форме редактирования
 2. Проверьте результат:
-   - ✅ Успех - настройки корректны
-   - ❌ Ошибка - проверьте учетные данные
+- Успех - настройки корректны
+- Ошибка - проверьте учетные данные
 
 3. **Отправьте тестовый запрос:**
 ```bash
 curl -X POST http://localhost:8080/webhook/YOUR_TOKEN \
-  -H "Content-Type: application/json" \
-  -d '{"name": "Test", "email": "test@example.com"}'
+-H "Content-Type: application/json" \
+-d '{"name": "Test", "email": "test@example.com"}'
 ```
 
 4. **Проверьте логи** в разделе "Логи"
@@ -260,7 +260,7 @@ curl -X POST http://localhost:8080/webhook/YOUR_TOKEN \
 
 ## Безопасность
 
-⚠️ **Важно:**
+ **Важно:**
 - Никогда не публикуйте Client Secret
 - Используйте HTTPS в production
 - Регулярно обновляйте токены

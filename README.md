@@ -94,16 +94,16 @@ go run cmd/server/main.go
 ### 2. Настройка трансформации данных
 
 1. Отправьте тестовый запрос на webhook URL:
-   ```bash
-   curl -X POST http://localhost:8080/webhook/YOUR_TOKEN \
-     -H "Content-Type: application/json" \
-     -d '{"name": "John", "email": "john@example.com"}'
-   ```
+ ```bash
+ curl -X POST http://localhost:8080/webhook/YOUR_TOKEN \
+-H "Content-Type: application/json" \
+-d '{"name": "John", "email": "john@example.com"}'
+ ```
 
 2. Система автоматически захватит структуру данных
 3. Выберите режим трансформации:
-   - **Простой маппинг** - переименование полей
-   - **Кастомный шаблон** - создание собственной JSON структуры с подстановкой значений через `{{field.path}}`
+- **Простой маппинг** - переименование полей
+- **Кастомный шаблон** - создание собственной JSON структуры с подстановкой значений через `{{field.path}}`
 4. Настройте трансформацию в интерфейсе
 5. Активируйте интеграцию
 
@@ -182,20 +182,20 @@ DEBUG=true
 ```
 dmIntegroff/
 ├── cmd/
-│   └── server/          # Точка входа приложения
+│ └── server/ # Точка входа приложения
 ├── internal/
-│   ├── controllers/     # HTTP обработчики
-│   ├── database/        # Подключение к БД
-│   ├── logger/          # Логирование
-│   ├── models/          # Модели данных
-│   ├── routes/          # Маршруты
-│   ├── services/        # Бизнес-логика
-│   └── utils/           # Утилиты
+│ ├── controllers/ # HTTP обработчики
+│ ├── database/ # Подключение к БД
+│ ├── logger/ # Логирование
+│ ├── models/ # Модели данных
+│ ├── routes/ # Маршруты
+│ ├── services/ # Бизнес-логика
+│ └── utils/ # Утилиты
 ├── static/
-│   ├── css/            # Стили (modern.css)
-│   └── js/             # JavaScript
-├── templates/          # HTML шаблоны
-└── docs/              # Документация
+│ ├── css/ # Стили (modern.css)
+│ └── js/ # JavaScript
+├── templates/ # HTML шаблоны
+└── docs/ # Документация
 ```
 
 ## 🧪 Тестирование
@@ -205,8 +205,8 @@ dmIntegroff/
 ```bash
 # Отправка тестового запроса
 curl -X POST http://localhost:8080/test \
-  -H "Content-Type: application/json" \
-  -d '{"test": "data"}'
+-H "Content-Type: application/json" \
+-d '{"test": "data"}'
 
 # Просмотр логов в интерфейсе
 # Перейдите в раздел "Логи"
@@ -272,4 +272,4 @@ MIT License - см. файл [LICENSE](LICENSE)
 
 ---
 
-Сделано с ❤️ на Go
+Сделано с на Go

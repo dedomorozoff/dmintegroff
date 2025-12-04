@@ -1,4 +1,4 @@
-# 🔄 Работа с массивами неизвестной длины
+# Работа с массивами неизвестной длины
 
 ## Проблема
 
@@ -7,21 +7,21 @@
 **Входные данные:**
 ```json
 {
-  "products": [
-    {"title": "Item1", "cost": 100},
-    {"title": "Item2", "cost": 200},
-    {"title": "Item3", "cost": 300}
-  ]
+ "products": [
+ {"title": "Item1", "cost": 100},
+ {"title": "Item2", "cost": 200},
+ {"title": "Item3", "cost": 300}
+ ]
 }
 ```
 
 Раньше нужно было указывать каждый элемент вручную:
 ```json
 {
-  "items": [
-    {"name": "{{products[0].title}}", "price": {{products[0].cost}}},
-    {"name": "{{products[1].title}}", "price": {{products[1].cost}}}
-  ]
+ "items": [
+ {"name": "{{products[0].title}}", "price": {{products[0].cost}}},
+ {"name": "{{products[1].title}}", "price": {{products[1].cost}}}
+ ]
 }
 ```
 
@@ -33,18 +33,18 @@
 
 ```json
 {
-  "items": {{products.*}}
+ "items": {{products.*}}
 }
 ```
 
 **Результат:**
 ```json
 {
-  "items": [
-    {"title": "Item1", "cost": 100},
-    {"title": "Item2", "cost": 200},
-    {"title": "Item3", "cost": 300}
-  ]
+ "items": [
+ {"title": "Item1", "cost": 100},
+ {"title": "Item2", "cost": 200},
+ {"title": "Item3", "cost": 300}
+ ]
 }
 ```
 
@@ -55,35 +55,35 @@
 **Входные данные:**
 ```json
 {
-  "orders": [
-    {"id": "1", "total": 500, "status": "paid"},
-    {"id": "2", "total": 300, "status": "pending"}
-  ]
+ "orders": [
+ {"id": "1", "total": 500, "status": "paid"},
+ {"id": "2", "total": 300, "status": "pending"}
+ ]
 }
 ```
 
 **Шаблон:**
 ```json
 {
-  "allOrders": {{orders.*}},
-  "metadata": {
-    "source": "webhook",
-    "processor": "dmIntegroff"
-  }
+ "allOrders": {{orders.*}},
+ "metadata": {
+ "source": "webhook",
+ "processor": "dmIntegroff"
+ }
 }
 ```
 
 **Результат:**
 ```json
 {
-  "allOrders": [
-    {"id": "1", "total": 500, "status": "paid"},
-    {"id": "2", "total": 300, "status": "pending"}
-  ],
-  "metadata": {
-    "source": "webhook",
-    "processor": "dmIntegroff"
-  }
+ "allOrders": [
+ {"id": "1", "total": 500, "status": "paid"},
+ {"id": "2", "total": 300, "status": "pending"}
+ ],
+ "metadata": {
+ "source": "webhook",
+ "processor": "dmIntegroff"
+ }
 }
 ```
 
@@ -92,34 +92,34 @@
 **Входные данные:**
 ```json
 {
-  "user": {
-    "name": "Иван",
-    "orders": [
-      {"id": "1", "amount": 1000},
-      {"id": "2", "amount": 2000},
-      {"id": "3", "amount": 1500}
-    ]
-  }
+ "user": {
+ "name": "Иван",
+ "orders": [
+ {"id": "1", "amount": 1000},
+ {"id": "2", "amount": 2000},
+ {"id": "3", "amount": 1500}
+ ]
+ }
 }
 ```
 
 **Шаблон:**
 ```json
 {
-  "customer": "{{user.name}}",
-  "purchases": {{user.orders.*}}
+ "customer": "{{user.name}}",
+ "purchases": {{user.orders.*}}
 }
 ```
 
 **Результат:**
 ```json
 {
-  "customer": "Иван",
-  "purchases": [
-    {"id": "1", "amount": 1000},
-    {"id": "2", "amount": 2000},
-    {"id": "3", "amount": 1500}
-  ]
+ "customer": "Иван",
+ "purchases": [
+ {"id": "1", "amount": 1000},
+ {"id": "2", "amount": 2000},
+ {"id": "3", "amount": 1500}
+ ]
 }
 ```
 
@@ -128,23 +128,23 @@
 **Входные данные:**
 ```json
 {
-  "tags": ["vip", "active", "premium", "verified"]
+ "tags": ["vip", "active", "premium", "verified"]
 }
 ```
 
 **Шаблон:**
 ```json
 {
-  "userTags": {{tags.*}},
-  "status": "active"
+ "userTags": {{tags.*}},
+ "status": "active"
 }
 ```
 
 **Результат:**
 ```json
 {
-  "userTags": ["vip", "active", "premium", "verified"],
-  "status": "active"
+ "userTags": ["vip", "active", "premium", "verified"],
+ "status": "active"
 }
 ```
 
@@ -153,32 +153,32 @@
 **Входные данные:**
 ```json
 {
-  "products": [
-    {"name": "Product1", "price": 100},
-    {"name": "Product2", "price": 200}
-  ],
-  "categories": ["electronics", "gadgets"]
+ "products": [
+ {"name": "Product1", "price": 100},
+ {"name": "Product2", "price": 200}
+ ],
+ "categories": ["electronics", "gadgets"]
 }
 ```
 
 **Шаблон:**
 ```json
 {
-  "items": {{products.*}},
-  "tags": {{categories.*}},
-  "source": "api"
+ "items": {{products.*}},
+ "tags": {{categories.*}},
+ "source": "api"
 }
 ```
 
 **Результат:**
 ```json
 {
-  "items": [
-    {"name": "Product1", "price": 100},
-    {"name": "Product2", "price": 200}
-  ],
-  "tags": ["electronics", "gadgets"],
-  "source": "api"
+ "items": [
+ {"name": "Product1", "price": 100},
+ {"name": "Product2", "price": 200}
+ ],
+ "tags": ["electronics", "gadgets"],
+ "source": "api"
 }
 ```
 
@@ -202,7 +202,7 @@
 
 ## Важные замечания
 
-### ✅ Что работает
+### Что работает
 
 - Копирование массивов любой длины
 - Массивы объектов
@@ -210,40 +210,40 @@
 - Вложенные массивы
 - Несколько массивов в одном шаблоне
 
-### ❌ Что НЕ работает
+### Что НЕ работает
 
 **Трансформация элементов массива:**
 ```json
-// ❌ Не работает - нельзя изменить структуру элементов
+// Не работает - нельзя изменить структуру элементов
 {
-  "items": {{products.*}} // Копирует как есть
+ "items": {{products.*}} // Копирует как есть
 }
 ```
 
 Если нужно изменить структуру элементов, используйте индексы:
 ```json
-// ✅ Работает - указываем каждый элемент
+// Работает - указываем каждый элемент
 {
-  "items": [
-    {"name": "{{products[0].title}}", "price": {{products[0].cost}}},
-    {"name": "{{products[1].title}}", "price": {{products[1].cost}}}
-  ]
+ "items": [
+ {"name": "{{products[0].title}}", "price": {{products[0].cost}}},
+ {"name": "{{products[1].title}}", "price": {{products[1].cost}}}
+ ]
 }
 ```
 
 **Фильтрация элементов:**
 ```json
-// ❌ Не работает - нельзя фильтровать
+// Не работает - нельзя фильтровать
 {
-  "activeItems": {{products.*.where(active=true)}}
+ "activeItems": {{products.*.where(active=true)}}
 }
 ```
 
 **Математические операции:**
 ```json
-// ❌ Не работает - нельзя суммировать
+// Не работает - нельзя суммировать
 {
-  "total": {{sum(products.*.price)}}
+ "total": {{sum(products.*.price)}}
 }
 ```
 
@@ -253,16 +253,16 @@
 
 ```json
 {
-  "user": {
-    "name": "{{user.name}}",
-    "email": "{{user.email}}"
-  },
-  "orders": {{user.orders.*}},
-  "tags": {{tags.*}},
-  "metadata": {
-    "timestamp": "{{timestamp}}",
-    "source": "webhook"
-  }
+ "user": {
+ "name": "{{user.name}}",
+ "email": "{{user.email}}"
+ },
+ "orders": {{user.orders.*}},
+ "tags": {{tags.*}},
+ "metadata": {
+ "timestamp": "{{timestamp}}",
+ "source": "webhook"
+ }
 }
 ```
 
@@ -305,4 +305,4 @@
 
 ---
 
-**Приятного использования!** 🚀
+**Приятного использования!** 

@@ -7,16 +7,16 @@ Webhook подписи (HMAC signatures) обеспечивают безопас
 ## Зачем нужны подписи?
 
 ### Проблемы без подписей
-- ❌ Любой может отправить поддельный webhook на ваш endpoint
-- ❌ Данные могут быть изменены злоумышленником (MITM атака)
-- ❌ Невозможно проверить источник запроса
-- ❌ Replay атаки (повторная отправка старых запросов)
+- Любой может отправить поддельный webhook на ваш endpoint
+- Данные могут быть изменены злоумышленником (MITM атака)
+- Невозможно проверить источник запроса
+- Replay атаки (повторная отправка старых запросов)
 
 ### Преимущества с подписями
-- ✅ Гарантия подлинности источника
-- ✅ Защита от изменения данных
-- ✅ Защита от поддельных запросов
-- ✅ Соответствие стандартам безопасности
+- Гарантия подлинности источника
+- Защита от изменения данных
+- Защита от поддельных запросов
+- Соответствие стандартам безопасности
 
 ## Как это работает
 
@@ -24,64 +24,64 @@ Webhook подписи (HMAC signatures) обеспечивают безопас
 
 ```
 1. Подготовка данных
-   ┌─────────────────────┐
-   │ {"user": "john"}    │
-   └──────────┬──────────┘
-              │
+ ┌─────────────────────┐
+ │ {"user": "john"} │
+ └──────────┬──────────┘
+ │
 2. Генерация HMAC
-   ┌──────────▼──────────┐
-   │ HMAC-SHA256(        │
-   │   data,             │
-   │   secret_key        │
-   │ )                   │
-   └──────────┬──────────┘
-              │
+ ┌──────────▼──────────┐
+ │ HMAC-SHA256( │
+ │ data, │
+ │ secret_key │
+ │ ) │
+ └──────────┬──────────┘
+ │
 3. Добавление заголовка
-   ┌──────────▼──────────────────────────────┐
-   │ X-Webhook-Signature:                    │
-   │ sha256=abc123def456...                  │
-   └─────────────────────────────────────────┘
-              │
+ ┌──────────▼──────────────────────────────┐
+ │ X-Webhook-Signature: │
+ │ sha256=abc123def456... │
+ └─────────────────────────────────────────┘
+ │
 4. Отправка запроса
-   ┌──────────▼──────────┐
-   │ POST /webhook       │
-   │ Headers + Body      │
-   └─────────────────────┘
+ ┌──────────▼──────────┐
+ │ POST /webhook │
+ │ Headers + Body │
+ └─────────────────────┘
 ```
 
 ### Процесс верификации (получение)
 
 ```
 1. Получение запроса
-   ┌─────────────────────┐
-   │ POST /webhook       │
-   │ + Signature header  │
-   └──────────┬──────────┘
-              │
+ ┌─────────────────────┐
+ │ POST /webhook │
+ │ + Signature header │
+ └──────────┬──────────┘
+ │
 2. Извлечение подписи
-   ┌──────────▼──────────┐
-   │ X-Webhook-Signature │
-   │ sha256=abc123...    │
-   └──────────┬──────────┘
-              │
+ ┌──────────▼──────────┐
+ │ X-Webhook-Signature │
+ │ sha256=abc123... │
+ └──────────┬──────────┘
+ │
 3. Вычисление ожидаемой подписи
-   ┌──────────▼──────────┐
-   │ HMAC-SHA256(        │
-   │   received_body,    │
-   │   secret_key        │
-   │ )                   │
-   └──────────┬──────────┘
-              │
+ ┌──────────▼──────────┐
+ │ HMAC-SHA256( │
+ │ received_body, │
+ │ secret_key │
+ │ ) │
+ └──────────┬──────────┘
+ │
 4. Сравнение
-   ┌──────────▼──────────┐
-   │ received_signature  │
-   │ == expected?        │
-   └──────────┬──────────┘
-              │
-         ┌────┴────┐
-         │         │
-    ✅ Да      ❌ Нет
-    Accept    Reject
+ ┌──────────▼──────────┐
+ │ received_signature │
+ │ == expected? │
+ └──────────┬──────────┘
+ │
+ ┌────┴────┐
+ │ │
+ Да Нет
+ Accept Reject
 ```
 
 ## Конфигурация
@@ -90,22 +90,22 @@ Webhook подписи (HMAC signatures) обеспечивают безопас
 
 ```go
 type Integration struct {
-    // ... другие поля ...
-    
-    // Webhook Signature Configuration
-    WebhookSignatureEnabled   bool   // Включить подписи
-    WebhookSignatureSecret    string // Секретный ключ
-    WebhookSignatureHeader    string // Имя заголовка (по умолчанию: X-Webhook-Signature)
-    WebhookSignatureAlgorithm string // Алгоритм: sha256, sha512, sha1
+ // ... другие поля ...
+ 
+ // Webhook Signature Configuration
+ WebhookSignatureEnabled bool // Включить подписи
+ WebhookSignatureSecret string // Секретный ключ
+ WebhookSignatureHeader string // Имя заголовка (по умолчанию: X-Webhook-Signature)
+ WebhookSignatureAlgorithm string // Алгоритм: sha256, sha512, sha1
 }
 ```
 
 ### Параметры по умолчанию
 
 ```go
-WebhookSignatureEnabled:   false                    // Выключено по умолчанию
-WebhookSignatureHeader:    "X-Webhook-Signature"    // Стандартный заголовок
-WebhookSignatureAlgorithm: "sha256"                 // SHA-256 (рекомендуется)
+WebhookSignatureEnabled: false // Выключено по умолчанию
+WebhookSignatureHeader: "X-Webhook-Signature" // Стандартный заголовок
+WebhookSignatureAlgorithm: "sha256" // SHA-256 (рекомендуется)
 ```
 
 ## Поддерживаемые алгоритмы
@@ -146,12 +146,12 @@ sha1=aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d
 
 ```go
 integration := &models.Integration{
-    Name:                      "My Secure Webhook",
-    TargetAPI:                 "https://api.example.com/webhook",
-    WebhookSignatureEnabled:   true,
-    WebhookSignatureSecret:    "my-super-secret-key-12345",
-    WebhookSignatureHeader:    "X-Webhook-Signature",
-    WebhookSignatureAlgorithm: "sha256",
+ Name: "My Secure Webhook",
+ TargetAPI: "https://api.example.com/webhook",
+ WebhookSignatureEnabled: true,
+ WebhookSignatureSecret: "my-super-secret-key-12345",
+ WebhookSignatureHeader: "X-Webhook-Signature",
+ WebhookSignatureAlgorithm: "sha256",
 }
 ```
 
@@ -161,7 +161,7 @@ integration := &models.Integration{
 // Автоматическая генерация безопасного ключа
 secret, err := GenerateRandomSecret(32) // 32 байта = 64 hex символа
 if err != nil {
-    log.Fatal(err)
+ log.Fatal(err)
 }
 
 integration.WebhookSignatureSecret = secret
@@ -187,21 +187,21 @@ err := ProcessWebhook(integrationID, payload)
 ```go
 // В вашем webhook handler
 func WebhookHandler(w http.ResponseWriter, r *http.Request) {
-    // Читаем тело запроса
-    body, _ := io.ReadAll(r.Body)
-    
-    // Загружаем конфигурацию интеграции
-    var integration models.Integration
-    db.First(&integration, integrationID)
-    
-    // Проверяем подпись
-    if err := VerifyIncomingSignature(r, body, &integration); err != nil {
-        http.Error(w, "Invalid signature", http.StatusUnauthorized)
-        return
-    }
-    
-    // Подпись валидна, обрабатываем запрос
-    processWebhook(body)
+ // Читаем тело запроса
+ body, _ := io.ReadAll(r.Body)
+ 
+ // Загружаем конфигурацию интеграции
+ var integration models.Integration
+ db.First(&integration, integrationID)
+ 
+ // Проверяем подпись
+ if err := VerifyIncomingSignature(r, body, &integration); err != nil {
+ http.Error(w, "Invalid signature", http.StatusUnauthorized)
+ return
+ }
+ 
+ // Подпись валидна, обрабатываем запрос
+ processWebhook(body)
 }
 ```
 
@@ -209,10 +209,10 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 
 ```go
 integration := &models.Integration{
-    WebhookSignatureEnabled:   true,
-    WebhookSignatureSecret:    "github-webhook-secret",
-    WebhookSignatureHeader:    "X-Hub-Signature-256", // GitHub стиль
-    WebhookSignatureAlgorithm: "sha256",
+ WebhookSignatureEnabled: true,
+ WebhookSignatureSecret: "github-webhook-secret",
+ WebhookSignatureHeader: "X-Hub-Signature-256", // GitHub стиль
+ WebhookSignatureAlgorithm: "sha256",
 }
 ```
 
@@ -221,8 +221,8 @@ integration := &models.Integration{
 ```go
 // Перед сохранением интеграции
 if err := ValidateSignatureConfig(integration); err != nil {
-    log.Error("Invalid signature config:", err)
-    return err
+ log.Error("Invalid signature config:", err)
+ return err
 }
 
 // Проверяет:
@@ -237,10 +237,10 @@ if err := ValidateSignatureConfig(integration); err != nil {
 
 ```go
 integration := &models.Integration{
-    WebhookSignatureEnabled:   true,
-    WebhookSignatureSecret:    "your-github-secret",
-    WebhookSignatureHeader:    "X-Hub-Signature-256",
-    WebhookSignatureAlgorithm: "sha256",
+ WebhookSignatureEnabled: true,
+ WebhookSignatureSecret: "your-github-secret",
+ WebhookSignatureHeader: "X-Hub-Signature-256",
+ WebhookSignatureAlgorithm: "sha256",
 }
 ```
 
@@ -248,10 +248,10 @@ integration := &models.Integration{
 
 ```go
 integration := &models.Integration{
-    WebhookSignatureEnabled:   true,
-    WebhookSignatureSecret:    "whsec_...", // Stripe signing secret
-    WebhookSignatureHeader:    "Stripe-Signature",
-    WebhookSignatureAlgorithm: "sha256",
+ WebhookSignatureEnabled: true,
+ WebhookSignatureSecret: "whsec_...", // Stripe signing secret
+ WebhookSignatureHeader: "Stripe-Signature",
+ WebhookSignatureAlgorithm: "sha256",
 }
 ```
 
@@ -259,10 +259,10 @@ integration := &models.Integration{
 
 ```go
 integration := &models.Integration{
-    WebhookSignatureEnabled:   true,
-    WebhookSignatureSecret:    "your-slack-signing-secret",
-    WebhookSignatureHeader:    "X-Slack-Signature",
-    WebhookSignatureAlgorithm: "sha256",
+ WebhookSignatureEnabled: true,
+ WebhookSignatureSecret: "your-slack-signing-secret",
+ WebhookSignatureHeader: "X-Slack-Signature",
+ WebhookSignatureAlgorithm: "sha256",
 }
 ```
 
@@ -270,10 +270,10 @@ integration := &models.Integration{
 
 ```go
 integration := &models.Integration{
-    WebhookSignatureEnabled:   true,
-    WebhookSignatureSecret:    "shared-secret-key",
-    WebhookSignatureHeader:    "X-Webhook-Signature",
-    WebhookSignatureAlgorithm: "sha256",
+ WebhookSignatureEnabled: true,
+ WebhookSignatureSecret: "shared-secret-key",
+ WebhookSignatureHeader: "X-Webhook-Signature",
+ WebhookSignatureAlgorithm: "sha256",
 }
 ```
 
@@ -303,47 +303,47 @@ X-Webhook-Signature: 5d41402abc4b2a76b9719d911017c592
 ### Лучшие практики
 
 1. **Используйте длинные секреты**
-   ```go
-   // ❌ Плохо
-   secret := "12345"
-   
-   // ✅ Хорошо
-   secret, _ := GenerateRandomSecret(32) // 64 hex символа
-   ```
+ ```go
+ // Плохо
+ secret := "12345"
+ 
+ // Хорошо
+ secret, _ := GenerateRandomSecret(32) // 64 hex символа
+ ```
 
 2. **Используйте SHA-256 или SHA-512**
-   ```go
-   // ❌ Не рекомендуется
-   algorithm := "sha1"
-   
-   // ✅ Рекомендуется
-   algorithm := "sha256"
-   ```
+ ```go
+ // Не рекомендуется
+ algorithm := "sha1"
+ 
+ // Рекомендуется
+ algorithm := "sha256"
+ ```
 
 3. **Храните секреты безопасно**
-   ```go
-   // ✅ В переменных окружения
-   secret := os.Getenv("WEBHOOK_SECRET")
-   
-   // ✅ В зашифрованной БД
-   // ✅ В секретном хранилище (Vault, AWS Secrets Manager)
-   ```
+ ```go
+ // В переменных окружения
+ secret := os.Getenv("WEBHOOK_SECRET")
+ 
+ // В зашифрованной БД
+ // В секретном хранилище (Vault, AWS Secrets Manager)
+ ```
 
 4. **Ротация секретов**
-   ```go
-   // Периодически обновляйте секреты
-   newSecret, _ := GenerateRandomSecret(32)
-   integration.WebhookSignatureSecret = newSecret
-   db.Save(&integration)
-   ```
+ ```go
+ // Периодически обновляйте секреты
+ newSecret, _ := GenerateRandomSecret(32)
+ integration.WebhookSignatureSecret = newSecret
+ db.Save(&integration)
+ ```
 
 5. **Проверяйте подписи на стороне получателя**
-   ```go
-   // Всегда проверяйте подпись перед обработкой
-   if err := VerifyIncomingSignature(r, body, integration); err != nil {
-       return http.StatusUnauthorized
-   }
-   ```
+ ```go
+ // Всегда проверяйте подпись перед обработкой
+ if err := VerifyIncomingSignature(r, body, integration); err != nil {
+ return http.StatusUnauthorized
+ }
+ ```
 
 ### Защита от атак
 
@@ -351,8 +351,8 @@ X-Webhook-Signature: 5d41402abc4b2a76b9719d911017c592
 ```go
 // Используется constant-time сравнение
 func VerifySignature(payload []byte, received string, secret string, algo SignatureAlgorithm) bool {
-    expected, _ := GenerateSignature(payload, secret, algo)
-    return hmac.Equal([]byte(received), []byte(expected)) // ✅ Безопасно
+ expected, _ := GenerateSignature(payload, secret, algo)
+ return hmac.Equal([]byte(received), []byte(expected)) // Безопасно
 }
 ```
 
@@ -360,13 +360,13 @@ func VerifySignature(payload []byte, received string, secret string, algo Signat
 ```go
 // Добавьте timestamp в payload
 payload := map[string]interface{}{
-    "data":      actualData,
-    "timestamp": time.Now().Unix(),
+ "data": actualData,
+ "timestamp": time.Now().Unix(),
 }
 
 // На стороне получателя проверяйте timestamp
 if time.Now().Unix() - payload["timestamp"] > 300 { // 5 минут
-    return errors.New("request too old")
+ return errors.New("request too old")
 }
 ```
 
@@ -376,33 +376,33 @@ if time.Now().Unix() - payload["timestamp"] > 300 { // 5 минут
 
 ```
 level=debug msg="Added webhook signature to request"
-    integration_id=123
-    header="X-Webhook-Signature"
-    algorithm="sha256"
+ integration_id=123
+ header="X-Webhook-Signature"
+ algorithm="sha256"
 ```
 
 ### Ошибка подписи
 
 ```
 level=error msg="Failed to add webhook signature"
-    integration_id=123
-    error="signature secret is empty"
+ integration_id=123
+ error="signature secret is empty"
 ```
 
 ### Проверка подписи
 
 ```
 level=debug msg="Webhook signature verified successfully"
-    integration_id=123
-    algorithm="sha256"
+ integration_id=123
+ algorithm="sha256"
 ```
 
 ### Неверная подпись
 
 ```
 level=warning msg="Webhook signature verification failed"
-    integration_id=123
-    algorithm="sha256"
+ integration_id=123
+ algorithm="sha256"
 ```
 
 ## Troubleshooting
@@ -437,7 +437,7 @@ log.Printf("Expected header: %s", integration.WebhookSignatureHeader)
 
 // Логируйте все заголовки
 for name, values := range r.Header {
-    log.Printf("Header: %s = %v", name, values)
+ log.Printf("Header: %s = %v", name, values)
 }
 ```
 
@@ -463,13 +463,13 @@ go test -v ./internal/services/webhook_signature_test.go ./internal/services/web
 
 ### Покрытие тестами
 
-- ✅ Генерация подписи (SHA256, SHA512, SHA1)
-- ✅ Верификация подписи
-- ✅ Добавление подписи в запрос
-- ✅ Проверка входящей подписи
-- ✅ Генерация случайного секрета
-- ✅ Валидация конфигурации
-- ✅ Обработка ошибок
+- Генерация подписи (SHA256, SHA512, SHA1)
+- Верификация подписи
+- Добавление подписи в запрос
+- Проверка входящей подписи
+- Генерация случайного секрета
+- Валидация конфигурации
+- Обработка ошибок
 
 ## API Reference
 
@@ -525,9 +525,9 @@ func ValidateSignatureConfig(integration *models.Integration) error
 
 Webhook подписи - критически важный элемент безопасности для любой интеграции. Они обеспечивают:
 
-- ✅ Аутентификацию источника
-- ✅ Целостность данных
-- ✅ Защиту от атак
-- ✅ Соответствие стандартам
+- Аутентификацию источника
+- Целостность данных
+- Защиту от атак
+- Соответствие стандартам
 
 Всегда включайте подписи для production интеграций!

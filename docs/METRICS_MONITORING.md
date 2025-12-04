@@ -1,4 +1,4 @@
-# 📊 Метрики и мониторинг
+# Метрики и мониторинг
 
 ## Обзор
 
@@ -63,34 +63,34 @@ GET /metrics/health
 **Пример ответа:**
 ```json
 {
-  "status": "healthy",
-  "timestamp": "2024-12-04T10:00:00Z",
-  "uptime": "24h30m15s",
-  "version": "1.0.0",
-  "components": {
-    "database": {
-      "status": "healthy",
-      "message": "Database connection OK",
-      "last_checked": "2024-12-04T10:00:00Z",
-      "details": {
-        "response_time_ms": 5,
-        "open_connections": 10,
-        "in_use": 2,
-        "idle": 8,
-        "max_open": 25
-      }
-    },
-    "disk": {
-      "status": "healthy",
-      "message": "Disk space OK",
-      "last_checked": "2024-12-04T10:00:00Z"
-    },
-    "memory": {
-      "status": "healthy",
-      "message": "Memory usage OK",
-      "last_checked": "2024-12-04T10:00:00Z"
-    }
-  }
+ "status": "healthy",
+ "timestamp": "2024-12-04T10:00:00Z",
+ "uptime": "24h30m15s",
+ "version": "1.0.0",
+ "components": {
+ "database": {
+ "status": "healthy",
+ "message": "Database connection OK",
+ "last_checked": "2024-12-04T10:00:00Z",
+ "details": {
+ "response_time_ms": 5,
+ "open_connections": 10,
+ "in_use": 2,
+ "idle": 8,
+ "max_open": 25
+ }
+ },
+ "disk": {
+ "status": "healthy",
+ "message": "Disk space OK",
+ "last_checked": "2024-12-04T10:00:00Z"
+ },
+ "memory": {
+ "status": "healthy",
+ "message": "Memory usage OK",
+ "last_checked": "2024-12-04T10:00:00Z"
+ }
+ }
 }
 ```
 
@@ -110,8 +110,8 @@ GET /metrics/health/live
 **Пример ответа:**
 ```json
 {
-  "status": "alive",
-  "uptime": "24h30m15s"
+ "status": "alive",
+ "uptime": "24h30m15s"
 }
 ```
 
@@ -126,14 +126,14 @@ GET /metrics/health/ready
 **Пример ответа (готово):**
 ```json
 {
-  "status": "ready"
+ "status": "ready"
 }
 ```
 
 **Пример ответа (не готово):**
 ```json
 {
-  "status": "not_ready"
+ "status": "not_ready"
 }
 ```
 
@@ -144,7 +144,7 @@ GET /metrics/health/ready
 #### dmintegroff_webhook_total
 Общее количество webhook запросов.
 
-**Тип:** Counter  
+**Тип:** Counter 
 **Labels:**
 - `integration_id` - ID интеграции
 - `integration_name` - название интеграции
@@ -153,13 +153,13 @@ GET /metrics/health/ready
 #### dmintegroff_webhook_success_total
 Количество успешных webhook запросов.
 
-**Тип:** Counter  
+**Тип:** Counter 
 **Labels:** integration_id, integration_name, project_id
 
 #### dmintegroff_webhook_failure_total
 Количество неудачных webhook запросов.
 
-**Тип:** Counter  
+**Тип:** Counter 
 **Labels:**
 - `integration_id`
 - `integration_name`
@@ -169,7 +169,7 @@ GET /metrics/health/ready
 #### dmintegroff_webhook_retries_total
 Количество retry попыток.
 
-**Тип:** Counter  
+**Тип:** Counter 
 **Labels:**
 - `integration_id`
 - `integration_name`
@@ -178,7 +178,7 @@ GET /metrics/health/ready
 #### dmintegroff_webhook_duration_seconds
 Время выполнения webhook запроса.
 
-**Тип:** Histogram  
+**Тип:** Histogram 
 **Labels:**
 - `integration_id`
 - `integration_name`
@@ -191,7 +191,7 @@ GET /metrics/health/ready
 #### dmintegroff_oauth_token_refresh_total
 Количество обновлений OAuth токенов.
 
-**Тип:** Counter  
+**Тип:** Counter 
 **Labels:**
 - `integration_id`
 - `status` - success или failure
@@ -199,7 +199,7 @@ GET /metrics/health/ready
 #### dmintegroff_oauth_token_cache_total
 Попадания и промахи кэша OAuth токенов.
 
-**Тип:** Counter  
+**Тип:** Counter 
 **Labels:**
 - `integration_id`
 - `result` - hit или miss
@@ -207,7 +207,7 @@ GET /metrics/health/ready
 #### dmintegroff_oauth_duration_seconds
 Время получения OAuth токена.
 
-**Тип:** Histogram  
+**Тип:** Histogram 
 **Labels:**
 - `integration_id`
 - `status` - success или failure
@@ -219,7 +219,7 @@ GET /metrics/health/ready
 #### dmintegroff_retry_attempts
 Количество retry попыток на запрос.
 
-**Тип:** Histogram  
+**Тип:** Histogram 
 **Labels:**
 - `integration_id`
 - `final_status` - success или failure
@@ -231,7 +231,7 @@ GET /metrics/health/ready
 #### dmintegroff_signature_generated_total
 Количество сгенерированных подписей.
 
-**Тип:** Counter  
+**Тип:** Counter 
 **Labels:**
 - `integration_id`
 - `algorithm` - sha256, sha512, sha1
@@ -239,7 +239,7 @@ GET /metrics/health/ready
 #### dmintegroff_signature_verified_total
 Количество проверенных подписей.
 
-**Тип:** Counter  
+**Тип:** Counter 
 **Labels:**
 - `integration_id`
 - `result` - valid или invalid
@@ -262,11 +262,11 @@ GET /metrics/health/ready
 
 ```yaml
 scrape_configs:
-  - job_name: 'dmintegroff'
-    scrape_interval: 15s
-    static_configs:
-      - targets: ['localhost:8080']
-    metrics_path: '/metrics'
+- job_name: 'dmintegroff'
+ scrape_interval: 15s
+ static_configs:
+- targets: ['localhost:8080']
+ metrics_path: '/metrics'
 ```
 
 ### Примеры запросов PromQL
@@ -280,7 +280,7 @@ rate(dmintegroff_webhook_total[5m]) * 100
 #### P95 время выполнения webhook
 ```promql
 histogram_quantile(0.95, 
-  rate(dmintegroff_webhook_duration_seconds_bucket[5m])
+ rate(dmintegroff_webhook_duration_seconds_bucket[5m])
 )
 ```
 
@@ -301,35 +301,35 @@ rate(dmintegroff_oauth_token_cache_total[5m]) * 100
 
 ```json
 {
-  "dashboard": {
-    "title": "DMIntegroff Monitoring",
-    "panels": [
-      {
-        "title": "Webhook Success Rate",
-        "targets": [
-          {
-            "expr": "rate(dmintegroff_webhook_success_total[5m]) / rate(dmintegroff_webhook_total[5m]) * 100"
-          }
-        ]
-      },
-      {
-        "title": "Webhook Duration P95",
-        "targets": [
-          {
-            "expr": "histogram_quantile(0.95, rate(dmintegroff_webhook_duration_seconds_bucket[5m]))"
-          }
-        ]
-      },
-      {
-        "title": "Active Integrations",
-        "targets": [
-          {
-            "expr": "dmintegroff_active_integrations"
-          }
-        ]
-      }
-    ]
-  }
+ "dashboard": {
+ "title": "DMIntegroff Monitoring",
+ "panels": [
+ {
+ "title": "Webhook Success Rate",
+ "targets": [
+ {
+ "expr": "rate(dmintegroff_webhook_success_total[5m]) / rate(dmintegroff_webhook_total[5m]) * 100"
+ }
+ ]
+ },
+ {
+ "title": "Webhook Duration P95",
+ "targets": [
+ {
+ "expr": "histogram_quantile(0.95, rate(dmintegroff_webhook_duration_seconds_bucket[5m]))"
+ }
+ ]
+ },
+ {
+ "title": "Active Integrations",
+ "targets": [
+ {
+ "expr": "dmintegroff_active_integrations"
+ }
+ ]
+ }
+ ]
+ }
 }
 ```
 
@@ -341,31 +341,31 @@ rate(dmintegroff_oauth_token_cache_total[5m]) * 100
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dmintegroff
+ name: dmintegroff
 spec:
-  template:
-    spec:
-      containers:
-      - name: dmintegroff
-        image: dmintegroff:latest
-        ports:
-        - containerPort: 8080
-        livenessProbe:
-          httpGet:
-            path: /metrics/health/live
-            port: 8080
-          initialDelaySeconds: 30
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
-        readinessProbe:
-          httpGet:
-            path: /metrics/health/ready
-            port: 8080
-          initialDelaySeconds: 10
-          periodSeconds: 5
-          timeoutSeconds: 3
-          failureThreshold: 3
+ template:
+ spec:
+ containers:
+- name: dmintegroff
+ image: dmintegroff:latest
+ ports:
+- containerPort: 8080
+ livenessProbe:
+ httpGet:
+ path: /metrics/health/live
+ port: 8080
+ initialDelaySeconds: 30
+ periodSeconds: 10
+ timeoutSeconds: 5
+ failureThreshold: 3
+ readinessProbe:
+ httpGet:
+ path: /metrics/health/ready
+ port: 8080
+ initialDelaySeconds: 10
+ periodSeconds: 5
+ timeoutSeconds: 3
+ failureThreshold: 3
 ```
 
 ### ServiceMonitor для Prometheus Operator
@@ -374,15 +374,15 @@ spec:
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: dmintegroff
+ name: dmintegroff
 spec:
-  selector:
-    matchLabels:
-      app: dmintegroff
-  endpoints:
-  - port: http
-    path: /metrics
-    interval: 15s
+ selector:
+ matchLabels:
+ app: dmintegroff
+ endpoints:
+- port: http
+ path: /metrics
+ interval: 15s
 ```
 
 ## Алерты
@@ -392,61 +392,61 @@ spec:
 ```yaml
 groups:
 - name: dmintegroff
-  rules:
-  # Высокий процент ошибок
-  - alert: HighWebhookFailureRate
-    expr: |
-      rate(dmintegroff_webhook_failure_total[5m]) / 
-      rate(dmintegroff_webhook_total[5m]) > 0.1
-    for: 5m
-    labels:
-      severity: warning
-    annotations:
-      summary: "High webhook failure rate"
-      description: "Webhook failure rate is {{ $value | humanizePercentage }}"
+ rules:
+# Высокий процент ошибок
+- alert: HighWebhookFailureRate
+ expr: |
+ rate(dmintegroff_webhook_failure_total[5m]) / 
+ rate(dmintegroff_webhook_total[5m]) > 0.1
+ for: 5m
+ labels:
+ severity: warning
+ annotations:
+ summary: "High webhook failure rate"
+ description: "Webhook failure rate is {{ $value | humanizePercentage }}"
 
-  # Медленные webhook
-  - alert: SlowWebhookRequests
-    expr: |
-      histogram_quantile(0.95, 
-        rate(dmintegroff_webhook_duration_seconds_bucket[5m])
-      ) > 5
-    for: 10m
-    labels:
-      severity: warning
-    annotations:
-      summary: "Slow webhook requests"
-      description: "P95 webhook duration is {{ $value }}s"
+# Медленные webhook
+- alert: SlowWebhookRequests
+ expr: |
+ histogram_quantile(0.95, 
+ rate(dmintegroff_webhook_duration_seconds_bucket[5m])
+ ) > 5
+ for: 10m
+ labels:
+ severity: warning
+ annotations:
+ summary: "Slow webhook requests"
+ description: "P95 webhook duration is {{ $value }}s"
 
-  # База данных недоступна
-  - alert: DatabaseUnhealthy
-    expr: up{job="dmintegroff"} == 0
-    for: 1m
-    labels:
-      severity: critical
-    annotations:
-      summary: "Database is unhealthy"
-      description: "DMIntegroff cannot connect to database"
+# База данных недоступна
+- alert: DatabaseUnhealthy
+ expr: up{job="dmintegroff"} == 0
+ for: 1m
+ labels:
+ severity: critical
+ annotations:
+ summary: "Database is unhealthy"
+ description: "DMIntegroff cannot connect to database"
 
-  # Много retry попыток
-  - alert: HighRetryRate
-    expr: rate(dmintegroff_webhook_retries_total[5m]) > 10
-    for: 5m
-    labels:
-      severity: warning
-    annotations:
-      summary: "High retry rate"
-      description: "Retry rate is {{ $value }} per second"
+# Много retry попыток
+- alert: HighRetryRate
+ expr: rate(dmintegroff_webhook_retries_total[5m]) > 10
+ for: 5m
+ labels:
+ severity: warning
+ annotations:
+ summary: "High retry rate"
+ description: "Retry rate is {{ $value }} per second"
 ```
 
 ## Best Practices
 
 ### 1. Мониторинг в production
 
-- ✅ Настройте Prometheus для сбора метрик каждые 15-30 секунд
-- ✅ Используйте Grafana для визуализации
-- ✅ Настройте алерты для критичных метрик
-- ✅ Мониторьте health checks в Kubernetes
+- Настройте Prometheus для сбора метрик каждые 15-30 секунд
+- Используйте Grafana для визуализации
+- Настройте алерты для критичных метрик
+- Мониторьте health checks в Kubernetes
 
 ### 2. Метрики для отслеживания
 
@@ -559,12 +559,12 @@ fmt.Printf("Status: %s\n", health.Status)
 
 // Liveness проверка
 if healthService.Liveness() {
-    fmt.Println("Application is alive")
+ fmt.Println("Application is alive")
 }
 
 // Readiness проверка
 if healthService.Readiness(ctx) {
-    fmt.Println("Application is ready")
+ fmt.Println("Application is ready")
 }
 
 // Uptime

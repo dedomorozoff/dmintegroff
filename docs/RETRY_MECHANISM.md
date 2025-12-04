@@ -35,11 +35,11 @@ Retry механизм автоматически применяется к:
 
 ```go
 RetryConfig{
-    MaxAttempts:     3,                    // Максимум 3 попытки
-    InitialDelay:    1 * time.Second,      // Начальная задержка 1 сек
-    MaxDelay:        30 * time.Second,     // Максимальная задержка 30 сек
-    Multiplier:      2.0,                  // Множитель для экспоненты
-    RetryableStatus: []int{429, 500, 502, 503, 504},
+ MaxAttempts: 3, // Максимум 3 попытки
+ InitialDelay: 1 * time.Second, // Начальная задержка 1 сек
+ MaxDelay: 30 * time.Second, // Максимальная задержка 30 сек
+ Multiplier: 2.0, // Множитель для экспоненты
+ RetryableStatus: []int{429, 500, 502, 503, 504},
 }
 ```
 
@@ -48,11 +48,11 @@ RetryConfig{
 ```go
 // Пример: более агрессивный retry для критичных запросов
 config := RetryConfig{
-    MaxAttempts:     5,
-    InitialDelay:    500 * time.Millisecond,
-    MaxDelay:        60 * time.Second,
-    Multiplier:      2.0,
-    RetryableStatus: []int{429, 500, 502, 503, 504},
+ MaxAttempts: 5,
+ InitialDelay: 500 * time.Millisecond,
+ MaxDelay: 60 * time.Second,
+ Multiplier: 2.0,
+ RetryableStatus: []int{429, 500, 502, 503, 504},
 }
 
 resp, err := retryWithBackoff(req, client, config)
@@ -66,8 +66,8 @@ resp, err := retryWithBackoff(req, client, config)
 // Автоматически использует retry при получении токена
 token, err := GetAccessToken(integration)
 if err != nil {
-    // Ошибка после всех попыток
-    log.Error("Failed to get token after retries:", err)
+ // Ошибка после всех попыток
+ log.Error("Failed to get token after retries:", err)
 }
 ```
 
@@ -77,8 +77,8 @@ if err != nil {
 // Автоматически использует retry при отправке webhook
 err := ProcessWebhook(integrationID, payload)
 if err != nil {
-    // Ошибка после всех попыток
-    log.Error("Failed to deliver webhook after retries:", err)
+ // Ошибка после всех попыток
+ log.Error("Failed to deliver webhook after retries:", err)
 }
 ```
 
@@ -88,17 +88,17 @@ Retry механизм логирует каждую попытку:
 
 ```
 level=warning msg="Request returned retryable status, will retry" 
-    attempt=1 max=3 status_code=503 url="https://api.example.com/token"
+ attempt=1 max=3 status_code=503 url="https://api.example.com/token"
 
 level=debug msg="Waiting before retry" delay_seconds=1.0
 
 level=warning msg="Request returned retryable status, will retry" 
-    attempt=2 max=3 status_code=503 url="https://api.example.com/token"
+ attempt=2 max=3 status_code=503 url="https://api.example.com/token"
 
 level=debug msg="Waiting before retry" delay_seconds=2.0
 
 level=info msg="Successfully obtained OAuth2 access token" 
-    integration_id=123 expires_in=3600
+ integration_id=123 expires_in=3600
 ```
 
 ## Поведение при ошибках
@@ -140,7 +140,7 @@ grep "will retry" logs/app.log | wc -l
 // Для 3 попыток с задержками 1s, 2s
 // Минимальное время: 3s (задержки) + 3*30s (таймауты) = 93s
 client := &http.Client{
-    Timeout: 30 * time.Second,
+ Timeout: 30 * time.Second,
 }
 ```
 
@@ -148,9 +148,9 @@ client := &http.Client{
 Всегда обрабатывайте ошибки после исчерпания retry:
 ```go
 if err := ProcessWebhook(id, data); err != nil {
-    // Отправить уведомление администратору
-    // Сохранить в dead letter queue
-    // Логировать для анализа
+ // Отправить уведомление администратору
+ // Сохранить в dead letter queue
+ // Логировать для анализа
 }
 ```
 
@@ -163,12 +163,12 @@ go test -v ./internal/services/retry_test.go ./internal/services/oauth_service.g
 ```
 
 Тесты покрывают:
-- ✅ Успешный запрос без retry
-- ✅ Успех после нескольких retry
-- ✅ Исчерпание всех попыток
-- ✅ Не-повторяемые статусы
-- ✅ Корректная обработка тела запроса при retry
-- ✅ Расчет экспоненциальной задержки
+- Успешный запрос без retry
+- Успех после нескольких retry
+- Исчерпание всех попыток
+- Не-повторяемые статусы
+- Корректная обработка тела запроса при retry
+- Расчет экспоненциальной задержки
 
 ## Troubleshooting
 

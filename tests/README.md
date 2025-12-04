@@ -16,9 +16,9 @@
 
 1. Отправляет POST запрос на `/test` endpoint
 2. Включает кастомные HTTP заголовки:
-   - `Content-Type: application/json`
-   - `X-Custom-Header: test-value`
-   - `User-Agent: TestScript/1.0`
+- `Content-Type: application/json`
+- `X-Custom-Header: test-value`
+- `User-Agent: TestScript/1.0`
 3. Отправляет JSON данные с timestamp
 
 ### Проверка результата
@@ -44,9 +44,9 @@ http://localhost:8080/logs
 
 Ответ сервера:
 {
-  "status": "success",
-  "message": "Test request received",
-  "data": {...}
+ "status": "success",
+ "message": "Test request received",
+ "data": {...}
 }
 
 Тестовый запрос отправлен успешно!

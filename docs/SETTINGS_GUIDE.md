@@ -1,4 +1,4 @@
-# ⚙️ Руководство по настройке dmIntegroff
+# Руководство по настройке dmIntegroff
 
 ## Содержание
 
@@ -21,7 +21,7 @@
 cp .env.example .env
 ```
 
-⚠️ **Важно**: После изменения настроек в `.env` необходимо перезапустить сервер!
+ **Важно**: После изменения настроек в `.env` необходимо перезапустить сервер!
 
 ---
 
@@ -41,9 +41,9 @@ PORT=8080
 
 **Примеры:**
 ```env
-PORT=8080          # Разработка
-PORT=3000          # Альтернативный порт
-PORT=80            # Production (требует root/admin)
+PORT=8080 # Разработка
+PORT=3000 # Альтернативный порт
+PORT=80 # Production (требует root/admin)
 ```
 
 ### GIN_MODE
@@ -75,12 +75,12 @@ APP_URL=http://localhost:8080
 
 **Примеры:**
 ```env
-APP_URL=http://localhost:8080        # Локальная разработка
-APP_URL=https://api.example.com      # Production
-APP_URL=http://192.168.1.100:8080    # Локальная сеть
+APP_URL=http://localhost:8080 # Локальная разработка
+APP_URL=https://api.example.com # Production
+APP_URL=http://192.168.1.100:8080 # Локальная сеть
 ```
 
-⚠️ **Важно**: Если не указан, используется автоматическое определение из HTTP-запроса.
+ **Важно**: Если не указан, используется автоматическое определение из HTTP-запроса.
 
 ### APP_PATH
 Базовый путь для всех маршрутов приложения.
@@ -96,12 +96,12 @@ APP_PATH=
 
 **Примеры:**
 ```env
-APP_PATH=              # http://localhost:8080/
-APP_PATH=/api/v1       # http://localhost:8080/api/v1/
-APP_PATH=/dmintegroff  # http://localhost:8080/dmintegroff/
+APP_PATH= # http://localhost:8080/
+APP_PATH=/api/v1 # http://localhost:8080/api/v1/
+APP_PATH=/dmintegroff # http://localhost:8080/dmintegroff/
 ```
 
-⚠️ **Важно**: При изменении APP_PATH обновите webhook URL в интеграциях!
+ **Важно**: При изменении APP_PATH обновите webhook URL в интеграциях!
 
 ---
 
@@ -165,7 +165,7 @@ DB_DSN=user:pass@tcp(host:3306)/db?tls=true&charset=utf8mb4&parseTime=True&loc=L
 SESSION_SECRET=your-super-secret-key-change-this-in-production
 ```
 
-⚠️ **КРИТИЧЕСКИ ВАЖНО**: Обязательно измените это значение в production!
+ **КРИТИЧЕСКИ ВАЖНО**: Обязательно измените это значение в production!
 
 **Требования:**
 - Минимум 32 символа
@@ -226,10 +226,10 @@ LOG_FILE=dmintegroff.log
 
 **Примеры:**
 ```env
-LOG_FILE=dmintegroff.log                    # Файл в корне
-LOG_FILE=./logs/app.log                     # Относительный путь
-LOG_FILE=/var/log/dmintegroff/app.log       # Абсолютный путь
-LOG_FILE=                                   # Только консоль
+LOG_FILE=dmintegroff.log # Файл в корне
+LOG_FILE=./logs/app.log # Относительный путь
+LOG_FILE=/var/log/dmintegroff/app.log # Абсолютный путь
+LOG_FILE= # Только консоль
 ```
 
 **Ротация логов:**
@@ -239,13 +239,13 @@ LOG_FILE=                                   # Только консоль
 ```bash
 # /etc/logrotate.d/dmintegroff
 /var/log/dmintegroff/*.log {
-    daily
-    rotate 7
-    compress
-    delaycompress
-    missingok
-    notifempty
-    create 0644 dmintegroff dmintegroff
+ daily
+ rotate 7
+ compress
+ delaycompress
+ missingok
+ notifempty
+ create 0644 dmintegroff dmintegroff
 }
 ```
 
@@ -332,52 +332,52 @@ DEBUG=false
 ### Рекомендации для production
 
 1. **Безопасность:**
-   - Используйте сложный SESSION_SECRET (минимум 32 символа)
-   - Используйте MySQL вместо SQLite
-   - Создайте отдельного пользователя БД с ограниченными правами
-   - Используйте HTTPS (настройте reverse proxy)
+- Используйте сложный SESSION_SECRET (минимум 32 символа)
+- Используйте MySQL вместо SQLite
+- Создайте отдельного пользователя БД с ограниченными правами
+- Используйте HTTPS (настройте reverse proxy)
 
 2. **Производительность:**
-   - Установите GIN_MODE=release
-   - Установите DEBUG=false
-   - Используйте LOG_LEVEL=info или warn
-   - Настройте ротацию логов
+- Установите GIN_MODE=release
+- Установите DEBUG=false
+- Используйте LOG_LEVEL=info или warn
+- Настройте ротацию логов
 
 3. **Мониторинг:**
-   - Настройте логирование в файл
-   - Используйте logrotate для ротации логов
-   - Мониторьте размер базы данных
-   - Настройте бэкапы БД
+- Настройте логирование в файл
+- Используйте logrotate для ротации логов
+- Мониторьте размер базы данных
+- Настройте бэкапы БД
 
 4. **Сеть:**
-   - Используйте reverse proxy (nginx, Apache)
-   - Настройте SSL/TLS сертификаты
-   - Ограничьте доступ к порту через firewall
-   - Используйте CDN для статических файлов (опционально)
+- Используйте reverse proxy (nginx, Apache)
+- Настройте SSL/TLS сертификаты
+- Ограничьте доступ к порту через firewall
+- Используйте CDN для статических файлов (опционально)
 
 ### Пример nginx конфигурации
 
 ```nginx
 server {
-    listen 80;
-    server_name dmintegroff.example.com;
-    return 301 https://$server_name$request_uri;
+ listen 80;
+ server_name dmintegroff.example.com;
+ return 301 https://$server_name$request_uri;
 }
 
 server {
-    listen 443 ssl http2;
-    server_name dmintegroff.example.com;
+ listen 443 ssl http2;
+ server_name dmintegroff.example.com;
 
-    ssl_certificate /etc/ssl/certs/dmintegroff.crt;
-    ssl_certificate_key /etc/ssl/private/dmintegroff.key;
+ ssl_certificate /etc/ssl/certs/dmintegroff.crt;
+ ssl_certificate_key /etc/ssl/private/dmintegroff.key;
 
-    location / {
-        proxy_pass http://localhost:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
+ location / {
+ proxy_pass http://localhost:8080;
+ proxy_set_header Host $host;
+ proxy_set_header X-Real-IP $remote_addr;
+ proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+ proxy_set_header X-Forwarded-Proto $scheme;
+ }
 }
 ```
 

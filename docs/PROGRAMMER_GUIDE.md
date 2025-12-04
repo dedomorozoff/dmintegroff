@@ -1,4 +1,4 @@
-# 👨‍💻 Руководство программиста dmIntegroff
+# 👨‍ Руководство программиста dmIntegroff
 
 Этот документ для разработчиков, которые хотят развивать или модифицировать dmIntegroff.
 
@@ -50,31 +50,31 @@ go mod tidy
 
 ```
 ┌─────────────────────────────────────┐
-│         HTTP Layer (Gin)            │
-│  ┌──────────────────────────────┐   │
-│  │   Routes & Middleware        │   │
-│  └──────────────────────────────┘   │
+│ HTTP Layer (Gin) │
+│ ┌──────────────────────────────┐ │
+│ │ Routes & Middleware │ │
+│ └──────────────────────────────┘ │
 └─────────────────────────────────────┘
-              ↓
+ ↓
 ┌─────────────────────────────────────┐
-│      Controller Layer               │
-│  ┌──────────────────────────────┐   │
-│  │  HTTP Request Handlers       │   │
-│  └──────────────────────────────┘   │
+│ Controller Layer │
+│ ┌──────────────────────────────┐ │
+│ │ HTTP Request Handlers │ │
+│ └──────────────────────────────┘ │
 └─────────────────────────────────────┘
-              ↓
+ ↓
 ┌─────────────────────────────────────┐
-│       Service Layer                 │
-│  ┌──────────────────────────────┐   │
-│  │   Business Logic             │   │
-│  └──────────────────────────────┘   │
+│ Service Layer │
+│ ┌──────────────────────────────┐ │
+│ │ Business Logic │ │
+│ └──────────────────────────────┘ │
 └─────────────────────────────────────┘
-              ↓
+ ↓
 ┌─────────────────────────────────────┐
-│       Model Layer (GORM)            │
-│  ┌──────────────────────────────┐   │
-│  │   Database Models            │   │
-│  └──────────────────────────────┘   │
+│ Model Layer (GORM) │
+│ ┌──────────────────────────────┐ │
+│ │ Database Models │ │
+│ └──────────────────────────────┘ │
 └─────────────────────────────────────┘
 ```
 
@@ -91,11 +91,11 @@ go mod tidy
 // LoginPost обрабатывает POST запрос на авторизацию.
 // Проверяет учетные данные и создает сессию.
 func LoginPost(c *gin.Context) {
-    // Получение данных из формы
-    username := c.PostForm("username")
-    password := c.PostForm("password")
-    
-    // ... остальной код
+ // Получение данных из формы
+ username := c.PostForm("username")
+ password := c.PostForm("password")
+ 
+ // ... остальной код
 }
 ```
 
@@ -106,27 +106,27 @@ func LoginPost(c *gin.Context) {
 ```
 dmIntegroff
 ├── Веб-интерфейс (Gin + HTML Templates)
-│   ├── Дашборд с статистикой
-│   ├── Управление интеграциями
-│   ├── Настройки пользователя
-│   └── Мониторинг и логи
+│ ├── Дашборд с статистикой
+│ ├── Управление интеграциями
+│ ├── Настройки пользователя
+│ └── Мониторинг и логи
 │
 ├── API Layer
-│   ├── REST endpoints для интеграций
-│   ├── Webhook endpoints
-│   ├── API для статистики
-│   └── API для активности
+│ ├── REST endpoints для интеграций
+│ ├── Webhook endpoints
+│ ├── API для статистики
+│ └── API для активности
 │
 ├── Business Logic
-│   ├── Обработка webhook запросов
-│   ├── Трансформация данных (маппинг)
-│   ├── Отправка на Target API
-│   └── Логирование с ограничением
+│ ├── Обработка webhook запросов
+│ ├── Трансформация данных (маппинг)
+│ ├── Отправка на Target API
+│ └── Логирование с ограничением
 │
 └── Data Layer
-    ├── SQLite/MySQL
-    ├── Модели GORM
-    └── Автоматическая очистка логов
+ ├── SQLite/MySQL
+ ├── Модели GORM
+ └── Автоматическая очистка логов
 ```
 
 ### Поток обработки webhook
@@ -137,9 +137,9 @@ dmIntegroff
 3. Валидация JSON
 4. Логирование входящего запроса (тип: webhook)
 5. Проверка режима интеграции:
-   - listening: сохранить sample payload
-   - active: обработать и отправить
-   - inactive: вернуть статус
+- listening: сохранить sample payload
+- active: обработать и отправить
+- inactive: вернуть статус
 6. Трансформация данных по маппингу
 7. Отправка на Target API
 8. Логирование исходящего запроса (тип: webhook)
@@ -167,13 +167,13 @@ package models
 import "gorm.io/gorm"
 
 type Notification struct {
-    gorm.Model
-    UserID  uint   `gorm:"not null" json:"user_id"`
-    Message string `gorm:"type:text;not null" json:"message"`
-    IsRead  bool   `gorm:"default:false" json:"is_read"`
-    
-    // Связи
-    User User `gorm:"foreignKey:UserID" json:"user"`
+ gorm.Model
+ UserID uint `gorm:"not null" json:"user_id"`
+ Message string `gorm:"type:text;not null" json:"message"`
+ IsRead bool `gorm:"default:false" json:"is_read"`
+ 
+ // Связи
+ User User `gorm:"foreignKey:UserID" json:"user"`
 }
 ```
 
@@ -181,10 +181,10 @@ type Notification struct {
 
 ```go
 database.Migrate(
-    &models.User{}, 
-    &models.Integration{}, 
-    &models.RequestLog{},
-    &models.Notification{}, // Новая модель
+ &models.User{}, 
+ &models.Integration{}, 
+ &models.RequestLog{},
+ &models.Notification{}, // Новая модель
 )
 ```
 
@@ -197,38 +197,38 @@ database.Migrate(
 package controllers
 
 import (
-    "dmIntegroff/internal/database"
-    "dmIntegroff/internal/models"
-    "net/http"
-    
-    "github.com/gin-gonic/gin"
+ "dmIntegroff/internal/database"
+ "dmIntegroff/internal/models"
+ "net/http"
+ 
+ "github.com/gin-gonic/gin"
 )
 
 // NotificationList отображает список уведомлений
 func NotificationList(c *gin.Context) {
-    var notifications []models.Notification
-    database.DB.Preload("User").Find(&notifications)
-    
-    c.HTML(http.StatusOK, "notifications.html", gin.H{
-        "title":         "Уведомления",
-        "notifications": notifications,
-    })
+ var notifications []models.Notification
+ database.DB.Preload("User").Find(&notifications)
+ 
+ c.HTML(http.StatusOK, "notifications.html", gin.H{
+ "title": "Уведомления",
+ "notifications": notifications,
+ })
 }
 
 // MarkAsRead помечает уведомление как прочитанное
 func MarkAsRead(c *gin.Context) {
-    id := c.Param("id")
-    
-    var notification models.Notification
-    if err := database.DB.First(&notification, id).Error; err != nil {
-        c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
-        return
-    }
-    
-    notification.IsRead = true
-    database.DB.Save(&notification)
-    
-    c.JSON(http.StatusOK, gin.H{"status": "success"})
+ id := c.Param("id")
+ 
+ var notification models.Notification
+ if err := database.DB.First(&notification, id).Error; err != nil {
+ c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
+ return
+ }
+ 
+ notification.IsRead = true
+ database.DB.Save(&notification)
+ 
+ c.JSON(http.StatusOK, gin.H{"status": "success"})
 }
 ```
 
@@ -249,8 +249,8 @@ authorized.POST("/notifications/:id/read", controllers.MarkAsRead)
 package services
 
 import (
-    "dmIntegroff/internal/database"
-    "dmIntegroff/internal/models"
+ "dmIntegroff/internal/database"
+ "dmIntegroff/internal/models"
 )
 
 // NotificationService управляет уведомлениями
@@ -258,23 +258,23 @@ type NotificationService struct{}
 
 // SendNotification создает новое уведомление
 func (s *NotificationService) SendNotification(userID uint, message string) error {
-    notification := models.Notification{
-        UserID:  userID,
-        Message: message,
-        IsRead:  false,
-    }
-    
-    return database.DB.Create(&notification).Error
+ notification := models.Notification{
+ UserID: userID,
+ Message: message,
+ IsRead: false,
+ }
+ 
+ return database.DB.Create(&notification).Error
 }
 
 // GetUnreadCount возвращает количество непрочитанных уведомлений
 func (s *NotificationService) GetUnreadCount(userID uint) (int64, error) {
-    var count int64
-    err := database.DB.Model(&models.Notification{}).
-        Where("user_id = ? AND is_read = ?", userID, false).
-        Count(&count).Error
-    
-    return count, err
+ var count int64
+ err := database.DB.Model(&models.Notification{}).
+ Where("user_id = ? AND is_read = ?", userID, false).
+ Count(&count).Error
+ 
+ return count, err
 }
 ```
 
@@ -287,32 +287,32 @@ func (s *NotificationService) GetUnreadCount(userID uint) (int64, error) {
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ .title }}</title>
-    <link rel="stylesheet" href="/static/css/modern.css">
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>{{ .title }}</title>
+ <link rel="stylesheet" href="/static/css/modern.css">
 </head>
 <body>
-    <!-- Sidebar (скопируйте из других шаблонов) -->
-    <aside class="sidebar">
-        <!-- ... -->
-    </aside>
+ <!-- Sidebar (скопируйте из других шаблонов) -->
+ <aside class="sidebar">
+ <!-- ... -->
+ </aside>
 
-    <!-- Main Content -->
-    <main class="main-content">
-        <div class="page-header">
-            <h1>Уведомления</h1>
-        </div>
+ <!-- Main Content -->
+ <main class="main-content">
+ <div class="page-header">
+ <h1>Уведомления</h1>
+ </div>
 
-        <div class="card">
-            {{ range .notifications }}
-            <div class="notification {{ if .IsRead }}read{{ end }}">
-                <p>{{ .Message }}</p>
-                <small>{{ .CreatedAt.Format "2006-01-02 15:04:05" }}</small>
-            </div>
-            {{ end }}
-        </div>
-    </main>
+ <div class="card">
+ {{ range .notifications }}
+ <div class="notification {{ if .IsRead }}read{{ end }}">
+ <p>{{ .Message }}</p>
+ <small>{{ .CreatedAt.Format "2006-01-02 15:04:05" }}</small>
+ </div>
+ {{ end }}
+ </div>
+ </main>
 </body>
 </html>
 ```
@@ -326,16 +326,16 @@ func (s *NotificationService) GetUnreadCount(userID uint) (int64, error) {
 ```go
 // internal/services/integration_service.go
 func CreateLogWithLimit(log *models.RequestLog) {
-    database.DB.Create(log)
+ database.DB.Create(log)
 
-    // Подсчитываем количество логов
-    var count int64
-    database.DB.Model(&models.RequestLog{}).Count(&count)
+ // Подсчитываем количество логов
+ var count int64
+ database.DB.Model(&models.RequestLog{}).Count(&count)
 
-    // Если больше 50, удаляем самые старые
-    if count > 50 {
-        database.DB.Exec("DELETE FROM request_logs WHERE id IN (SELECT id FROM request_logs ORDER BY created_at ASC LIMIT ?)", count-50)
-    }
+ // Если больше 50, удаляем самые старые
+ if count > 50 {
+ database.DB.Exec("DELETE FROM request_logs WHERE id IN (SELECT id FROM request_logs ORDER BY created_at ASC LIMIT ?)", count-50)
+ }
 }
 ```
 
@@ -344,18 +344,18 @@ func CreateLogWithLimit(log *models.RequestLog) {
 ### Правильное логирование
 
 ```go
-// ✅ Правильно - с ограничением
+// Правильно - с ограничением
 log := models.RequestLog{
-    IntegrationID: integrationID,
-    Method:        "POST",
-    URL:           targetURL,
-    RequestBody:   string(jsonData),
-    StatusCode:    200,
-    LogType:       "webhook",
+ IntegrationID: integrationID,
+ Method: "POST",
+ URL: targetURL,
+ RequestBody: string(jsonData),
+ StatusCode: 200,
+ LogType: "webhook",
 }
 CreateLogWithLimit(&log)
 
-// ❌ Неправильно - без ограничения
+// Неправильно - без ограничения
 database.DB.Create(&log)
 ```
 
@@ -363,13 +363,13 @@ database.DB.Create(&log)
 
 ```go
 // Webhook запросы (входящие и исходящие)
-log.LogType = "webhook"  // Учитываются в статистике
+log.LogType = "webhook" // Учитываются в статистике
 
 // Тестовые запросы
-log.LogType = "test"     // Не учитываются в статистике
+log.LogType = "test" // Не учитываются в статистике
 
 // Ошибки
-log.LogType = "error"    // Системные ошибки
+log.LogType = "error" // Системные ошибки
 ```
 
 ## Статистика и мониторинг
@@ -379,27 +379,27 @@ log.LogType = "error"    // Системные ошибки
 ```go
 // internal/controllers/dashboard_controller.go
 func GetRequestStats(c *gin.Context) {
-    type DayStats struct {
-        Date  string `json:"date"`
-        Count int    `json:"count"`
-    }
+ type DayStats struct {
+ Date string `json:"date"`
+ Count int `json:"count"`
+ }
 
-    var stats []DayStats
-    
-    // SQL запрос для группировки по дням
-    query := `
-        SELECT 
-            DATE(created_at) as date,
-            COUNT(*) as count
-        FROM request_logs
-        WHERE log_type = 'webhook'
-        AND created_at >= datetime('now', '-30 days')
-        GROUP BY DATE(created_at)
-        ORDER BY date ASC
-    `
-    
-    rows, err := database.DB.Raw(query).Rows()
-    // ... обработка результатов
+ var stats []DayStats
+ 
+ // SQL запрос для группировки по дням
+ query := `
+ SELECT 
+ DATE(created_at) as date,
+ COUNT(*) as count
+ FROM request_logs
+ WHERE log_type = 'webhook'
+ AND created_at >= datetime('now', '-30 days')
+ GROUP BY DATE(created_at)
+ ORDER BY date ASC
+ `
+ 
+ rows, err := database.DB.Raw(query).Rows()
+ // ... обработка результатов
 }
 ```
 
@@ -408,10 +408,10 @@ func GetRequestStats(c *gin.Context) {
 ```go
 // 1. Создайте функцию в контроллере
 func GetCustomStats(c *gin.Context) {
-    // Ваша логика
-    c.JSON(http.StatusOK, gin.H{
-        "data": result,
-    })
+ // Ваша логика
+ c.JSON(http.StatusOK, gin.H{
+ "data": result,
+ })
 }
 
 // 2. Зарегистрируйте маршрут
@@ -424,25 +424,25 @@ authorized.GET("/api/custom-stats", controllers.GetCustomStats)
 ```javascript
 // templates/pages/dashboard.html
 fetch('/api/stats')
-    .then(response => response.json())
-    .then(data => {
-        const labels = data.stats.map(s => s.date);
-        const counts = data.stats.map(s => s.count);
-        
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Количество запросов',
-                    data: counts,
-                    borderColor: 'rgb(139, 142, 255)',
-                    backgroundColor: 'rgba(139, 142, 255, 0.3)',
-                    borderWidth: 4
-                }]
-            }
-        });
-    });
+ .then(response => response.json())
+ .then(data => {
+ const labels = data.stats.map(s => s.date);
+ const counts = data.stats.map(s => s.count);
+ 
+ new Chart(ctx, {
+ type: 'line',
+ data: {
+ labels: labels,
+ datasets: [{
+ label: 'Количество запросов',
+ data: counts,
+ borderColor: 'rgb(139, 142, 255)',
+ backgroundColor: 'rgba(139, 142, 255, 0.3)',
+ borderWidth: 4
+ }]
+ }
+ });
+ });
 ```
 
 ## Работа с настройками пользователя
@@ -452,36 +452,36 @@ fetch('/api/stats')
 ```go
 // internal/controllers/settings_controller.go
 func ChangePassword(c *gin.Context) {
-    session := sessions.Default(c)
-    userID := session.Get("user_id")
-    
-    // Получаем данные из формы
-    currentPassword := c.PostForm("current_password")
-    newPassword := c.PostForm("new_password")
-    confirmPassword := c.PostForm("confirm_password")
-    
-    // Получаем пользователя
-    var user models.User
-    database.DB.First(&user, userID)
-    
-    // Проверяем текущий пароль
-    if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(currentPassword)); err != nil {
-        // Неверный пароль
-        return
-    }
-    
-    // Проверяем совпадение нового пароля
-    if newPassword != confirmPassword {
-        // Пароли не совпадают
-        return
-    }
-    
-    // Хешируем новый пароль
-    hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
-    
-    // Обновляем в БД
-    user.Password = string(hashedPassword)
-    database.DB.Save(&user)
+ session := sessions.Default(c)
+ userID := session.Get("user_id")
+ 
+ // Получаем данные из формы
+ currentPassword := c.PostForm("current_password")
+ newPassword := c.PostForm("new_password")
+ confirmPassword := c.PostForm("confirm_password")
+ 
+ // Получаем пользователя
+ var user models.User
+ database.DB.First(&user, userID)
+ 
+ // Проверяем текущий пароль
+ if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(currentPassword)); err != nil {
+ // Неверный пароль
+ return
+ }
+ 
+ // Проверяем совпадение нового пароля
+ if newPassword != confirmPassword {
+ // Пароли не совпадают
+ return
+ }
+ 
+ // Хешируем новый пароль
+ hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+ 
+ // Обновляем в БД
+ user.Password = string(hashedPassword)
+ database.DB.Save(&user)
 }
 ```
 
@@ -524,14 +524,14 @@ database.DB.Unscoped().Delete(&user, 1) // Permanent delete
 ```go
 // Один ко многим (One-to-Many)
 type User struct {
-    gorm.Model
-    Integrations []Integration `gorm:"foreignKey:CreatedByID"`
+ gorm.Model
+ Integrations []Integration `gorm:"foreignKey:CreatedByID"`
 }
 
 type Integration struct {
-    gorm.Model
-    CreatedByID uint
-    CreatedBy   User `gorm:"foreignKey:CreatedByID"`
+ gorm.Model
+ CreatedByID uint
+ CreatedBy User `gorm:"foreignKey:CreatedByID"`
 }
 
 // Загрузка со связями
@@ -543,19 +543,19 @@ database.DB.Preload("Integrations").First(&user, 1)
 
 ```go
 err := database.DB.Transaction(func(tx *gorm.DB) error {
-    // Создание пользователя
-    user := models.User{Username: "john"}
-    if err := tx.Create(&user).Error; err != nil {
-        return err
-    }
-    
-    // Создание интеграции
-    integration := models.Integration{CreatedByID: user.ID}
-    if err := tx.Create(&integration).Error; err != nil {
-        return err
-    }
-    
-    return nil
+ // Создание пользователя
+ user := models.User{Username: "john"}
+ if err := tx.Create(&user).Error; err != nil {
+ return err
+ }
+ 
+ // Создание интеграции
+ integration := models.Integration{CreatedByID: user.ID}
+ if err := tx.Create(&integration).Error; err != nil {
+ return err
+ }
+ 
+ return nil
 })
 ```
 
@@ -577,19 +577,19 @@ username := c.PostForm("username")
 // JSON body
 var payload map[string]interface{}
 if err := c.BindJSON(&payload); err != nil {
-    c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-    return
+ c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+ return
 }
 
 // Bind в структуру
 type LoginRequest struct {
-    Username string `json:"username" binding:"required"`
-    Password string `json:"password" binding:"required"`
+ Username string `json:"username" binding:"required"`
+ Password string `json:"password" binding:"required"`
 }
 var req LoginRequest
 if err := c.ShouldBindJSON(&req); err != nil {
-    c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-    return
+ c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+ return
 }
 ```
 
@@ -598,14 +598,14 @@ if err := c.ShouldBindJSON(&req); err != nil {
 ```go
 // HTML
 c.HTML(http.StatusOK, "template.html", gin.H{
-    "title": "Page Title",
-    "data":  someData,
+ "title": "Page Title",
+ "data": someData,
 })
 
 // JSON
 c.JSON(http.StatusOK, gin.H{
-    "status": "success",
-    "data":   someData,
+ "status": "success",
+ "data": someData,
 })
 
 // Redirect
@@ -623,17 +623,17 @@ c.String(http.StatusOK, "Plain text response")
 ```go
 // Создание middleware
 func LoggerMiddleware() gin.HandlerFunc {
-    return func(c *gin.Context) {
-        // До обработки запроса
-        startTime := time.Now()
-        
-        // Обработка запроса
-        c.Next()
-        
-        // После обработки запроса
-        latency := time.Since(startTime)
-        log.Printf("Request took %v", latency)
-    }
+ return func(c *gin.Context) {
+ // До обработки запроса
+ startTime := time.Now()
+ 
+ // Обработка запроса
+ c.Next()
+ 
+ // После обработки запроса
+ latency := time.Since(startTime)
+ log.Printf("Request took %v", latency)
+ }
 }
 
 // Использование
@@ -649,23 +649,23 @@ r.Use(LoggerMiddleware())
 package services
 
 import (
-    "testing"
-    "github.com/stretchr/testify/assert"
+ "testing"
+ "github.com/stretchr/testify/assert"
 )
 
 func TestProcessWebhook(t *testing.T) {
-    // Arrange
-    payload := map[string]interface{}{
-        "name": "John",
-        "age":  30,
-    }
-    
-    // Act
-    result, err := ProcessWebhook(1, payload)
-    
-    // Assert
-    assert.NoError(t, err)
-    assert.NotNil(t, result)
+ // Arrange
+ payload := map[string]interface{}{
+ "name": "John",
+ "age": 30,
+ }
+ 
+ // Act
+ result, err := ProcessWebhook(1, payload)
+ 
+ // Assert
+ assert.NoError(t, err)
+ assert.NotNil(t, result)
 }
 ```
 
@@ -744,8 +744,8 @@ logger.Log.Info("Server started")
 
 // С полями
 logger.Log.WithFields(logrus.Fields{
-    "user_id": 123,
-    "action":  "login",
+ "user_id": 123,
+ "action": "login",
 }).Info("User logged in")
 
 // Error
@@ -760,7 +760,7 @@ logger.Log.Debug("Processing webhook", payload)
 ```go
 // В main.go
 if os.Getenv("GIN_MODE") != "release" {
-    gin.SetMode(gin.DebugMode)
+ gin.SetMode(gin.DebugMode)
 }
 ```
 
@@ -775,16 +775,16 @@ dlv debug cmd/server/main.go
 
 # В VS Code добавьте launch.json
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Launch",
-            "type": "go",
-            "request": "launch",
-            "mode": "debug",
-            "program": "${workspaceFolder}/cmd/server/main.go"
-        }
-    ]
+ "version": "0.2.0",
+ "configurations": [
+ {
+ "name": "Launch",
+ "type": "go",
+ "request": "launch",
+ "mode": "debug",
+ "program": "${workspaceFolder}/cmd/server/main.go"
+ }
+ ]
 }
 ```
 
@@ -797,13 +797,13 @@ dlv debug cmd/server/main.go
 ```css
 /* static/css/modern.css */
 :root {
-    --background: oklch(0.13 0.01 260);
-    --foreground: oklch(0.97 0 0);
-    --card: oklch(0.17 0.01 260);
-    --primary: oklch(0.65 0.15 280);
-    --success: oklch(0.65 0.17 145);
-    --destructive: oklch(0.55 0.2 25);
-    --border: oklch(0.28 0.01 260);
+--background: oklch(0.13 0.01 260);
+--foreground: oklch(0.97 0 0);
+--card: oklch(0.17 0.01 260);
+--primary: oklch(0.65 0.15 280);
+--success: oklch(0.65 0.17 145);
+--destructive: oklch(0.55 0.2 25);
+--border: oklch(0.28 0.01 260);
 }
 ```
 
@@ -812,19 +812,19 @@ dlv debug cmd/server/main.go
 ```css
 /* Используйте существующие переменные */
 .my-component {
-    background: var(--card);
-    color: var(--foreground);
-    border: 1px solid var(--border);
+ background: var(--card);
+ color: var(--foreground);
+ border: 1px solid var(--border);
 }
 
 /* Для интерактивных элементов */
 .my-button {
-    background: var(--primary);
-    color: var(--primary-foreground);
+ background: var(--primary);
+ color: var(--primary-foreground);
 }
 
 .my-button:hover {
-    opacity: 0.9;
+ opacity: 0.9;
 }
 ```
 
@@ -833,32 +833,32 @@ dlv debug cmd/server/main.go
 ```html
 <!-- HTML структура -->
 <div id="myModal" class="modal" style="display: none;">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Заголовок</h2>
-            <button class="modal-close" onclick="closeModal()">&times;</button>
-        </div>
-        <div class="modal-body">
-            <!-- Контент -->
-        </div>
-    </div>
+ <div class="modal-content">
+ <div class="modal-header">
+ <h2>Заголовок</h2>
+ <button class="modal-close" onclick="closeModal()">&times;</button>
+ </div>
+ <div class="modal-body">
+ <!-- Контент -->
+ </div>
+ </div>
 </div>
 
 <script>
 function showModal() {
-    document.getElementById('myModal').style.display = 'flex';
+ document.getElementById('myModal').style.display = 'flex';
 }
 
 function closeModal() {
-    document.getElementById('myModal').style.display = 'none';
+ document.getElementById('myModal').style.display = 'none';
 }
 
 // Закрытие по клику вне окна
 window.onclick = function(event) {
-    const modal = document.getElementById('myModal');
-    if (event.target === modal) {
-        closeModal();
-    }
+ const modal = document.getElementById('myModal');
+ if (event.target === modal) {
+ closeModal();
+ }
 }
 </script>
 ```
@@ -873,7 +873,7 @@ window.onclick = function(event) {
 
 <!-- Инициализация в scripts.html -->
 <script>
-    lucide.createIcons();
+ lucide.createIcons();
 </script>
 ```
 
@@ -882,15 +882,15 @@ window.onclick = function(event) {
 ### SQL запросы
 
 ```go
-// ❌ Плохо - N+1 запросов
+// Плохо - N+1 запросов
 var integrations []models.Integration
 database.DB.Find(&integrations)
 for _, integration := range integrations {
-    var project models.Project
-    database.DB.First(&project, integration.ProjectID)
+ var project models.Project
+ database.DB.First(&project, integration.ProjectID)
 }
 
-// ✅ Хорошо - один запрос с JOIN
+// Хорошо - один запрос с JOIN
 var integrations []models.Integration
 database.DB.Preload("Project").Find(&integrations)
 ```
@@ -900,31 +900,31 @@ database.DB.Preload("Project").Find(&integrations)
 ```go
 // Пример простого кэша в памяти
 var statsCache struct {
-    data      []DayStats
-    timestamp time.Time
-    mu        sync.RWMutex
+ data []DayStats
+ timestamp time.Time
+ mu sync.RWMutex
 }
 
 func GetRequestStats(c *gin.Context) {
-    statsCache.mu.RLock()
-    // Проверяем кэш (5 минут)
-    if time.Since(statsCache.timestamp) < 5*time.Minute {
-        c.JSON(http.StatusOK, gin.H{"stats": statsCache.data})
-        statsCache.mu.RUnlock()
-        return
-    }
-    statsCache.mu.RUnlock()
-    
-    // Получаем свежие данные
-    stats := fetchStatsFromDB()
-    
-    // Обновляем кэш
-    statsCache.mu.Lock()
-    statsCache.data = stats
-    statsCache.timestamp = time.Now()
-    statsCache.mu.Unlock()
-    
-    c.JSON(http.StatusOK, gin.H{"stats": stats})
+ statsCache.mu.RLock()
+ // Проверяем кэш (5 минут)
+ if time.Since(statsCache.timestamp) < 5*time.Minute {
+ c.JSON(http.StatusOK, gin.H{"stats": statsCache.data})
+ statsCache.mu.RUnlock()
+ return
+ }
+ statsCache.mu.RUnlock()
+ 
+ // Получаем свежие данные
+ stats := fetchStatsFromDB()
+ 
+ // Обновляем кэш
+ statsCache.mu.Lock()
+ statsCache.data = stats
+ statsCache.timestamp = time.Now()
+ statsCache.mu.Unlock()
+ 
+ c.JSON(http.StatusOK, gin.H{"stats": stats})
 }
 ```
 
@@ -932,23 +932,23 @@ func GetRequestStats(c *gin.Context) {
 
 ```go
 func GetLogs(c *gin.Context) {
-    page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-    pageSize := 20
-    offset := (page - 1) * pageSize
-    
-    var logs []models.RequestLog
-    var total int64
-    
-    database.DB.Model(&models.RequestLog{}).Count(&total)
-    database.DB.Limit(pageSize).Offset(offset).Find(&logs)
-    
-    c.JSON(http.StatusOK, gin.H{
-        "logs":       logs,
-        "total":      total,
-        "page":       page,
-        "page_size":  pageSize,
-        "total_pages": (total + int64(pageSize) - 1) / int64(pageSize),
-    })
+ page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+ pageSize := 20
+ offset := (page - 1) * pageSize
+ 
+ var logs []models.RequestLog
+ var total int64
+ 
+ database.DB.Model(&models.RequestLog{}).Count(&total)
+ database.DB.Limit(pageSize).Offset(offset).Find(&logs)
+ 
+ c.JSON(http.StatusOK, gin.H{
+ "logs": logs,
+ "total": total,
+ "page": page,
+ "page_size": pageSize,
+ "total_pages": (total + int64(pageSize) - 1) / int64(pageSize),
+ })
 }
 ```
 
@@ -957,10 +957,10 @@ func GetLogs(c *gin.Context) {
 ### Защита от SQL инъекций
 
 ```go
-// ✅ Правильно - параметризованные запросы
+// Правильно - параметризованные запросы
 database.DB.Where("username = ?", username).First(&user)
 
-// ❌ Неправильно - конкатенация строк
+// Неправильно - конкатенация строк
 database.DB.Where("username = '" + username + "'").First(&user)
 ```
 
@@ -968,7 +968,7 @@ database.DB.Where("username = '" + username + "'").First(&user)
 
 ```html
 <!-- Go templates автоматически экранируют HTML -->
-<p>{{ .userInput }}</p>  <!-- Безопасно -->
+<p>{{ .userInput }}</p> <!-- Безопасно -->
 
 <!-- Для вывода HTML используйте template.HTML осторожно -->
 <div>{{ .trustedHTML }}</div>
@@ -978,15 +978,15 @@ database.DB.Where("username = '" + username + "'").First(&user)
 
 ```go
 func WebhookHandler(c *gin.Context) {
-    token := c.Param("token")
-    
-    var integration models.Integration
-    if err := database.DB.Where("webhook_token = ?", token).First(&integration).Error; err != nil {
-        c.JSON(http.StatusNotFound, gin.H{"error": "Integration not found"})
-        return
-    }
-    
-    // Продолжаем обработку
+ token := c.Param("token")
+ 
+ var integration models.Integration
+ if err := database.DB.Where("webhook_token = ?", token).First(&integration).Error; err != nil {
+ c.JSON(http.StatusNotFound, gin.H{"error": "Integration not found"})
+ return
+ }
+ 
+ // Продолжаем обработку
 }
 ```
 
@@ -994,18 +994,18 @@ func WebhookHandler(c *gin.Context) {
 
 ```go
 func AdminOnly() gin.HandlerFunc {
-    return func(c *gin.Context) {
-        session := sessions.Default(c)
-        role := session.Get("role")
-        
-        if role != "admin" {
-            c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
-            c.Abort()
-            return
-        }
-        
-        c.Next()
-    }
+ return func(c *gin.Context) {
+ session := sessions.Default(c)
+ role := session.Get("role")
+ 
+ if role != "admin" {
+ c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+ c.Abort()
+ return
+ }
+ 
+ c.Next()
+ }
 }
 
 // Использование
@@ -1019,23 +1019,23 @@ authorized.GET("/admin/users", AdminOnly(), controllers.UserList)
 ```go
 // Middleware для логирования всех запросов
 func RequestLogger() gin.HandlerFunc {
-    return func(c *gin.Context) {
-        start := time.Now()
-        path := c.Request.URL.Path
-        
-        c.Next()
-        
-        latency := time.Since(start)
-        statusCode := c.Writer.Status()
-        
-        logger.Log.WithFields(map[string]interface{}{
-            "method":  c.Request.Method,
-            "path":    path,
-            "status":  statusCode,
-            "latency": latency,
-            "ip":      c.ClientIP(),
-        }).Info("Request processed")
-    }
+ return func(c *gin.Context) {
+ start := time.Now()
+ path := c.Request.URL.Path
+ 
+ c.Next()
+ 
+ latency := time.Since(start)
+ statusCode := c.Writer.Status()
+ 
+ logger.Log.WithFields(map[string]interface{}{
+ "method": c.Request.Method,
+ "path": path,
+ "status": statusCode,
+ "latency": latency,
+ "ip": c.ClientIP(),
+ }).Info("Request processed")
+ }
 }
 ```
 
@@ -1046,9 +1046,9 @@ import _ "net/http/pprof"
 
 // В main.go для режима разработки
 if os.Getenv("DEBUG") == "true" {
-    go func() {
-        log.Println(http.ListenAndServe("localhost:6060", nil))
-    }()
+ go func() {
+ log.Println(http.ListenAndServe("localhost:6060", nil))
+ }()
 }
 
 // Доступ к профилировщику:
@@ -1061,15 +1061,15 @@ if os.Getenv("DEBUG") == "true" {
 import "runtime"
 
 func GetMemStats(c *gin.Context) {
-    var m runtime.MemStats
-    runtime.ReadMemStats(&m)
-    
-    c.JSON(http.StatusOK, gin.H{
-        "alloc_mb":       m.Alloc / 1024 / 1024,
-        "total_alloc_mb": m.TotalAlloc / 1024 / 1024,
-        "sys_mb":         m.Sys / 1024 / 1024,
-        "num_gc":         m.NumGC,
-    })
+ var m runtime.MemStats
+ runtime.ReadMemStats(&m)
+ 
+ c.JSON(http.StatusOK, gin.H{
+ "alloc_mb": m.Alloc / 1024 / 1024,
+ "total_alloc_mb": m.TotalAlloc / 1024 / 1024,
+ "sys_mb": m.Sys / 1024 / 1024,
+ "num_gc": m.NumGC,
+ })
 }
 ```
 
@@ -1078,15 +1078,15 @@ func GetMemStats(c *gin.Context) {
 ### 1. Обработка ошибок
 
 ```go
-// ❌ Плохо
+// Плохо
 result, _ := someFunction()
 
-// ✅ Хорошо
+// Хорошо
 result, err := someFunction()
 if err != nil {
-    logger.Log.Error("Failed to execute function", err)
-    c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal error"})
-    return
+ logger.Log.Error("Failed to execute function", err)
+ c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal error"})
+ return
 }
 ```
 
@@ -1095,13 +1095,13 @@ if err != nil {
 ```go
 // Используйте binding tags
 type CreateIntegrationRequest struct {
-    Name      string `json:"name" binding:"required,min=3,max=100"`
-    TargetAPI string `json:"target_api" binding:"required,url"`
+ Name string `json:"name" binding:"required,min=3,max=100"`
+ TargetAPI string `json:"target_api" binding:"required,url"`
 }
 
 if err := c.ShouldBindJSON(&req); err != nil {
-    c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-    return
+ c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+ return
 }
 ```
 
@@ -1113,8 +1113,8 @@ hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.Defaul
 
 // Проверяйте права доступа
 if session.Get("role") != "admin" {
-    c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
-    return
+ c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+ return
 }
 
 // Экранируйте HTML в шаблонах (автоматически в Go templates)
@@ -1125,8 +1125,8 @@ if session.Get("role") != "admin" {
 ```go
 // Используйте индексы в БД
 type User struct {
-    Username string `gorm:"uniqueIndex"`
-    Email    string `gorm:"index"`
+ Username string `gorm:"uniqueIndex"`
+ Email string `gorm:"index"`
 }
 
 // Избегайте N+1 запросов
@@ -1177,23 +1177,23 @@ database.DB.Limit(10).Offset(20).Find(&items)
 ```go
 // 1. Контроллер
 func GetIntegrationStats(c *gin.Context) {
-    type IntegrationStat struct {
-        Name  string `json:"name"`
-        Count int    `json:"count"`
-    }
-    
-    var stats []IntegrationStat
-    database.DB.Raw(`
-        SELECT i.name, COUNT(rl.id) as count
-        FROM integrations i
-        LEFT JOIN request_logs rl ON rl.integration_id = i.id
-        WHERE rl.log_type = 'webhook'
-        GROUP BY i.id, i.name
-        ORDER BY count DESC
-        LIMIT 10
-    `).Scan(&stats)
-    
-    c.JSON(http.StatusOK, gin.H{"stats": stats})
+ type IntegrationStat struct {
+ Name string `json:"name"`
+ Count int `json:"count"`
+ }
+ 
+ var stats []IntegrationStat
+ database.DB.Raw(`
+ SELECT i.name, COUNT(rl.id) as count
+ FROM integrations i
+ LEFT JOIN request_logs rl ON rl.integration_id = i.id
+ WHERE rl.log_type = 'webhook'
+ GROUP BY i.id, i.name
+ ORDER BY count DESC
+ LIMIT 10
+ `).Scan(&stats)
+ 
+ c.JSON(http.StatusOK, gin.H{"stats": stats})
 }
 
 // 2. Маршрут
@@ -1201,10 +1201,10 @@ authorized.GET("/api/integration-stats", controllers.GetIntegrationStats)
 
 // 3. Фронтенд
 fetch('/api/integration-stats')
-    .then(response => response.json())
-    .then(data => {
-        // Отобразить данные
-    });
+ .then(response => response.json())
+ .then(data => {
+ // Отобразить данные
+ });
 ```
 
 ### Добавление нового фильтра в логи
@@ -1212,29 +1212,29 @@ fetch('/api/integration-stats')
 ```go
 // Контроллер
 func LogsPage(c *gin.Context) {
-    query := database.DB.Preload("Integration").Order("created_at desc")
-    
-    // Существующие фильтры
-    if integrationID := c.Query("integration_id"); integrationID != "" {
-        query = query.Where("integration_id = ?", integrationID)
-    }
-    
-    // Новый фильтр по дате
-    if dateFrom := c.Query("date_from"); dateFrom != "" {
-        query = query.Where("created_at >= ?", dateFrom)
-    }
-    if dateTo := c.Query("date_to"); dateTo != "" {
-        query = query.Where("created_at <= ?", dateTo)
-    }
-    
-    var logs []models.RequestLog
-    query.Limit(100).Find(&logs)
-    
-    c.HTML(http.StatusOK, "pages/logs.html", gin.H{
-        "logs":          logs,
-        "filter_date_from": c.Query("date_from"),
-        "filter_date_to":   c.Query("date_to"),
-    })
+ query := database.DB.Preload("Integration").Order("created_at desc")
+ 
+ // Существующие фильтры
+ if integrationID := c.Query("integration_id"); integrationID != "" {
+ query = query.Where("integration_id = ?", integrationID)
+ }
+ 
+ // Новый фильтр по дате
+ if dateFrom := c.Query("date_from"); dateFrom != "" {
+ query = query.Where("created_at >= ?", dateFrom)
+ }
+ if dateTo := c.Query("date_to"); dateTo != "" {
+ query = query.Where("created_at <= ?", dateTo)
+ }
+ 
+ var logs []models.RequestLog
+ query.Limit(100).Find(&logs)
+ 
+ c.HTML(http.StatusOK, "pages/logs.html", gin.H{
+ "logs": logs,
+ "filter_date_from": c.Query("date_from"),
+ "filter_date_to": c.Query("date_to"),
+ })
 }
 ```
 
@@ -1243,21 +1243,21 @@ func LogsPage(c *gin.Context) {
 ```go
 // 1. Модель
 type Notification struct {
-    gorm.Model
-    UserID  uint   `gorm:"not null"`
-    Message string `gorm:"type:text;not null"`
-    Type    string `gorm:"default:'info'"` // info, success, warning, error
-    IsRead  bool   `gorm:"default:false"`
+ gorm.Model
+ UserID uint `gorm:"not null"`
+ Message string `gorm:"type:text;not null"`
+ Type string `gorm:"default:'info'"` // info, success, warning, error
+ IsRead bool `gorm:"default:false"`
 }
 
 // 2. Сервис
 func SendNotification(userID uint, message, notifType string) {
-    notification := models.Notification{
-        UserID:  userID,
-        Message: message,
-        Type:    notifType,
-    }
-    database.DB.Create(&notification)
+ notification := models.Notification{
+ UserID: userID,
+ Message: message,
+ Type: notifType,
+ }
+ database.DB.Create(&notification)
 }
 
 // 3. Использование
@@ -1268,34 +1268,34 @@ SendNotification(userID, "Интеграция успешно создана", "
 
 ```go
 func ExportLogsCSV(c *gin.Context) {
-    var logs []models.RequestLog
-    database.DB.Preload("Integration").Find(&logs)
-    
-    c.Header("Content-Type", "text/csv")
-    c.Header("Content-Disposition", "attachment; filename=logs.csv")
-    
-    writer := csv.NewWriter(c.Writer)
-    defer writer.Flush()
-    
-    // Заголовки
-    writer.Write([]string{"ID", "Integration", "Method", "URL", "Status", "Created At"})
-    
-    // Данные
-    for _, log := range logs {
-        integrationName := ""
-        if log.Integration.ID > 0 {
-            integrationName = log.Integration.Name
-        }
-        
-        writer.Write([]string{
-            fmt.Sprintf("%d", log.ID),
-            integrationName,
-            log.Method,
-            log.URL,
-            fmt.Sprintf("%d", log.StatusCode),
-            log.CreatedAt.Format("2006-01-02 15:04:05"),
-        })
-    }
+ var logs []models.RequestLog
+ database.DB.Preload("Integration").Find(&logs)
+ 
+ c.Header("Content-Type", "text/csv")
+ c.Header("Content-Disposition", "attachment; filename=logs.csv")
+ 
+ writer := csv.NewWriter(c.Writer)
+ defer writer.Flush()
+ 
+ // Заголовки
+ writer.Write([]string{"ID", "Integration", "Method", "URL", "Status", "Created At"})
+ 
+ // Данные
+ for _, log := range logs {
+ integrationName := ""
+ if log.Integration.ID > 0 {
+ integrationName = log.Integration.Name
+ }
+ 
+ writer.Write([]string{
+ fmt.Sprintf("%d", log.ID),
+ integrationName,
+ log.Method,
+ log.URL,
+ fmt.Sprintf("%d", log.StatusCode),
+ log.CreatedAt.Format("2006-01-02 15:04:05"),
+ })
+ }
 }
 ```
 
@@ -1306,11 +1306,11 @@ func ExportLogsCSV(c *gin.Context) {
 ```go
 // 1. Обновите модель
 type Integration struct {
-    gorm.Model
-    Name         string
-    WebhookToken string
-    // Новое поле
-    Description  string `gorm:"type:text"`
+ gorm.Model
+ Name string
+ WebhookToken string
+ // Новое поле
+ Description string `gorm:"type:text"`
 }
 
 // 2. GORM автоматически добавит поле при следующем запуске
@@ -1330,10 +1330,10 @@ database.DB.Exec("ALTER TABLE integrations MODIFY COLUMN name VARCHAR(255)")
 
 ```go
 func MigrateOldLogs() {
-    // Обновляем старые логи с типом "incoming" на "webhook"
-    database.DB.Exec("UPDATE request_logs SET log_type = 'webhook' WHERE log_type = 'incoming'")
-    database.DB.Exec("UPDATE request_logs SET log_type = 'webhook' WHERE log_type = 'outgoing'")
-    database.DB.Exec("UPDATE request_logs SET log_type = 'test' WHERE log_type = 'request'")
+ // Обновляем старые логи с типом "incoming" на "webhook"
+ database.DB.Exec("UPDATE request_logs SET log_type = 'webhook' WHERE log_type = 'incoming'")
+ database.DB.Exec("UPDATE request_logs SET log_type = 'webhook' WHERE log_type = 'outgoing'")
+ database.DB.Exec("UPDATE request_logs SET log_type = 'test' WHERE log_type = 'request'")
 }
 ```
 
