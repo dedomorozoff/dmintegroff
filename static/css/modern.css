@@ -236,6 +236,54 @@ body {
     font-size: 0.875rem;
 }
 
+.page-header-mobile {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+}
+
+.page-header-logo {
+    height: 60px;
+    width: auto;
+}
+
+.page-header-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--foreground);
+    margin: 0;
+}
+
+.mobile-menu-toggle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--foreground);
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.mobile-menu-toggle:hover {
+    background: var(--muted);
+    border-color: var(--primary);
+}
+
+.mobile-menu-toggle:active {
+    transform: scale(0.95);
+}
+
 /* Stats Grid */
 .stats-grid {
     display: grid;
@@ -301,6 +349,7 @@ body {
     border-radius: var(--radius);
     padding: 1.5rem;
     margin-bottom: 1.5rem;
+    overflow: hidden;
 }
 
 .card-header {
@@ -459,6 +508,70 @@ tbody tr:hover {
     background: color-mix(in srgb, var(--muted) 30%, transparent);
 }
 
+/* Mobile Cards for Tables */
+.mobile-card-list {
+    display: none;
+}
+
+.mobile-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.mobile-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+    gap: 0.5rem;
+}
+
+.mobile-card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--primary);
+    flex: 1;
+    word-wrap: break-word;
+}
+
+.mobile-card-actions {
+    display: flex;
+    gap: 0.375rem;
+    flex-shrink: 0;
+}
+
+.mobile-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.mobile-card-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.mobile-card-label {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+}
+
+.mobile-card-value {
+    color: var(--foreground);
+    text-align: right;
+    word-wrap: break-word;
+    flex: 1;
+}
+
 /* Badges */
 .badge {
     display: inline-flex;
@@ -559,10 +672,49 @@ pre {
 .justify-between { justify-content: space-between; }
 .gap-1 { gap: 1rem; }
 
+/* Responsive utilities */
+.hide-on-mobile {
+    display: inline-flex;
+}
+
+.show-on-mobile {
+    display: none;
+}
+
+/* Mobile Sidebar Overlay */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
         transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 1000;
+        box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+    }
+    
+    .sidebar.mobile-open {
+        transform: translateX(0);
     }
     
     .main-content {
@@ -570,17 +722,35 @@ pre {
         padding: 1rem;
     }
     
+    /* Скрываем обычный page-header и показываем мобильную версию */
+    .page-header {
+        display: none;
+    }
+    
+    .page-header-mobile {
+        display: flex;
+    }
+    
     .stats-grid {
         grid-template-columns: 1fr;
     }
     
+    /* Скрываем таблицу и показываем карточки на мобильных */
     .table-container {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
+        display: none;
     }
     
-    table {
-        min-width: 600px;
+    .mobile-card-list {
+        display: block;
+    }
+    
+    /* Скрываем/показываем элементы на мобильных */
+    .hide-on-mobile {
+        display: none !important;
+    }
+    
+    .show-on-mobile {
+        display: block;
     }
     
     .bottom-grid {
@@ -591,35 +761,55 @@ pre {
         grid-template-columns: 1fr;
     }
     
+    .activity-list {
+        gap: 0.75rem;
+    }
+    
     .activity-item {
         flex-direction: column;
         gap: 0.5rem;
+        align-items: flex-start;
     }
     
     .activity-time {
         align-self: flex-start;
+        font-size: 0.6875rem;
     }
     
     .activity-message {
-        white-space: normal;
+        font-size: 0.8125rem;
+    }
+    
+    .activity-integration {
+        font-size: 0.6875rem;
     }
     
     .progress-container {
-        padding: 0 1rem 1rem 1rem;
+        padding: 0 0.75rem 0.75rem 0.75rem;
     }
     
     .steps-list {
-        padding: 0 1rem 1rem 1rem;
+        padding: 0 0.75rem 0.75rem 0.75rem;
     }
     
     .step-item {
         font-size: 0.875rem;
-        gap: 0.625rem;
+        gap: 0.5rem;
+    }
+    
+    .step-icon {
+        width: 18px;
+        height: 18px;
     }
     
     .step-text {
         font-size: 0.875rem;
         line-height: 1.5;
+    }
+    
+    /* Скрываем стрелку на планшетах для экономии места */
+    .step-item i[data-lucide="arrow-right"] {
+        display: none;
     }
 }
 
@@ -716,6 +906,7 @@ pre {
     flex-direction: column;
     gap: 0.75rem;
     padding: 0 1.5rem 1.5rem 1.5rem;
+    overflow: hidden;
 }
 
 .step-item {
@@ -724,6 +915,8 @@ pre {
     gap: 0.75rem;
     font-size: 0.875rem;
     min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 .step-icon {
@@ -745,8 +938,17 @@ pre {
     color: var(--card-foreground);
     flex: 1;
     min-width: 0;
+    max-width: 100%;
     word-wrap: break-word;
     overflow-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
+}
+
+/* Стрелка в step-item */
+.step-item i[data-lucide="arrow-right"] {
+    flex-shrink: 0;
+    margin-left: 0.5rem;
 }
 
 .step-text.completed {
@@ -759,6 +961,7 @@ pre {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    overflow: hidden;
 }
 
 .activity-item {
@@ -766,11 +969,15 @@ pre {
     align-items: flex-start;
     justify-content: space-between;
     gap: 1rem;
+    min-width: 0;
+    max-width: 100%;
 }
 
 .activity-content {
     flex: 1;
     min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 .activity-header {
@@ -778,20 +985,35 @@ pre {
     align-items: center;
     gap: 0.5rem;
     margin-bottom: 0.25rem;
+    flex-wrap: wrap;
 }
 
 .activity-integration {
     font-size: 0.75rem;
     color: var(--muted-foreground);
     font-family: 'Courier New', monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .activity-message {
     font-size: 0.875rem;
     color: var(--card-foreground);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
+}
+
+.activity-url {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    margin-top: 0.25rem;
+    font-family: 'Courier New', monospace;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-all;
 }
 
 .activity-time {
@@ -818,9 +1040,14 @@ pre {
 i[data-lucide],
 svg[data-lucide] {
     display: inline-block;
-    width: 12px !important;
-    height: 12px !important;
     stroke-width: 2;
+}
+
+/* Default icon size for buttons and inline elements */
+.btn i[data-lucide],
+.btn svg[data-lucide] {
+    width: 16px !important;
+    height: 16px !important;
 }
 
 /* Sidebar icons - normal size */
@@ -860,6 +1087,23 @@ h3 svg[data-lucide] {
 }
 
 @media (max-width: 480px) {
+    .main-content {
+        padding: 0.75rem;
+    }
+    
+    .page-header-mobile {
+        margin-bottom: 1rem;
+        gap: 0.75rem;
+    }
+    
+    .page-header-logo {
+        height: 80px;
+    }
+    
+    .page-header-title {
+        font-size: 1.375rem;
+    }
+    
     .card {
         padding: 0.75rem;
     }
@@ -875,7 +1119,7 @@ h3 svg[data-lucide] {
     }
     
     .progress-container {
-        padding: 0 0.75rem 0.75rem 0.75rem;
+        padding: 0 0.5rem 0.5rem 0.5rem;
     }
     
     .progress-label,
@@ -885,25 +1129,18 @@ h3 svg[data-lucide] {
     
     .steps-list {
         gap: 0.5rem;
-        padding: 0 0.75rem 0.75rem 0.75rem;
+        padding: 0 0.5rem 0.5rem 0.5rem;
     }
     
     .step-item {
         font-size: 0.8125rem;
         gap: 0.5rem;
-        flex-wrap: nowrap;
-        padding: 0.5rem;
-        margin: -0.5rem;
-    }
-    
-    .step-item[style*="cursor: pointer"] {
-        padding: 0.5rem;
-        margin: -0.5rem;
+        padding: 0;
     }
     
     .step-icon {
-        width: 18px;
-        height: 18px;
+        width: 16px;
+        height: 16px;
     }
     
     .step-text {
@@ -911,12 +1148,33 @@ h3 svg[data-lucide] {
         line-height: 1.4;
     }
     
+    /* Стрелка уже скрыта на планшетах */
+    
     .activity-list {
-        gap: 0.75rem;
+        gap: 0.5rem;
+        padding: 0 0.5rem 0.5rem 0.5rem;
+    }
+    
+    .activity-item {
+        gap: 0.375rem;
     }
     
     .activity-header {
-        flex-wrap: wrap;
+        gap: 0.375rem;
+    }
+    
+    .activity-message {
+        font-size: 0.8125rem;
+        line-height: 1.4;
+    }
+    
+    .activity-integration {
+        font-size: 0.6875rem;
+        max-width: 100%;
+    }
+    
+    .activity-time {
+        font-size: 0.6875rem;
     }
 }
 

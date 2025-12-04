@@ -1,0 +1,13 @@
+{{ define "partials/page-header.html" }}
+<!-- Desktop Header -->
+<div class="page-header">
+    <h1>{{ .Title }}</h1>
+    {{ if .Subtitle }}<p>{{ .Subtitle }}</p>{{ end }}
+</div>
+
+<!-- Mobile Header -->
+<div class="page-header-mobile">
+    <img src="/static/img/logo.png" alt="dmIntegroff" class="page-header-logo">
+    <h1 class="page-header-title">{{ .Title }}</h1>
+</div>
+{{ end }}
