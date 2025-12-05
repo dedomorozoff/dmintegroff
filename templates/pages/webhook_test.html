@@ -1,0 +1,529 @@
+{{ define "pages/webhook_test.html" }}
+{{ template "partials/head.html" . }}
+{{ template "partials/sidebar.html" . }}
+
+<main class="main-content">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>Тестовый вебхук</h1>
+        <p>Отправляйте запросы и смотрите результаты (обновление каждые 5 сек)</p>
+    </div>
+
+    <!-- Mobile Header -->
+    <div class="page-header-mobile">
+        <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Меню">
+            <i data-lucide="menu"></i>
+        </button>
+        <a href="/dashboard">
+            <img src="/static/img/logo.png" alt="dmIntegroff" class="page-header-logo">
+        </a>
+        <h1 class="page-header-title">Тестовый вебхук</h1>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
+    {{ if .expired }}
+    <div class="card">
+        <div class="card-body" style="text-align: center; padding: 3rem;">
+            <i data-lucide="clock" style="width: 64px; height: 64px; color: var(--warning); margin-bottom: 1rem;"></i>
+            <h2>Срок действия истёк</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                Этот тестовый вебхук больше не активен. Создайте новый на дашборде.
+            </p>
+            <a href="/dashboard" class="btn btn-primary">
+                <i data-lucide="arrow-left"></i>
+                Вернуться на дашборд
+            </a>
+        </div>
+    </div>
+    {{ else }}
+
+    <!-- Webhook URL Card -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">URL вебхука</h2>
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="btn btn-secondary btn-sm" onclick="copyWebhookURL()">
+                    <i data-lucide="copy"></i>
+                    Копировать
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="deleteWebhook()">
+                    <i data-lucide="trash-2"></i>
+                    Удалить
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div style="background: var(--secondary); padding: 1rem; border-radius: 8px; font-family: monospace; word-break: break-all; margin-bottom: 1rem;">
+                <code id="webhook-url" style="color: var(--primary);">{{ .webhook_url }}</code>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.25rem;">
+                        Истекает: {{ .webhook_test.ExpiresAt.Format "02.01.2006 15:04" }}
+                    </p>
+                    <p style="color: var(--text-secondary); font-size: 0.875rem;">
+                        Запросов получено: <span id="request-count">{{ len .requests }}</span>
+                    </p>
+                </div>
+                <button class="btn btn-primary" onclick="sendTestRequest()">
+                    <i data-lucide="send"></i>
+                    Отправить тестовый запрос
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Requests List -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Полученные запросы</h2>
+            <span class="badge badge-primary" id="live-indicator">
+                <i data-lucide="radio" style="width: 12px; height: 12px;"></i>
+                Обновление: 5 сек
+            </span>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            <div id="requests-container">
+                {{ if .requests }}
+                {{ range .requests }}
+                <div class="request-item" data-id="{{ .ID }}">
+                    <div class="request-header">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <span class="badge badge-{{ if eq .Method "GET" }}primary{{ else if eq .Method "POST" }}success{{ else if eq .Method "PUT" }}warning{{ else if eq .Method "DELETE" }}danger{{ else }}secondary{{ end }}">
+                                {{ .Method }}
+                            </span>
+                            <span style="font-family: monospace; font-size: 0.875rem;">{{ .URL }}</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <span style="color: var(--text-secondary); font-size: 0.875rem;">
+                                {{ .CreatedAt.Format "15:04:05" }}
+                            </span>
+                            <button class="btn-icon" onclick="toggleRequest({{ .ID }})">
+                                <i data-lucide="chevron-down" id="chevron-{{ .ID }}"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="request-details" id="details-{{ .ID }}" style="display: none;">
+                        <div class="request-section">
+                            <h4>Заголовки</h4>
+                            <pre><code>{{ .Headers }}</code></pre>
+                        </div>
+                        {{ if .QueryParams }}
+                        <div class="request-section">
+                            <h4>Query параметры</h4>
+                            <pre><code>{{ .QueryParams }}</code></pre>
+                        </div>
+                        {{ end }}
+                        {{ if .Body }}
+                        <div class="request-section">
+                            <h4>Тело запроса</h4>
+                            <pre><code>{{ .Body }}</code></pre>
+                        </div>
+                        {{ end }}
+                        <div class="request-section">
+                            <h4>Информация</h4>
+                            <p><strong>IP адрес:</strong> {{ .ClientIP }}</p>
+                            <p><strong>Время:</strong> {{ .CreatedAt.Format "02.01.2006 15:04:05" }}</p>
+                        </div>
+                    </div>
+                </div>
+                {{ end }}
+                {{ else }}
+                <div class="empty-state" id="empty-state">
+                    <i data-lucide="inbox" style="width: 64px; height: 64px; color: var(--text-secondary); margin-bottom: 1rem;"></i>
+                    <p style="color: var(--text-secondary);">Пока нет запросов</p>
+                    <p style="color: var(--text-secondary); font-size: 0.875rem;">
+                        Отправьте запрос на URL выше, чтобы увидеть его здесь
+                    </p>
+                </div>
+                {{ end }}
+            </div>
+        </div>
+    </div>
+
+    {{ end }}
+</main>
+
+<style>
+    .request-item {
+        border-bottom: 1px solid var(--border);
+        transition: background 0.2s ease;
+    }
+
+    .request-item:last-child {
+        border-bottom: none;
+    }
+
+    .request-item:hover {
+        background: var(--secondary);
+    }
+
+    .request-item.new {
+        animation: highlight 1s ease;
+    }
+
+    @keyframes highlight {
+        0% { background: rgba(139, 142, 255, 0.3); }
+        100% { background: transparent; }
+    }
+
+    .request-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        cursor: pointer;
+    }
+
+    .request-details {
+        padding: 0 1.5rem 1rem 1.5rem;
+        border-top: 1px solid var(--border);
+    }
+
+    .request-section {
+        margin-top: 1rem;
+    }
+
+    .request-section h4 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .request-section pre {
+        background: var(--secondary);
+        padding: 1rem;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin: 0;
+    }
+
+    .request-section code {
+        font-family: monospace;
+        font-size: 0.875rem;
+        color: var(--text-primary);
+    }
+
+    .request-section p {
+        margin: 0.5rem 0;
+        font-size: 0.875rem;
+    }
+
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem;
+        text-align: center;
+    }
+
+    .btn-icon {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.25rem;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: color 0.2s ease;
+    }
+
+    .btn-icon:hover {
+        color: var(--text-primary);
+    }
+
+    #live-indicator {
+        animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+</style>
+
+{{ template "partials/scripts.html" . }}
+<script>
+    const token = "{{ .token }}";
+    let pollInterval;
+
+    // Копирование URL в буфер обмена
+    function copyWebhookURL() {
+        const url = document.getElementById('webhook-url').textContent;
+        if (!url) {
+            console.error('Webhook URL not found');
+            return;
+        }
+        
+        navigator.clipboard.writeText(url).then(() => {
+            showNotification('URL скопирован в буфер обмена', 'success');
+        }).catch(err => {
+            console.error('Failed to copy URL:', err);
+            showNotification('Не удалось скопировать URL', 'error');
+        });
+    }
+
+    // Удаление вебхука
+    function deleteWebhook() {
+        if (!confirm('Вы уверены, что хотите удалить этот тестовый вебхук?')) {
+            return;
+        }
+
+        fetch(`/api/webhook-test/${token}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            showNotification('Тестовый вебхук удалён', 'success');
+            setTimeout(() => {
+                window.location.href = '/dashboard';
+            }, 1000);
+        })
+        .catch(error => {
+            showNotification('Ошибка при удалении', 'error');
+        });
+    }
+
+    // Отправка тестового запроса
+    function sendTestRequest() {
+        const url = document.getElementById('webhook-url').textContent;
+        
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Test-Header': 'Test Value'
+            },
+            body: JSON.stringify({
+                test: true,
+                message: 'Тестовый запрос',
+                timestamp: new Date().toISOString()
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            showNotification('Тестовый запрос отправлен', 'success');
+        })
+        .catch(error => {
+            showNotification('Ошибка при отправке запроса', 'error');
+        });
+    }
+
+    // Переключение отображения деталей запроса
+    function toggleRequest(id) {
+        const details = document.getElementById(`details-${id}`);
+        const chevron = document.getElementById(`chevron-${id}`);
+        
+        if (details.style.display === 'none') {
+            details.style.display = 'block';
+            chevron.style.transform = 'rotate(180deg)';
+        } else {
+            details.style.display = 'none';
+            chevron.style.transform = 'rotate(0deg)';
+        }
+    }
+
+    // Polling для обновления запросов
+    function pollRequests() {
+        fetch(`/api/webhook-test/${token}/requests`)
+            .then(response => response.json())
+            .then(data => {
+                updateRequests(data.requests);
+            })
+            .catch(error => {
+                console.error('Ошибка при получении запросов:', error);
+            });
+    }
+
+    // Обновление списка запросов
+    function updateRequests(requests) {
+        const container = document.getElementById('requests-container');
+        const emptyState = document.getElementById('empty-state');
+        const countElement = document.getElementById('request-count');
+        
+        if (!container || !countElement) {
+            console.error('Required elements not found');
+            return;
+        }
+        
+        if (!requests || requests.length === 0) {
+            if (!emptyState) {
+                container.innerHTML = `
+                    <div class="empty-state" id="empty-state">
+                        <i data-lucide="inbox" style="width: 64px; height: 64px; color: var(--text-secondary); margin-bottom: 1rem;"></i>
+                        <p style="color: var(--text-secondary);">Пока нет запросов</p>
+                        <p style="color: var(--text-secondary); font-size: 0.875rem;">
+                            Отправьте запрос на URL выше, чтобы увидеть его здесь
+                        </p>
+                    </div>
+                `;
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            }
+            return;
+        }
+
+        // Удаляем empty state если есть
+        if (emptyState) {
+            emptyState.remove();
+        }
+
+        // Обновляем счётчик
+        countElement.textContent = requests.length;
+
+        // Проверяем новые запросы
+        const existingIds = Array.from(container.querySelectorAll('.request-item')).map(el => el.dataset.id);
+        
+        requests.forEach(request => {
+            if (!existingIds.includes(String(request.ID))) {
+                addRequestToList(request);
+            }
+        });
+    }
+
+    // Добавление нового запроса в список
+    function addRequestToList(request) {
+        const container = document.getElementById('requests-container');
+        const date = new Date(request.CreatedAt);
+        const time = date.toLocaleTimeString('ru-RU');
+        const fullDate = date.toLocaleString('ru-RU');
+        
+        const methodColors = {
+            'GET': 'primary',
+            'POST': 'success',
+            'PUT': 'warning',
+            'DELETE': 'danger'
+        };
+        const methodColor = methodColors[request.Method] || 'secondary';
+
+        const requestHTML = `
+            <div class="request-item new" data-id="${request.ID}">
+                <div class="request-header" onclick="toggleRequest(${request.ID})">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span class="badge badge-${methodColor}">${request.Method}</span>
+                        <span style="font-family: monospace; font-size: 0.875rem;">${request.URL}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <span style="color: var(--text-secondary); font-size: 0.875rem;">${time}</span>
+                        <button class="btn-icon">
+                            <i data-lucide="chevron-down" id="chevron-${request.ID}"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="request-details" id="details-${request.ID}" style="display: none;">
+                    <div class="request-section">
+                        <h4>Заголовки</h4>
+                        <pre><code>${request.Headers}</code></pre>
+                    </div>
+                    ${request.QueryParams ? `
+                    <div class="request-section">
+                        <h4>Query параметры</h4>
+                        <pre><code>${request.QueryParams}</code></pre>
+                    </div>
+                    ` : ''}
+                    ${request.Body ? `
+                    <div class="request-section">
+                        <h4>Тело запроса</h4>
+                        <pre><code>${request.Body}</code></pre>
+                    </div>
+                    ` : ''}
+                    <div class="request-section">
+                        <h4>Информация</h4>
+                        <p><strong>IP адрес:</strong> ${request.ClientIP}</p>
+                        <p><strong>Время:</strong> ${fullDate}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        container.insertAdjacentHTML('afterbegin', requestHTML);
+        
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+
+        // Убираем класс new через секунду
+        setTimeout(() => {
+            const element = container.querySelector(`[data-id="${request.ID}"]`);
+            if (element) {
+                element.classList.remove('new');
+            }
+        }, 1000);
+    }
+
+    // Уведомления
+    function showNotification(message, type) {
+        // Проверяем, что параметры переданы
+        if (!message) {
+            console.error('showNotification: message is required');
+            return;
+        }
+        
+        // Простая реализация уведомлений
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            background: ${type === 'success' ? 'var(--success)' : 'var(--destructive)'};
+            color: white;
+            border-radius: 8px;
+            z-index: 9999;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        `;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            notification.style.transition = 'opacity 0.3s ease';
+            setTimeout(() => {
+                notification.remove();
+            }, 300);
+        }, 3000);
+    }
+
+    // Запускаем polling каждые 5 секунд
+    pollInterval = setInterval(pollRequests, 5000);
+
+    // Останавливаем polling при уходе со страницы
+    window.addEventListener('beforeunload', () => {
+        clearInterval(pollInterval);
+    });
+
+    // Mobile Sidebar Toggle
+    function toggleMobileSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.querySelector('.sidebar-overlay');
+        sidebar.classList.toggle('mobile-open');
+        overlay.classList.toggle('active');
+    }
+    
+    function closeMobileSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.querySelector('.sidebar-overlay');
+        sidebar.classList.remove('mobile-open');
+        overlay.classList.remove('active');
+    }
+</script>
+{{ end }}

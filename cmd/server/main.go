@@ -1,6 +1,8 @@
 package main
 
 import (
+	"dmintegroff/internal/cache"
+	"dmintegroff/internal/controllers"
 	"dmintegroff/internal/database"
 	"dmintegroff/internal/logger"
 	"dmintegroff/internal/models"
@@ -9,6 +11,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -21,9 +24,26 @@ func main() {
 	logger.Init()
 	logger.Log.Info("Starting dmIntegroff server...")
 
+	// Initialize Redis (optional)
+	if err := cache.InitRedis(); err != nil {
+		logger.Log.Warn("Redis initialization failed: " + err.Error())
+	}
+
 	database.Connect()
-	database.Migrate(&models.User{}, &models.Project{}, &models.Integration{}, &models.RequestLog{})
+	database.Migrate(&models.User{}, &models.Project{}, &models.Integration{}, &models.RequestLog{}, &models.WebhookTest{}, &models.WebhookTestRequest{})
 	database.SeedAdmin()
+
+	// Cleanup expired test webhooks on startup
+	controllers.CleanupExpiredWebhooks()
+
+	// Schedule cleanup every hour
+	go func() {
+		ticker := time.NewTicker(1 * time.Hour)
+		defer ticker.Stop()
+		for range ticker.C {
+			controllers.CleanupExpiredWebhooks()
+		}
+	}()
 
 	// Получаем *sql.DB из GORM для health service
 	sqlDB, err := database.DB.DB()

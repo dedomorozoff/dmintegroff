@@ -123,6 +123,12 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 		authorized.GET("/settings", controllers.SettingsPage)
 		authorized.POST("/settings/change-password", controllers.ChangePassword)
 		
+		// Webhook Test
+		authorized.POST("/api/webhook-test/create", controllers.CreateWebhookTest)
+		authorized.GET("/webhook-test/:token", controllers.WebhookTestPage)
+		authorized.GET("/api/webhook-test/:token/requests", controllers.GetWebhookTestRequests)
+		authorized.DELETE("/api/webhook-test/:token", controllers.DeleteWebhookTest)
+		
 		// Metrics Dashboard (защищённый)
 		authorized.GET("/metrics/dashboard", controllers.NewMetricsController(healthService).Dashboard)
 	}
@@ -140,6 +146,7 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 	// Public endpoints - принимаем все HTTP методы для webhook
 	r.Any("/webhook/:token", controllers.WebhookHandler)
 	r.Any("/webhook/test", controllers.TestEndpoint) // Test webhook endpoint
+	r.Any("/webhook/test/:token", controllers.HandleWebhookTest) // Test webhook with token
 
 	// Error pages - должны быть в конце
 	r.NoRoute(controllers.NotFoundPage)

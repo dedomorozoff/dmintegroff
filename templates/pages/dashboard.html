@@ -6,8 +6,14 @@
     <main class="main-content">
         <!-- Page Header -->
         <div class="page-header">
-            <h1>Панель управления</h1>
-            <p>Обзор всех интеграций и статистики</p>
+            <div>
+                <h1>Панель управления</h1>
+                <p>Обзор всех интеграций и статистики</p>
+            </div>
+            <button onclick="createWebhookTest()" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.5rem;">
+                <i data-lucide="flask-conical"></i>
+                <span>Протестировать вебхук</span>
+            </button>
         </div>
         
         <!-- Mobile Header -->
@@ -322,6 +328,31 @@
     </div>
 
     <style>
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .page-header > div {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        @media (max-width: 768px) {
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .page-header button {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
         .step-item[style*="cursor: pointer"]:hover {
             background: var(--secondary);
             border-radius: 8px;
@@ -607,5 +638,50 @@
     document.querySelectorAll('.sidebar a').forEach(link => {
         link.addEventListener('click', closeMobileSidebar);
     });
+
+    // Создание тестового вебхука
+    function createWebhookTest() {
+        // Показываем индикатор загрузки
+        const button = event.target.closest('button');
+        if (button) {
+            button.disabled = true;
+            button.style.opacity = '0.6';
+        }
+        
+        fetch('/api/webhook-test/create', {
+            method: 'POST'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to create webhook test');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.webhook_url) {
+                // Копируем URL в буфер обмена
+                navigator.clipboard.writeText(data.webhook_url).then(() => {
+                    // Открываем страницу с тестовым вебхуком
+                    window.location.href = `/webhook-test/${data.token}`;
+                }).catch(err => {
+                    console.error('Failed to copy URL:', err);
+                    // Всё равно открываем страницу
+                    window.location.href = `/webhook-test/${data.token}`;
+                });
+            } else {
+                throw new Error('No webhook URL in response');
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка при создании тестового вебхука:', error);
+            alert('Не удалось создать тестовый вебхук. Попробуйте ещё раз.');
+            
+            // Восстанавливаем кнопку
+            if (button) {
+                button.disabled = false;
+                button.style.opacity = '1';
+            }
+        });
+    }
 </script>
 {{ end }}
