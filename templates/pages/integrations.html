@@ -184,9 +184,109 @@
                 </table>
             </div>
             
-            <!-- Mobile Empty State -->
+            <!-- Mobile Cards -->
             <div class="mobile-card-list">
-                {{ if not .integrations }}
+                {{ if .integrations }}
+                {{ range .integrations }}
+                <div class="mobile-card">
+                    <div class="mobile-card-header">
+                        <div class="mobile-card-title">{{ .Name }}</div>
+                        <div class="mobile-card-actions">
+                            <button class="btn btn-secondary btn-sm dropdown-toggle" onclick="toggleDropdown(event, {{ .ID }}, this)">
+                                <i data-lucide="more-vertical"></i>
+                            </button>
+                            <div class="dropdown-menu" id="dropdown-mobile-{{ .ID }}" style="display: none; position: fixed; background: var(--card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); min-width: 200px; z-index: 9999;">
+                                {{ if eq .Mode "listening" }}
+                                    <a href="/integrations/{{ .ID }}/configure" class="dropdown-item">
+                                        <i data-lucide="settings"></i> Настроить маппинг
+                                    </a>
+                                    {{ if and .SamplePayload .MappingConfig }}
+                                    <form method="POST" action="/integrations/{{ .ID }}/toggle" class="dropdown-form">
+                                        <button type="submit" class="dropdown-item">
+                                            <i data-lucide="play"></i> Активировать
+                                        </button>
+                                    </form>
+                                    {{ end }}
+                                    <form method="POST" action="/integrations/{{ .ID }}/cancel-listening" class="dropdown-form" onsubmit="return confirm('Отменить прослушивание?');">
+                                        <button type="submit" class="dropdown-item">
+                                            <i data-lucide="x"></i> Отменить прослушивание
+                                        </button>
+                                    </form>
+                                {{ else if eq .Mode "active" }}
+                                    <a href="/integrations/{{ .ID }}/configure" class="dropdown-item">
+                                        <i data-lucide="settings"></i> Редактировать маппинг
+                                    </a>
+                                    <form method="POST" action="/integrations/{{ .ID }}/toggle" class="dropdown-form">
+                                        <button type="submit" class="dropdown-item">
+                                            <i data-lucide="pause"></i> Деактивировать
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="/integrations/{{ .ID }}/reconfigure" class="dropdown-form" onsubmit="return confirm('Переопределить маппинг?');">
+                                        <button type="submit" class="dropdown-item">
+                                            <i data-lucide="refresh-cw"></i> Переопределить маппинг
+                                        </button>
+                                    </form>
+                                {{ else }}
+                                    <form method="POST" action="/integrations/{{ .ID }}/toggle" class="dropdown-form">
+                                        <button type="submit" class="dropdown-item">
+                                            <i data-lucide="play"></i> Активировать
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="/integrations/{{ .ID }}/reconfigure" class="dropdown-form" onsubmit="return confirm('Переопределить маппинг?');">
+                                        <button type="submit" class="dropdown-item">
+                                            <i data-lucide="refresh-cw"></i> Переопределить маппинг
+                                        </button>
+                                    </form>
+                                {{ end }}
+                                <div class="dropdown-divider"></div>
+                                <a href="/integrations/{{ .ID }}/edit" class="dropdown-item">
+                                    <i data-lucide="pencil"></i> Редактировать
+                                </a>
+                                <form method="POST" action="/integrations/{{ .ID }}/delete" class="dropdown-form" onsubmit="return confirm('Удалить интеграцию {{ .Name }}?');">
+                                    <button type="submit" class="dropdown-item" style="color: var(--destructive);">
+                                        <i data-lucide="trash-2"></i> Удалить
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mobile-card-body">
+                        <div class="mobile-card-row">
+                            <span class="mobile-card-label">Проект</span>
+                            <span class="mobile-card-value">{{ .Project.Name }}</span>
+                        </div>
+                        <div class="mobile-card-row">
+                            <span class="mobile-card-label">Статус</span>
+                            <span class="mobile-card-value">
+                                {{ if eq .Mode "listening" }}
+                                <span class="badge badge-warning">Прослушивание</span>
+                                {{ else if eq .Mode "active" }}
+                                <span class="badge badge-success">Активна</span>
+                                {{ else }}
+                                <span class="badge badge-danger">Неактивна</span>
+                                {{ end }}
+                            </span>
+                        </div>
+                        {{ if .TargetAPI }}
+                        <div class="mobile-card-row">
+                            <span class="mobile-card-label">Target API</span>
+                            <span class="mobile-card-value">{{ .TargetAPI }}</span>
+                        </div>
+                        {{ end }}
+                        <div class="mobile-card-row" style="flex-direction: column; align-items: flex-start; gap: 0.25rem;">
+                            <span class="mobile-card-label">Webhook URL</span>
+                            <div style="display: flex; align-items: center; gap: 0.5rem; width: 100%;">
+                                <code style="font-size: 0.7rem; word-break: break-all; flex: 1;">/webhook/{{ .WebhookToken }}</code>
+                                <button onclick="copyToClipboard('{{ $.appURL }}{{ $.appPath }}/webhook/{{ .WebhookToken }}')" 
+                                        style="background: none; border: none; cursor: pointer; color: var(--primary); padding: 0.25rem;">
+                                    <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {{ end }}
+                {{ else }}
                 <div style="text-align: center; padding: 3rem 1rem; color: var(--muted-foreground);">
                     <div style="margin-bottom: 1rem;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -307,7 +407,10 @@
 
         function toggleDropdown(event, id, button) {
             event.stopPropagation();
-            const dropdown = document.getElementById('dropdown-' + id);
+            let dropdown = document.getElementById('dropdown-' + id);
+            if (!dropdown) {
+                dropdown = document.getElementById('dropdown-mobile-' + id);
+            }
             const allDropdowns = document.querySelectorAll('.dropdown-menu');
             
             // Закрываем все другие выпадающие меню

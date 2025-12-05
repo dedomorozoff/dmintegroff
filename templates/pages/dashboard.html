@@ -10,7 +10,7 @@
                 <h1>Панель управления</h1>
                 <p>Обзор всех интеграций и статистики</p>
             </div>
-            <button onclick="createWebhookTest()" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.5rem;">
+            <button onclick="createWebhookTest()" class="btn btn-primary hide-on-mobile" style="display: flex; align-items: center; gap: 0.5rem;">
                 <i data-lucide="flask-conical"></i>
                 <span>Протестировать вебхук</span>
             </button>
@@ -18,9 +18,14 @@
         
         <!-- Mobile Header -->
         <div class="page-header-mobile">
-            <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Меню">
-                <i data-lucide="menu"></i>
-            </button>
+            <div class="mobile-header-actions">
+                <button onclick="createWebhookTest()" class="btn btn-primary mobile-webhook-test-btn" aria-label="Протестировать вебхук">
+                    <i data-lucide="flask-conical"></i>
+                </button>
+                <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Меню">
+                    <i data-lucide="menu"></i>
+                </button>
+            </div>
             <a href="/dashboard">
                 <img src="/static/img/logo.png" alt="dmIntegroff" class="page-header-logo">
             </a>
