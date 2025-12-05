@@ -101,6 +101,17 @@
             </div>
             {{ end }}
 
+            {{ if .RequestHeaders }}
+            <div class="log-section">
+                <div class="log-section-title" style="cursor: pointer;" onclick="toggleSection(this)">
+                    <i data-lucide="list" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+                    Заголовки запроса
+                    <i data-lucide="chevron-down" class="toggle-icon" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-left: auto;"></i>
+                </div>
+                <div class="log-section-content headers-content" style="display: none;" data-headers="{{ .RequestHeaders }}"></div>
+            </div>
+            {{ end }}
+
             <div class="log-section">
                 <div class="log-section-title">
                     {{ if eq .LogType "incoming" }}
@@ -152,7 +163,37 @@
                     // Если не JSON, оставляем как есть
                 }
             });
+
+            // Форматирование заголовков
+            document.querySelectorAll('.headers-content').forEach(function(container) {
+                const headersJson = container.getAttribute('data-headers');
+                if (!headersJson) return;
+                
+                try {
+                    const headers = JSON.parse(headersJson);
+                    let html = '<div style="display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; font-size: 13px; line-height: 1.6;">';
+                    
+                    for (const [key, value] of Object.entries(headers)) {
+                        const displayValue = Array.isArray(value) ? value.join(', ') : value;
+                        html += `
+                            <div style="color: var(--muted-foreground); font-weight: 500; white-space: nowrap; background: var(--muted); padding: 4px 8px; border-radius: 4px;">${escapeHtml(key)}:</div>
+                            <div style="color: var(--foreground); word-break: break-all; background: var(--muted); padding: 4px 8px; border-radius: 4px;">${escapeHtml(displayValue)}</div>
+                        `;
+                    }
+                    
+                    html += '</div>';
+                    container.innerHTML = html;
+                } catch(e) {
+                    container.innerHTML = '<pre class="log-code">' + escapeHtml(headersJson) + '</pre>';
+                }
+            });
         });
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
 
         function syntaxHighlight(json) {
             json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -171,6 +212,21 @@
                 }
                 return '<span class="' + cls + '">' + match + '</span>';
             });
+        }
+
+        function toggleSection(element) {
+            const content = element.nextElementSibling;
+            const icon = element.querySelector('.toggle-icon');
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                icon.setAttribute('data-lucide', 'chevron-up');
+            } else {
+                content.style.display = 'none';
+                icon.setAttribute('data-lucide', 'chevron-down');
+            }
+            
+            lucide.createIcons();
         }
     </script>
 {{ end }}
