@@ -225,6 +225,33 @@ func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 		return err
 	}
 	
+	// Add custom headers
+	if err := AddCustomHeaders(req, &integration); err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"integration_id": integrationID,
+			"error":          err.Error(),
+		}).Error("Failed to add custom headers")
+		
+		log := models.RequestLog{
+			IntegrationID: integrationID,
+			Method:        httpMethod,
+			URL:           integration.TargetAPI,
+			RequestBody:   string(jsonData),
+			StatusCode:    500,
+			LogType:       "webhook",
+			ErrorMessage:  "Custom headers failed: " + err.Error(),
+		}
+		CreateLogWithLimit(&log)
+		
+		return err
+	}
+	
+	// Log all request headers for debugging
+	logger.Log.WithFields(map[string]interface{}{
+		"integration_id": integrationID,
+		"headers":        req.Header,
+	}).Debug("Request headers before sending")
+	
 	// Execute request with retry logic
 	client := &http.Client{}
 	retryConfig := DefaultRetryConfig()

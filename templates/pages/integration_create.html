@@ -37,7 +37,7 @@
         {{ end }}
 
         <div class="card">
-            <form method="POST" action="/integrations" {{ if not .projects }}onsubmit="return false;" style="opacity: 0.5; pointer-events: none;"{{ end }}>
+            <form method="POST" action="/integrations" {{ if not .projects }}onsubmit="return false;" style="opacity: 0.5; pointer-events: none;"{{ else }}onsubmit="return handleFormSubmit(event)"{{ end }}>
                 <div class="form-group">
                     <label>Название интеграции *</label>
                     <input type="text" name="name" required placeholder="Например: Интеграция CRM → Email">
@@ -193,6 +193,40 @@
                     </div>
                 </div>
 
+                <!-- Custom Headers Section -->
+                <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #374151;">
+                    <h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i data-lucide="list"></i> Произвольные заголовки
+                    </h3>
+                    
+                    <div class="info-box" style="margin-bottom: 1rem;">
+                        <i data-lucide="info"></i>
+                        <div>
+                            <strong>Дополнительные HTTP заголовки</strong>
+                            <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">
+                                Добавьте произвольные HTTP заголовки, которые будут отправляться с каждым запросом к Target API.
+                                Например: Content-Type, X-Custom-Header, Accept и т.д.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div id="custom-headers-container">
+                        <div class="custom-header-row" style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: flex-start;">
+                            <input type="text" placeholder="Имя заголовка" class="header-name" style="flex: 1;">
+                            <input type="text" placeholder="Значение" class="header-value" style="flex: 2;">
+                            <button type="button" onclick="removeHeaderRow(this)" class="btn btn-secondary" style="padding: 0.5rem;">
+                                <i data-lucide="x"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button type="button" onclick="addHeaderRow()" class="btn btn-secondary" style="margin-top: 0.5rem;">
+                        <i data-lucide="plus"></i> Добавить заголовок
+                    </button>
+                    
+                    <input type="hidden" name="custom_headers" id="custom_headers_input">
+                </div>
+
                 <!-- Webhook Signature Section -->
                 <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #374151;">
                     <h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
@@ -278,6 +312,14 @@
     <script>
         lucide.createIcons();
         
+        function handleFormSubmit(event) {
+            console.log('handleFormSubmit called');
+            const headers = collectCustomHeaders();
+            console.log('Collected headers:', headers);
+            console.log('Hidden field value:', document.getElementById('custom_headers_input').value);
+            return true; // Разрешаем отправку
+        }
+        
         function fillTestUrl() {
             const input = document.getElementById('target_api');
             const testUrl = window.location.protocol + '//' + window.location.host + '/webhook/test';
@@ -327,6 +369,49 @@
                 graphqlFields.style.display = 'none';
             }
         }
+
+        function addHeaderRow() {
+            const container = document.getElementById('custom-headers-container');
+            const row = document.createElement('div');
+            row.className = 'custom-header-row';
+            row.style.cssText = 'display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: flex-start;';
+            row.innerHTML = `
+                <input type="text" placeholder="Имя заголовка" class="header-name" style="flex: 1;">
+                <input type="text" placeholder="Значение" class="header-value" style="flex: 2;">
+                <button type="button" onclick="removeHeaderRow(this)" class="btn btn-secondary" style="padding: 0.5rem;">
+                    <i data-lucide="x"></i>
+                </button>
+            `;
+            container.appendChild(row);
+            lucide.createIcons();
+        }
+
+        function removeHeaderRow(button) {
+            button.closest('.custom-header-row').remove();
+        }
+
+        function collectCustomHeaders() {
+            const rows = document.querySelectorAll('.custom-header-row');
+            const headers = {};
+            
+            console.log('Collecting headers from', rows.length, 'rows');
+            
+            rows.forEach(row => {
+                const name = row.querySelector('.header-name').value.trim();
+                const value = row.querySelector('.header-value').value.trim();
+                console.log('Header:', name, '=', value);
+                if (name && value) {
+                    headers[name] = value;
+                }
+            });
+            
+            const json = JSON.stringify(headers);
+            console.log('Final JSON:', json);
+            document.getElementById('custom_headers_input').value = json;
+            return headers;
+        }
+
+
     </script>
 </body>
 </html>

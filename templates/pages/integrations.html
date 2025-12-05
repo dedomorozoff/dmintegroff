@@ -229,8 +229,17 @@
         }
 
         .dropdown-item i {
-            width: 16px;
-            height: 16px;
+            width: 16px !important;
+            height: 16px !important;
+            min-width: 16px;
+            min-height: 16px;
+            max-width: 16px;
+            max-height: 16px;
+        }
+        
+        .dropdown-item svg {
+            width: 16px !important;
+            height: 16px !important;
         }
 
         .dropdown-form {
@@ -247,6 +256,43 @@
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+        
+        /* Адаптивность для маленьких экранов */
+        .table-container {
+            overflow-x: auto;
+            width: 100%;
+        }
+        
+        @media (max-width: 1200px) {
+            .table-container {
+                overflow-x: auto;
+            }
+            
+            table {
+                min-width: 900px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            table {
+                min-width: 100%;
+                font-size: 0.875rem;
+            }
+            
+            th, td {
+                padding: 0.5rem !important;
+            }
+            
+            .dropdown {
+                position: static !important;
+            }
+            
+            .dropdown-menu {
+                position: absolute !important;
+                right: 0 !important;
+                left: auto !important;
+            }
         }
     </style>
 

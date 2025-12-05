@@ -38,6 +38,23 @@ mysql -u username -p database_name < migrations/004_cascade_delete_integrations.
 
 ## История миграций
 
+### 011_add_custom_headers (2024-12-05)
+**Описание:** Добавление поддержки произвольных HTTP заголовков для интеграций.
+
+**Изменения:**
+- Добавлено поле `custom_headers` (TEXT) - JSON-объект с произвольными заголовками
+
+**Применение:**
+```bash
+# SQLite
+sqlite3 dmintegroff.db < migrations/011_add_custom_headers_sqlite.sql
+
+# MySQL
+mysql -u username -p database_name < migrations/011_add_custom_headers.sql
+```
+
+**Использование:** Позволяет добавлять произвольные HTTP заголовки к запросам Target API (например, Content-Type, X-Custom-Header, Accept и т.д.).
+
 ### 006_add_demo_users (2024-12-01)
 **Описание:** Добавление поддержки демо-режима с временными пользователями.
 

@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"dmintegroff/internal/database"
+	"dmintegroff/internal/logger"
 	"dmintegroff/internal/models"
 	"dmintegroff/internal/services"
 	"dmintegroff/internal/utils"
@@ -263,7 +264,16 @@ func IntegrationStore(c *gin.Context) {
 		WebhookSignatureSecret:    c.PostForm("webhook_signature_secret"),
 		WebhookSignatureHeader:    webhookSignatureHeader,
 		WebhookSignatureAlgorithm: webhookSignatureAlgorithm,
+		
+		// Custom headers
+		CustomHeaders: c.PostForm("custom_headers"),
 	}
+	
+	// Log custom headers for debugging
+	logger.Log.WithFields(map[string]interface{}{
+		"custom_headers": integration.CustomHeaders,
+		"name":           integration.Name,
+	}).Info("Creating integration with custom headers")
 	
 	// Validate signature config if enabled
 	if err := services.ValidateSignatureConfig(&integration); err != nil {
@@ -648,6 +658,15 @@ func IntegrationUpdate(c *gin.Context) {
 	} else {
 		integration.WebhookSignatureAlgorithm = "sha256"
 	}
+	
+	// Update custom headers
+	integration.CustomHeaders = c.PostForm("custom_headers")
+	
+	// Log custom headers for debugging
+	logger.Log.WithFields(map[string]interface{}{
+		"integration_id":  integration.ID,
+		"custom_headers":  integration.CustomHeaders,
+	}).Info("Updating integration with custom headers")
 	
 	// Validate signature config if enabled
 	if err := services.ValidateSignatureConfig(&integration); err != nil {

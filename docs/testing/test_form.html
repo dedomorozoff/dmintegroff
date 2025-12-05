@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Custom Headers Form</title>
+</head>
+<body>
+    <h1>Test Custom Headers Collection</h1>
+    
+    <form id="testForm">
+        <div id="custom-headers-container">
+            <div class="custom-header-row">
+                <input type="text" placeholder="Имя заголовка" class="header-name" value="X-API-Key">
+                <input type="text" placeholder="Значение" class="header-value" value="test-key-123">
+            </div>
+            <div class="custom-header-row">
+                <input type="text" placeholder="Имя заголовка" class="header-name" value="X-Custom-Header">
+                <input type="text" placeholder="Значение" class="header-value" value="custom-value">
+            </div>
+        </div>
+        
+        <input type="hidden" name="custom_headers" id="custom_headers_input">
+        
+        <button type="submit">Submit</button>
+    </form>
+    
+    <div id="result"></div>
+    
+    <script>
+        function collectCustomHeaders() {
+            const rows = document.querySelectorAll('.custom-header-row');
+            const headers = {};
+            
+            rows.forEach(row => {
+                const name = row.querySelector('.header-name').value.trim();
+                const value = row.querySelector('.header-value').value.trim();
+                if (name && value) {
+                    headers[name] = value;
+                }
+            });
+            
+            document.getElementById('custom_headers_input').value = JSON.stringify(headers);
+            return headers;
+        }
+        
+        document.getElementById('testForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const headers = collectCustomHeaders();
+            const json = document.getElementById('custom_headers_input').value;
+            
+            document.getElementById('result').innerHTML = `
+                <h2>Collected Headers:</h2>
+                <pre>${JSON.stringify(headers, null, 2)}</pre>
+                <h2>JSON String:</h2>
+                <pre>${json}</pre>
+            `;
+        });
+    </script>
+</body>
+</html>

@@ -58,4 +58,7 @@ type Integration struct {
 	EnrichmentQuery      string `gorm:"type:text" json:"enrichment_query"`                  // GraphQL query for enrichment
 	EnrichmentVariables  string `gorm:"type:text" json:"enrichment_variables"`              // Variable mapping for enrichment
 	EnrichmentMergeMode  string `gorm:"default:'merge'" json:"enrichment_merge_mode"`       // merge, replace, append
+	
+	// Custom Headers
+	CustomHeaders string `gorm:"type:text" json:"custom_headers"` // JSON map of custom HTTP headers
 }

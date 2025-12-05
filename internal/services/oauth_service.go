@@ -301,6 +301,43 @@ func AddAuthHeaders(req *http.Request, integration *models.Integration) error {
 	return nil
 }
 
+// AddCustomHeaders adds custom HTTP headers to the request from integration config
+func AddCustomHeaders(req *http.Request, integration *models.Integration) error {
+	if integration.CustomHeaders == "" {
+		logger.Log.Debug("No custom headers configured")
+		return nil
+	}
+	
+	logger.Log.WithFields(map[string]interface{}{
+		"custom_headers_raw": integration.CustomHeaders,
+	}).Debug("Processing custom headers")
+	
+	var headers map[string]string
+	if err := json.Unmarshal([]byte(integration.CustomHeaders), &headers); err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"error": err.Error(),
+			"raw":   integration.CustomHeaders,
+		}).Error("Failed to parse custom headers")
+		return fmt.Errorf("failed to parse custom headers: %w", err)
+	}
+	
+	for name, value := range headers {
+		if name != "" && value != "" {
+			req.Header.Set(name, value)
+			logger.Log.WithFields(map[string]interface{}{
+				"header": name,
+				"value":  value,
+			}).Debug("Added custom header")
+		}
+	}
+	
+	logger.Log.WithFields(map[string]interface{}{
+		"count": len(headers),
+	}).Info("Custom headers applied")
+	
+	return nil
+}
+
 // TestOAuth2Connection tests the OAuth2 configuration by attempting to get a token
 func TestOAuth2Connection(integration *models.Integration) error {
 	if integration.AuthType != "oauth2" {
