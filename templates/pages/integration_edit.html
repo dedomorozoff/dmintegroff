@@ -5,8 +5,17 @@
     <!-- Main Content -->
     <main class="main-content">
         <div class="page-header">
-            <h1>Редактирование интеграции</h1>
-            <p>Изменение параметров интеграции</p>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+                <div>
+                    <h1>Редактирование интеграции</h1>
+                    <p>Изменение параметров интеграции</p>
+                </div>
+                {{ if ne .integration.Mode "listening" }}
+                <a href="/integrations/{{ .integration.ID }}/configure" class="btn btn-secondary" style="white-space: nowrap;">
+                    <i data-lucide="shuffle"></i> Настроить маппинг
+                </a>
+                {{ end }}
+            </div>
         </div>
         
         <div class="page-header-mobile">
@@ -275,8 +284,9 @@
                     </div>
                 </div>
 
-                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <div style="display: flex; gap: 1rem; margin-top: 2rem; flex-wrap: wrap;">
                     <button type="submit" class="btn btn-success"><i data-lucide="save"></i> Сохранить изменения</button>
+                    
                     {{ if eq .integration.APIType "graphql" }}
                     <a href="/integrations/{{ .integration.ID }}/graphql-configure" class="btn btn-primary">
                         <i data-lucide="code"></i> Настроить GraphQL
@@ -286,6 +296,13 @@
                         <i data-lucide="sparkles"></i> Обогащение данных
                     </a>
                     {{ end }}
+                    
+                    {{ if ne .integration.Mode "listening" }}
+                    <a href="/integrations/{{ .integration.ID }}/configure" class="btn btn-primary">
+                        <i data-lucide="shuffle"></i> Настроить маппинг
+                    </a>
+                    {{ end }}
+                    
                     <a href="/integrations" class="btn btn-secondary">Отмена</a>
                 </div>
             </form>

@@ -8,6 +8,7 @@ import (
 	"dmintegroff/internal/utils"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"sort"
@@ -289,6 +290,13 @@ func IntegrationStore(c *gin.Context) {
 	c.Redirect(http.StatusFound, "/integrations")
 }
 
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 func WebhookHandler(c *gin.Context) {
 	token := c.Param("token")
 
@@ -298,13 +306,32 @@ func WebhookHandler(c *gin.Context) {
 		return
 	}
 
-	var payload map[string]interface{}
-	if err := c.BindJSON(&payload); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+	// Читаем тело запроса как байты
+	bodyBytes, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read request body"})
 		return
 	}
 
-	payloadJSON, _ := json.Marshal(payload)
+	// Пытаемся распарсить как JSON
+	var payload map[string]interface{}
+	if err := json.Unmarshal(bodyBytes, &payload); err != nil {
+		// Логируем ошибку парсинга
+		logger.Log.WithFields(map[string]interface{}{
+			"integration_id": integration.ID,
+			"error":          err.Error(),
+			"body_preview":   string(bodyBytes[:min(len(bodyBytes), 100)]),
+		}).Error("Failed to parse webhook body as JSON")
+		
+		// Если не JSON, возвращаем ошибку с подробностями
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid JSON",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	payloadJSON := bodyBytes // Используем оригинальные байты
 	headersJSON, _ := json.Marshal(c.Request.Header)
 
 	// Логируем входящий webhook
@@ -501,15 +528,24 @@ func IntegrationSaveMapping(c *gin.Context) {
 	// Получаем output_template или mapping_config
 	outputTemplate := c.PostForm("output_template")
 	mappingConfig := c.PostForm("mapping_config")
+	templateType := c.PostForm("template_type")
 
 	// Валидируем output_template, если он задан
 	if outputTemplate != "" {
-		processor := utils.NewTemplateProcessor()
-		if err := processor.ValidateTemplate(outputTemplate); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid output template: " + err.Error()})
-			return
+		// Для JSON шаблонов валидируем структуру
+		if templateType == "json" || templateType == "" {
+			processor := utils.NewTemplateProcessor()
+			if err := processor.ValidateTemplate(outputTemplate); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid output template: " + err.Error()})
+				return
+			}
 		}
+		// Для других типов (xml, text, custom) просто сохраняем как есть
 		integration.OutputTemplate = outputTemplate
+		integration.TemplateType = templateType
+		if integration.TemplateType == "" {
+			integration.TemplateType = "json" // По умолчанию JSON
+		}
 		// Очищаем старый mapping_config, если используется шаблон
 		integration.MappingConfig = ""
 	} else if mappingConfig != "" {
@@ -517,6 +553,7 @@ func IntegrationSaveMapping(c *gin.Context) {
 		integration.MappingConfig = mappingConfig
 		// Очищаем output_template
 		integration.OutputTemplate = ""
+		integration.TemplateType = "json" // Маппинг всегда генерирует JSON
 	}
 
 	// Активируем интеграцию только если она была в режиме listening или inactive

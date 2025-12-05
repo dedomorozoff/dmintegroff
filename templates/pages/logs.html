@@ -106,6 +106,7 @@
                 <div class="log-section-title" style="cursor: pointer;" onclick="toggleSection(this)">
                     <i data-lucide="list" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
                     Заголовки запроса
+                    <span class="content-type-badge" data-headers="{{ .RequestHeaders }}" style="margin-left: 8px; font-size: 11px; padding: 2px 8px; border-radius: 4px; background: var(--muted); color: var(--muted-foreground); font-weight: normal;"></span>
                     <i data-lucide="chevron-down" class="toggle-icon" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-left: auto;"></i>
                 </div>
                 <div class="log-section-content headers-content" style="display: none;" data-headers="{{ .RequestHeaders }}"></div>
@@ -122,7 +123,7 @@
                     Исходящий запрос к Target API
                     {{ end }}
                 </div>
-                <pre class="log-code json-highlight"><code>{{ .RequestBody }}</code></pre>
+                <pre class="log-code syntax-highlight" data-headers="{{ .RequestHeaders }}"><code class="log-body">{{ .RequestBody }}</code></pre>
             </div>
 
             {{ if .ResponseBody }}
@@ -131,7 +132,7 @@
                     <i data-lucide="check-circle" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
                     Ответ от Target API
                 </div>
-                <pre class="log-code json-highlight"><code>{{ .ResponseBody }}</code></pre>
+                <pre class="log-code syntax-highlight" data-headers="{{ .RequestHeaders }}"><code class="log-body">{{ .ResponseBody }}</code></pre>
             </div>
             {{ end }}
         </div>
@@ -153,21 +154,83 @@
 
     {{ template "partials/scripts.html" . }}
     <script>
-        // Подсветка JSON
+        // Подсветка синтаксиса (JSON/XML)
         document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.json-highlight code').forEach(function(block) {
+            document.querySelectorAll('.syntax-highlight code.log-body').forEach(function(block) {
+                // Получаем текст напрямую из textContent (Go template уже экранировал HTML)
+                let text = block.textContent.trim();
+                
+                // Базовое форматирование для всех типов
+                block.style.whiteSpace = 'pre-wrap';
+                block.style.wordBreak = 'break-word';
+                
+                // Если нет текста, показываем placeholder
+                if (!text || text.length === 0) {
+                    block.innerHTML = '<span style="color: var(--muted-foreground); font-style: italic;">Тело запроса пустое</span>';
+                    return;
+                }
+                
+                // Определяем тип по содержимому
+                // Применяем подсветку только для JSON и XML
+                if (text.startsWith('{') || text.startsWith('[')) {
+                    // JSON подсветка
+                    try {
+                        const json = JSON.parse(text);
+                        block.innerHTML = syntaxHighlight(JSON.stringify(json, null, 2));
+                    } catch(e) {
+                        // Если не удалось распарсить, оставляем как есть
+                        // Это нормально для plain text который начинается с { или [
+                        console.log('Failed to parse as JSON, displaying as plain text');
+                    }
+                } else if (text.trim().startsWith('<?xml') || (text.trim().startsWith('<') && text.includes('>'))) {
+                    // XML подсветка (базовая)
+                    block.innerHTML = syntaxHighlightXML(text);
+                }
+                // Для остального (plain text, CSV и т.д.) - оставляем как есть
+            });
+
+            // Отображение Content-Type в бейдже (только в заголовках)
+            document.querySelectorAll('.content-type-badge').forEach(function(badge) {
+                const headersJson = badge.getAttribute('data-headers');
+                if (!headersJson || !headersJson.trim() || headersJson === '""' || headersJson === "''") {
+                    badge.style.display = 'none';
+                    return;
+                }
+                
                 try {
-                    const json = JSON.parse(block.textContent);
-                    block.innerHTML = syntaxHighlight(JSON.stringify(json, null, 2));
+                    const headers = JSON.parse(headersJson);
+                    const contentType = headers['Content-Type'] || headers['content-type'];
+                    if (contentType) {
+                        const displayType = Array.isArray(contentType) ? contentType[0] : contentType;
+                        badge.textContent = displayType;
+                        
+                        // Цветовая индикация типа
+                        if (displayType.includes('json')) {
+                            badge.style.background = 'rgba(59, 130, 246, 0.15)';
+                            badge.style.color = '#3b82f6';
+                        } else if (displayType.includes('xml')) {
+                            badge.style.background = 'rgba(245, 158, 11, 0.15)';
+                            badge.style.color = '#f59e0b';
+                        } else if (displayType.includes('text')) {
+                            badge.style.background = 'rgba(16, 185, 129, 0.15)';
+                            badge.style.color = '#10b981';
+                        }
+                    } else {
+                        badge.style.display = 'none';
+                    }
                 } catch(e) {
-                    // Если не JSON, оставляем как есть
+                    // Скрываем бейдж если не удалось распарсить
+                    badge.style.display = 'none';
                 }
             });
 
             // Форматирование заголовков
             document.querySelectorAll('.headers-content').forEach(function(container) {
                 const headersJson = container.getAttribute('data-headers');
-                if (!headersJson) return;
+                if (!headersJson || !headersJson.trim() || headersJson === '""' || headersJson === "''") {
+                    container.innerHTML = '<p style="color: var(--muted-foreground); padding: 1rem;">Заголовки отсутствуют</p>';
+                    return;
+                }
                 
                 try {
                     const headers = JSON.parse(headersJson);
@@ -175,9 +238,14 @@
                     
                     for (const [key, value] of Object.entries(headers)) {
                         const displayValue = Array.isArray(value) ? value.join(', ') : value;
+                        
+                        // Выделяем Content-Type
+                        const isContentType = key.toLowerCase() === 'content-type';
+                        const keyStyle = isContentType ? 'font-weight: 600; color: var(--primary);' : '';
+                        
                         html += `
-                            <div style="color: var(--muted-foreground); font-weight: 500; white-space: nowrap; background: var(--muted); padding: 4px 8px; border-radius: 4px;">${escapeHtml(key)}:</div>
-                            <div style="color: var(--foreground); word-break: break-all; background: var(--muted); padding: 4px 8px; border-radius: 4px;">${escapeHtml(displayValue)}</div>
+                            <div style="color: var(--muted-foreground); font-weight: 500; white-space: nowrap; background: var(--muted); padding: 4px 8px; border-radius: 4px; ${keyStyle}">${escapeHtml(key)}:</div>
+                            <div style="color: var(--foreground); word-break: break-all; background: var(--muted); padding: 4px 8px; border-radius: 4px; ${keyStyle}">${escapeHtml(displayValue)}</div>
                         `;
                     }
                     
@@ -212,6 +280,20 @@
                 }
                 return '<span class="' + cls + '">' + match + '</span>';
             });
+        }
+
+        function syntaxHighlightXML(xml) {
+            // Экранируем HTML
+            xml = xml.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            
+            // Подсвечиваем XML теги
+            xml = xml.replace(/(&lt;\?xml[^?]*\?&gt;)/g, '<span style="color: #c678dd;">$1</span>'); // XML declaration
+            xml = xml.replace(/(&lt;\/?)([a-zA-Z0-9_:-]+)/g, '$1<span style="color: #e06c75;">$2</span>'); // Tag names
+            xml = xml.replace(/([a-zA-Z0-9_:-]+)(=)/g, '<span style="color: #d19a66;">$1</span>$2'); // Attributes
+            xml = xml.replace(/=(&quot;[^&]*&quot;|'[^']*')/g, '=<span style="color: #98c379;">$1</span>'); // Attribute values
+            xml = xml.replace(/(&lt;!--.*?--&gt;)/g, '<span style="color: #5c6370;">$1</span>'); // Comments
+            
+            return xml;
         }
 
         function toggleSection(element) {

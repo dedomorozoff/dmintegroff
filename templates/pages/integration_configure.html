@@ -20,8 +20,15 @@
 <!-- Main Content -->
 <main class="main-content">
     <div class="page-header">
-        <h1>Настройка маппинга полей</h1>
-        <p><strong>Интеграция:</strong> {{ .integration.Name }}</p>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+            <div>
+                <h1>Настройка маппинга полей</h1>
+                <p><strong>Интеграция:</strong> {{ .integration.Name }}</p>
+            </div>
+            <a href="/integrations/{{ .integration.ID }}/edit" class="btn btn-secondary" style="white-space: nowrap;">
+                <i data-lucide="settings"></i> Настройки интеграции
+            </a>
+        </div>
 
         <div class="url-container"
             style="margin-top: 1rem; background: #2d3748; padding: 0.75rem 1rem; border-radius: 6px; display: flex; align-items: center; gap: 1rem; border: 1px solid #4a5568;">
@@ -99,10 +106,10 @@
             <label style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem; margin-bottom: 0.5rem;">
                 <input type="radio" name="transform_mode" value="template" id="modeTemplate"
                     onchange="switchTransformMode()">
-                <strong>Кастомный JSON шаблон</strong>
+                <strong>Кастомный шаблон</strong>
             </label>
             <p style="margin-left: 1.5rem; color: var(--text-secondary); font-size: 0.9em;">
-                Полный контроль над структурой выходного JSON с подстановкой значений через <code
+                Полный контроль над структурой выходных данных с подстановкой значений через <code
                     style="color: #61afef;">{{`{{field.path}}`}}</code>
             </p>
         </div>
@@ -190,9 +197,18 @@
 
             <!-- Секция для кастомного шаблона -->
             <div id="templateSection" style="display: none;">
-                <h3 style="margin-bottom: 1rem;"><i data-lucide="file-json"></i> JSON Шаблон</h3>
+                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                    <h3 style="margin: 0;"><i data-lucide="file-text"></i> Кастомный шаблон</h3>
+                    <select name="template_type" id="templateType" onchange="updateTemplateEditor()" 
+                            style="padding: 0.5rem; border-radius: 6px; background: #1a1f2e; color: #abb2bf; border: 1px solid #4a5568;">
+                        <option value="json" {{ if or (not .integration.TemplateType) (eq .integration.TemplateType "json") }}selected{{ end }}>JSON</option>
+                        <option value="xml" {{ if eq .integration.TemplateType "xml" }}selected{{ end }}>XML</option>
+                        <option value="text" {{ if eq .integration.TemplateType "text" }}selected{{ end }}>Plain Text</option>
+                        <option value="custom" {{ if eq .integration.TemplateType "custom" }}selected{{ end }}>Произвольный формат</option>
+                    </select>
+                </div>
                 <p style="margin-bottom: 1rem; color: var(--text-secondary);">
-                    Создайте свой JSON шаблон. Используйте <code style="color: #61afef;">{{`{{field.path}}`}}</code> для
+                    Создайте свой шаблон в выбранном формате. Используйте <code style="color: #61afef;">{{`{{field.path}}`}}</code> для
                     подстановки значений из источника.
                 </p>
 
@@ -237,15 +253,7 @@
                     <textarea name="output_template" id="outputTemplate" class="json-editor json-editor-dark"
                         autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
                         style="width: 100%; min-height: 400px; font-family: 'Courier New', monospace; padding: 1rem; border-radius: 8px; font-size: 0.95em; line-height: 1.5;"
-                        placeholder='Пример шаблона:
-{
-  "user": {
-    "name": {{`"{{user.name}}"`}},
-    "email": {{`"{{user.email}}"`}}
-  },
-  "timestamp": {{`"{{timestamp}}"`}},
-  "custom_field": "статическое значение"
-}'>{{ .integration.OutputTemplate }}</textarea>
+                        placeholder='Выберите тип шаблона выше'>{{ .integration.OutputTemplate }}</textarea>
                     <div id="outputTemplate_preview" class="json-preview"></div>
                 </div>
 
@@ -259,31 +267,16 @@
                 </div>
                 <div id="templateValidation" style="margin-top: 1rem;"></div>
 
-                <div
+                <div id="templateHints"
                     style="margin-top: 1rem; padding: 1rem; background: #2d3748; border-radius: 8px; border-left: 4px solid #3b82f6;">
                     <strong><i data-lucide="lightbulb"></i> Подсказки:</strong>
-                    <ul
-                        style="margin-top: 0.5rem; margin-left: 1.5rem; color: var(--text-secondary); line-height: 1.8;">
-                        <li><strong>Строки:</strong> используйте кавычки <code
-                                style="color: #61afef;">{{`"{{field}}"`}}</code></li>
-                        <li><strong>Числа и булевы:</strong> без кавычек <code
-                                style="color: #61afef;">{{`{{count}}`}}</code></li>
-                        <li><strong>Вложенные поля:</strong> через точку <code
-                                style="color: #61afef;">{{`{{user.address.city}}`}}</code></li>
-                        <li><strong>Элемент массива:</strong> по индексу <code
-                                style="color: #61afef;">{{`{{items[0].name}}`}}</code></li>
-                        <li><strong>🆕 Весь массив:</strong> wildcard <code
-                                style="color: #61afef; background: rgba(97, 175, 239, 0.15); padding: 2px 4px; border-radius: 3px;">{{`{{items.*}}`}}</code>
-                            - копирует массив целиком</li>
-                        <li><strong>Статические значения:</strong> можно комбинировать с плейсхолдерами</li>
-                        <li><strong>Копирование полей:</strong> кликните 📋 в списке "Доступные поля"</li>
-                        <li><strong>Форматирование:</strong> используйте кнопку "Автоотступы"</li>
-                        <li><strong>Проверка:</strong> используйте кнопку "Проверить шаблон"</li>
-                    </ul>
+                    <div id="hintsContent">
+                        <!-- Контент будет обновляться в зависимости от типа шаблона -->
+                    </div>
                 </div>
             </div>
 
-            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <div style="display: flex; gap: 1rem; margin-top: 2rem; flex-wrap: wrap;">
                 <button type="submit" class="btn btn-success" onclick="handleFormSubmit(event)">
                     {{ if eq .integration.Mode "active" }}
                     <i data-lucide="save"></i> Сохранить изменения
@@ -291,6 +284,9 @@
                     <i data-lucide="check-circle"></i> Сохранить и активировать
                     {{ end }}
                 </button>
+                <a href="/integrations/{{ .integration.ID }}/edit" class="btn btn-primary">
+                    <i data-lucide="settings"></i> Настройки интеграции
+                </a>
                 <a href="/integrations" class="btn btn-secondary">Отмена</a>
             </div>
         </form>
@@ -561,33 +557,161 @@
     function validateTemplate() {
         const template = document.getElementById('outputTemplate').value.trim();
         const validationDiv = document.getElementById('templateValidation');
+        const templateType = document.getElementById('templateType').value;
 
         if (!template) {
             validationDiv.innerHTML = '<div style="padding: 1rem; background: #ef4444; color: white; border-radius: 8px;">❌ Шаблон пустой</div>';
             return false;
         }
 
-        try {
-            // Умная замена плейсхолдеров на тестовые значения
-            let testTemplate = template;
+        // Для JSON проверяем валидность
+        if (templateType === 'json') {
+            try {
+                // Умная замена плейсхолдеров на тестовые значения
+                let testTemplate = template;
 
-            // Заменяем плейсхолдеры в строках: "{{`{{field}}`}}" -> "test_value"
-            testTemplate = testTemplate.replace(/"{{`{{`}}[^}]+{{`}}`}}"/g, '"test_value"');
+                // Заменяем плейсхолдеры в строках: "{{`{{field}}`}}" -> "test_value"
+                testTemplate = testTemplate.replace(/"{{`{{`}}[^}]+{{`}}`}}"/g, '"test_value"');
 
-            // Заменяем плейсхолдеры вне строк (числа/булевы): {{`{{field}}`}} -> 123
-            testTemplate = testTemplate.replace(/{{`{{`}}[^}]+{{`}}`}}/g, '123');
+                // Заменяем плейсхолдеры вне строк (числа/булевы): {{`{{field}}`}} -> 123
+                testTemplate = testTemplate.replace(/{{`{{`}}[^}]+{{`}}`}}/g, '123');
 
-            // Пытаемся распарсить
-            JSON.parse(testTemplate);
+                // Пытаемся распарсить
+                JSON.parse(testTemplate);
 
-            validationDiv.innerHTML = '<div style="padding: 1rem; background: #10b981; color: white; border-radius: 8px;">✅ Шаблон валиден!</div>';
+                validationDiv.innerHTML = '<div style="padding: 1rem; background: #10b981; color: white; border-radius: 8px;">✅ JSON шаблон валиден!</div>';
+                setTimeout(() => {
+                    validationDiv.innerHTML = '';
+                }, 3000);
+                return true;
+            } catch (e) {
+                validationDiv.innerHTML = `<div style="padding: 1rem; background: #ef4444; color: white; border-radius: 8px;">❌ Ошибка в JSON: ${e.message}</div>`;
+                return false;
+            }
+        } else {
+            // Для других типов просто проверяем наличие плейсхолдеров
+            const hasPlaceholders = /{{`{{`}}[^}]+{{`}}`}}/g.test(template);
+            if (hasPlaceholders) {
+                validationDiv.innerHTML = '<div style="padding: 1rem; background: #10b981; color: white; border-radius: 8px;">✅ Шаблон содержит плейсхолдеры</div>';
+            } else {
+                validationDiv.innerHTML = '<div style="padding: 1rem; background: #f59e0b; color: white; border-radius: 8px;">⚠️ Шаблон не содержит плейсхолдеров (будет отправлен как есть)</div>';
+            }
             setTimeout(() => {
                 validationDiv.innerHTML = '';
             }, 3000);
             return true;
-        } catch (e) {
-            validationDiv.innerHTML = `<div style="padding: 1rem; background: #ef4444; color: white; border-radius: 8px;">❌ Ошибка в JSON: ${e.message}</div>`;
-            return false;
+        }
+    }
+
+    // Обновление редактора шаблона в зависимости от типа
+    function updateTemplateEditor() {
+        const templateType = document.getElementById('templateType').value;
+        const textarea = document.getElementById('outputTemplate');
+        const hintsContent = document.getElementById('hintsContent');
+        const formatBtn = document.querySelector('button[onclick="formatTemplate()"]');
+        
+        // Обновляем placeholder и подсказки
+        const templates = {
+            json: {
+                placeholder: `Пример JSON шаблона:
+{
+  "user": {
+    "name": {{`"{{user.name}}"`}},
+    "email": {{`"{{user.email}}"`}}
+  },
+  "timestamp": {{`"{{timestamp}}"`}},
+  "custom_field": "статическое значение"
+}`,
+                hints: `<ul style="margin-top: 0.5rem; margin-left: 1.5rem; color: var(--text-secondary); line-height: 1.8;">
+                    <li><strong>Строки:</strong> используйте кавычки <code style="color: #61afef;">{{`"{{field}}"`}}</code></li>
+                    <li><strong>Числа и булевы:</strong> без кавычек <code style="color: #61afef;">{{`{{count}}`}}</code></li>
+                    <li><strong>Вложенные поля:</strong> через точку <code style="color: #61afef;">{{`{{user.address.city}}`}}</code></li>
+                    <li><strong>Элемент массива:</strong> по индексу <code style="color: #61afef;">{{`{{items[0].name}}`}}</code></li>
+                    <li><strong>🆕 Весь массив:</strong> wildcard <code style="color: #61afef; background: rgba(97, 175, 239, 0.15); padding: 2px 4px; border-radius: 3px;">{{`{{items.*}}`}}</code> - копирует массив целиком</li>
+                    <li><strong>Статические значения:</strong> можно комбинировать с плейсхолдерами</li>
+                    <li><strong>Копирование полей:</strong> кликните 📋 в списке "Доступные поля"</li>
+                    <li><strong>Форматирование:</strong> используйте кнопку "Автоотступы"</li>
+                    <li><strong>Проверка:</strong> используйте кнопку "Проверить шаблон"</li>
+                </ul>`,
+                showFormat: true
+            },
+            xml: {
+                placeholder: `Пример XML шаблона:
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+  <user>
+    <name>{{`{{user.name}}`}}</name>
+    <email>{{`{{user.email}}`}}</email>
+  </user>
+  <timestamp>{{`{{timestamp}}`}}</timestamp>
+  <custom_field>статическое значение</custom_field>
+</root>`,
+                hints: `<ul style="margin-top: 0.5rem; margin-left: 1.5rem; color: var(--text-secondary); line-height: 1.8;">
+                    <li><strong>Теги:</strong> используйте стандартные XML теги</li>
+                    <li><strong>Плейсхолдеры:</strong> <code style="color: #61afef;">{{`{{field.path}}`}}</code> внутри тегов</li>
+                    <li><strong>Вложенные поля:</strong> через точку <code style="color: #61afef;">{{`{{user.address.city}}`}}</code></li>
+                    <li><strong>Атрибуты:</strong> можно использовать плейсхолдеры в атрибутах</li>
+                    <li><strong>Экранирование:</strong> специальные символы XML будут автоматически экранированы</li>
+                    <li><strong>Копирование полей:</strong> кликните 📋 в списке "Доступные поля"</li>
+                </ul>`,
+                showFormat: false
+            },
+            text: {
+                placeholder: `Пример текстового шаблона:
+Пользователь: {{`{{user.name}}`}}
+Email: {{`{{user.email}}`}}
+Время: {{`{{timestamp}}`}}
+
+Дополнительная информация:
+{{`{{description}}`}}`,
+                hints: `<ul style="margin-top: 0.5rem; margin-left: 1.5rem; color: var(--text-secondary); line-height: 1.8;">
+                    <li><strong>Свободный формат:</strong> пишите текст как хотите</li>
+                    <li><strong>Плейсхолдеры:</strong> <code style="color: #61afef;">{{`{{field.path}}`}}</code> в любом месте текста</li>
+                    <li><strong>Вложенные поля:</strong> через точку <code style="color: #61afef;">{{`{{user.address.city}}`}}</code></li>
+                    <li><strong>Переносы строк:</strong> сохраняются как есть</li>
+                    <li><strong>Копирование полей:</strong> кликните 📋 в списке "Доступные поля"</li>
+                </ul>`,
+                showFormat: false
+            },
+            custom: {
+                placeholder: `Пример произвольного шаблона:
+Создайте свой формат данных с использованием плейсхолдеров {{`{{field.path}}`}}
+
+Например, для CSV:
+{{`{{user.name}}`}},{{`{{user.email}}`}},{{`{{timestamp}}`}}
+
+Или для любого другого формата...`,
+                hints: `<ul style="margin-top: 0.5rem; margin-left: 1.5rem; color: var(--text-secondary); line-height: 1.8;">
+                    <li><strong>Полная свобода:</strong> создайте любой формат данных</li>
+                    <li><strong>Плейсхолдеры:</strong> <code style="color: #61afef;">{{`{{field.path}}`}}</code> для подстановки значений</li>
+                    <li><strong>Вложенные поля:</strong> через точку <code style="color: #61afef;">{{`{{user.address.city}}`}}</code></li>
+                    <li><strong>Примеры:</strong> CSV, TSV, custom протоколы, конфигурационные файлы</li>
+                    <li><strong>Копирование полей:</strong> кликните 📋 в списке "Доступные поля"</li>
+                </ul>`,
+                showFormat: false
+            }
+        };
+        
+        const config = templates[templateType] || templates.json;
+        
+        // Обновляем placeholder только если поле пустое
+        if (!textarea.value.trim()) {
+            textarea.placeholder = config.placeholder;
+        }
+        
+        // Обновляем подсказки
+        if (hintsContent) {
+            hintsContent.innerHTML = config.hints;
+        }
+        
+        // Показываем/скрываем кнопку форматирования
+        if (formatBtn) {
+            formatBtn.style.display = config.showFormat ? 'inline-flex' : 'none';
+        }
+        
+        // Обновляем иконки
+        if (window.lucide) {
+            window.lucide.createIcons();
         }
     }
 
@@ -840,6 +964,9 @@
             document.getElementById('modeMapping').checked = true;
             switchTransformMode();
         }
+        
+        // Инициализируем редактор шаблона
+        updateTemplateEditor();
 
         // Инициализация подсветки синтаксиса JSON
         if (typeof JSONHighlighter !== 'undefined') {

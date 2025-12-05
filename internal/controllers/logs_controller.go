@@ -5,6 +5,7 @@ import (
 	"dmintegroff/internal/database"
 	"dmintegroff/internal/models"
 	"encoding/json"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -15,20 +16,33 @@ import (
 
 // TestEndpoint - тестовый endpoint для приема запросов
 func TestEndpoint(c *gin.Context) {
-	var payload map[string]interface{}
-	if err := c.BindJSON(&payload); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+	// Читаем тело запроса как байты (поддержка любых форматов)
+	bodyBytes, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read request body"})
 		return
 	}
 
+	// Пытаемся распарсить как JSON для обратной совместимости
+	var payload map[string]interface{}
+	var payloadJSON []byte
+	if err := json.Unmarshal(bodyBytes, &payload); err != nil {
+		// Если не JSON, сохраняем как есть
+		payloadJSON = bodyBytes
+		payload = map[string]interface{}{
+			"_raw_body": string(bodyBytes),
+		}
+	} else {
+		payloadJSON = bodyBytes
+	}
+
 	// Сохраняем лог с заголовками
-	payloadJSON, _ := json.Marshal(payload)
 	headersJSON, _ := json.Marshal(c.Request.Header)
 
 	log := models.RequestLog{
 		Method:         c.Request.Method,
 		URL:            c.Request.URL.Path,
-		RequestBody:    string(payloadJSON),
+		RequestBody:    string(bodyBytes), // Сохраняем оригинальное тело
 		RequestHeaders: string(headersJSON),
 		StatusCode:     200,
 		LogType:        "test",

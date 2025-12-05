@@ -38,6 +38,24 @@ mysql -u username -p database_name < migrations/004_cascade_delete_integrations.
 
 ## История миграций
 
+### 012_add_template_type (2024-12-06)
+**Описание:** Добавление поддержки различных типов шаблонов трансформации данных.
+
+**Изменения:**
+- Добавлено поле `template_type` (VARCHAR/TEXT) - тип шаблона: json, xml, text, custom
+- По умолчанию: 'json'
+
+**Применение:**
+```bash
+# SQLite
+sqlite3 dmintegroff.db < migrations/012_add_template_type_sqlite.sql
+
+# MySQL/PostgreSQL
+mysql -u username -p database_name < migrations/012_add_template_type.sql
+```
+
+**Использование:** Позволяет выбирать тип шаблона трансформации данных - не только JSON, но и XML, plain text или произвольный формат. Система автоматически устанавливает правильный Content-Type при отправке данных.
+
 ### 011_add_custom_headers (2024-12-05)
 **Описание:** Добавление поддержки произвольных HTTP заголовков для интеграций.
 

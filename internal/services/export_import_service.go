@@ -29,6 +29,7 @@ type IntegrationExportData struct {
 	Mode           string `json:"mode"`
 	MappingConfig  string `json:"mapping_config,omitempty"`
 	OutputTemplate string `json:"output_template,omitempty"`
+	TemplateType   string `json:"template_type,omitempty"`
 	
 	// Authentication
 	AuthType           string `json:"auth_type"`
@@ -98,6 +99,7 @@ func ExportIntegrations(integrationIDs []uint, userEmail string) ([]byte, error)
 			Mode:           integration.Mode,
 			MappingConfig:  integration.MappingConfig,
 			OutputTemplate: integration.OutputTemplate,
+			TemplateType:   integration.TemplateType,
 			
 			AuthType:           integration.AuthType,
 			OAuth2TokenURL:     integration.OAuth2TokenURL,
@@ -169,6 +171,7 @@ func ExportProjectIntegrations(projectID uint, userEmail string) ([]byte, error)
 			Mode:           integration.Mode,
 			MappingConfig:  integration.MappingConfig,
 			OutputTemplate: integration.OutputTemplate,
+			TemplateType:   integration.TemplateType,
 			
 			AuthType:           integration.AuthType,
 			OAuth2TokenURL:     integration.OAuth2TokenURL,
@@ -313,6 +316,7 @@ func importSingleIntegration(data *IntegrationExportData, options ImportOptions,
 		Mode:           data.Mode,
 		MappingConfig:  data.MappingConfig,
 		OutputTemplate: data.OutputTemplate,
+		TemplateType:   data.TemplateType,
 		Status:         "active",
 		ProjectID:      options.ProjectID,
 		CreatedByID:    options.UserID,
@@ -372,6 +376,7 @@ func updateExistingIntegration(existing *models.Integration, data *IntegrationEx
 	existing.Mode = data.Mode
 	existing.MappingConfig = data.MappingConfig
 	existing.OutputTemplate = data.OutputTemplate
+	existing.TemplateType = data.TemplateType
 	
 	existing.AuthType = data.AuthType
 	existing.OAuth2TokenURL = data.OAuth2TokenURL
