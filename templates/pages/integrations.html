@@ -102,7 +102,7 @@
                                     {{ if not .SamplePayload }}
                                     <span style="color: var(--muted-foreground); font-size: 0.8125rem; white-space: nowrap;" data-waiting-text>Ожидание данных...</span>
                                     {{ end }}
-                                    <button class="btn btn-secondary btn-sm dropdown-toggle" onclick="toggleDropdown(event, {{ .ID }}, this)" style="padding: 0.5rem 0.75rem;">
+                                    <button class="btn btn-secondary btn-sm dropdown-toggle" onclick="toggleDropdown(event, '{{ .ID }}', this)" style="padding: 0.5rem 0.75rem;">
                                         <i data-lucide="more-vertical" style="width: 16px; height: 16px;"></i>
                                     </button>
                                     <div class="dropdown-menu" id="dropdown-{{ .ID }}" style="display: none; position: fixed; background: var(--card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); min-width: 200px; z-index: 9999;">
@@ -192,7 +192,7 @@
                     <div class="mobile-card-header">
                         <div class="mobile-card-title">{{ .Name }}</div>
                         <div class="mobile-card-actions">
-                            <button class="btn btn-secondary btn-sm dropdown-toggle" onclick="toggleDropdown(event, {{ .ID }}, this)">
+                            <button class="btn btn-secondary btn-sm dropdown-toggle" onclick="toggleDropdown(event, '{{ .ID }}', this)"></button>
                                 <i data-lucide="more-vertical"></i>
                             </button>
                             <div class="dropdown-menu" id="dropdown-mobile-{{ .ID }}" style="display: none; position: fixed; background: var(--card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); min-width: 200px; z-index: 9999;">
