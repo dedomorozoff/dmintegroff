@@ -856,7 +856,16 @@ func IntegrationCancelListening(c *gin.Context) {
 	integration.Mode = "inactive"
 
 	database.DB.Save(&integration)
-	c.Redirect(http.StatusFound, "/integrations")
+	
+	// Проверяем, откуда пришел запрос
+	redirectTo := c.Query("redirect")
+	if redirectTo == "configure" {
+		// Если из страницы настройки маппинга, возвращаемся туда
+		c.Redirect(http.StatusFound, fmt.Sprintf("/integrations/%d/configure", id))
+	} else {
+		// Иначе на список интеграций
+		c.Redirect(http.StatusFound, "/integrations")
+	}
 }
 
 // IntegrationTestOAuth - тестирование OAuth конфигурации

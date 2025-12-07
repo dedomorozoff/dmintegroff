@@ -50,6 +50,12 @@
             Текущий маппинг восстановлен из конфигурации.
         </div>
         {{ end }}
+        {{ if eq .integration.Mode "inactive" }}
+        <div style="margin-top: 1rem; background: #6b7280; color: white; padding: 0.75rem 1.5rem; border-radius: 8px; display: flex; align-items: center; gap: 0.5rem;">
+            <i data-lucide="pause-circle"></i>
+            <span><strong>Ожидание остановлено.</strong> Вы можете настроить маппинг вручную {{ if .integration.SamplePayload }}с полученными данными{{ end }} и активировать интеграцию.</span>
+        </div>
+        {{ end }}
     </div>
 
     <div class="card">
@@ -287,6 +293,19 @@
                 <a href="/integrations/{{ .integration.ID }}/edit" class="btn btn-primary">
                     <i data-lucide="settings"></i> Настройки интеграции
                 </a>
+                {{ if eq .integration.Mode "listening" }}
+                <form method="POST" action="/integrations/{{ .integration.ID }}/cancel-listening?redirect=configure" style="display: inline; margin: 0;" onsubmit="return confirm('Остановить ожидание данных? Вы сможете продолжить настройку маппинга вручную.');">
+                    <button type="submit" class="btn btn-secondary">
+                        <i data-lucide="x"></i> Остановить ожидание
+                    </button>
+                </form>
+                {{ else if eq .integration.Mode "active" }}
+                <form method="POST" action="/integrations/{{ .integration.ID }}/reconfigure" style="display: inline; margin: 0;" onsubmit="return confirm('Переопределить маппинг с новыми данными? Интеграция будет переведена в режим прослушивания.');">
+                    <button type="submit" class="btn btn-secondary">
+                        <i data-lucide="refresh-cw"></i> Переопределить маппинг
+                    </button>
+                </form>
+                {{ end }}
                 <a href="/integrations" class="btn btn-secondary">Отмена</a>
             </div>
         </form>
@@ -888,13 +907,26 @@ Email: {{`{{user.email}}`}}
                     margin-top: 1rem;
                     display: flex;
                     align-items: center;
-                    gap: 0.5rem;
+                    justify-content: space-between;
+                    gap: 1rem;
                 `;
             waitingIndicator.innerHTML = `
-                    <i data-lucide="loader-2" style="animation: spin 2s linear infinite; width: 20px; height: 20px;"></i>
-                    <span>Ожидание данных... Страница будет автоматически обновлена при получении webhook</span>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i data-lucide="loader-2" style="animation: spin 2s linear infinite; width: 20px; height: 20px;"></i>
+                        <span>Ожидание данных... Страница будет автоматически обновлена при получении webhook</span>
+                    </div>
+                    <form method="POST" action="/integrations/${integrationId}/cancel-listening?redirect=configure" style="margin: 0;">
+                        <button type="submit" class="btn btn-secondary" style="white-space: nowrap;" onclick="return confirm('Остановить ожидание данных? Вы сможете продолжить настройку маппинга вручную.');">
+                            <i data-lucide="x"></i> Остановить ожидание
+                        </button>
+                    </form>
                 `;
             pageHeader.appendChild(waitingIndicator);
+            
+            // Инициализируем иконки в индикаторе
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
         }
     }
 
