@@ -62,4 +62,7 @@ type Integration struct {
 	
 	// Custom Headers
 	CustomHeaders string `gorm:"type:text" json:"custom_headers"` // JSON map of custom HTTP headers
+	
+	// Webhook HTTP Methods (incoming)
+	WebhookHTTPMethods string `gorm:"default:'*'" json:"webhook_http_methods"` // Allowed HTTP methods for incoming webhook: *, GET, POST, PUT, PATCH, DELETE (comma-separated)
 }

@@ -241,6 +241,12 @@ func IntegrationStore(c *gin.Context) {
 		webhookSignatureAlgorithm = "sha256"
 	}
 
+	// Webhook HTTP methods (incoming)
+	webhookHTTPMethods := c.PostForm("webhook_http_methods")
+	if webhookHTTPMethods == "" {
+		webhookHTTPMethods = "*" // Default to all methods
+	}
+
 	integration := models.Integration{
 		Name:         c.PostForm("name"),
 		WebhookToken: token,
@@ -270,6 +276,9 @@ func IntegrationStore(c *gin.Context) {
 		
 		// Custom headers
 		CustomHeaders: c.PostForm("custom_headers"),
+		
+		// Webhook HTTP methods (incoming)
+		WebhookHTTPMethods: webhookHTTPMethods,
 	}
 	
 	// Log custom headers for debugging
@@ -306,6 +315,28 @@ func WebhookHandler(c *gin.Context) {
 	if err := database.DB.Where("webhook_token = ?", token).First(&integration).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Integration not found"})
 		return
+	}
+
+	// Проверяем разрешенные HTTP методы для входящего webhook
+	if integration.WebhookHTTPMethods != "" && integration.WebhookHTTPMethods != "*" {
+		allowedMethods := strings.Split(integration.WebhookHTTPMethods, ",")
+		methodAllowed := false
+		currentMethod := c.Request.Method
+		
+		for _, method := range allowedMethods {
+			if strings.TrimSpace(method) == currentMethod {
+				methodAllowed = true
+				break
+			}
+		}
+		
+		if !methodAllowed {
+			c.JSON(http.StatusMethodNotAllowed, gin.H{
+				"error": "HTTP method not allowed",
+				"allowed_methods": integration.WebhookHTTPMethods,
+			})
+			return
+		}
 	}
 
 	// Читаем тело запроса как байты
@@ -718,11 +749,19 @@ func IntegrationUpdate(c *gin.Context) {
 	// Update custom headers
 	integration.CustomHeaders = c.PostForm("custom_headers")
 	
+	// Update webhook HTTP methods
+	webhookHTTPMethods := c.PostForm("webhook_http_methods")
+	if webhookHTTPMethods == "" {
+		webhookHTTPMethods = "*" // Default to all methods
+	}
+	integration.WebhookHTTPMethods = webhookHTTPMethods
+	
 	// Log custom headers for debugging
 	logger.Log.WithFields(map[string]interface{}{
-		"integration_id":  integration.ID,
-		"custom_headers":  integration.CustomHeaders,
-	}).Info("Updating integration with custom headers")
+		"integration_id":       integration.ID,
+		"custom_headers":       integration.CustomHeaders,
+		"webhook_http_methods": integration.WebhookHTTPMethods,
+	}).Info("Updating integration with custom headers and webhook methods")
 	
 	// Validate signature config if enabled
 	if err := services.ValidateSignatureConfig(&integration); err != nil {
@@ -814,17 +853,21 @@ func IntegrationToggle(c *gin.Context) {
 	// Переключаем режим
 	if integration.Mode == "active" {
 		integration.Mode = "inactive"
+		database.DB.Save(&integration)
+		c.Redirect(http.StatusFound, "/integrations")
 	} else if integration.Mode == "inactive" || integration.Mode == "listening" {
 		// Проверяем, что есть маппинг перед активацией
-		if integration.MappingConfig == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot activate: mapping not configured"})
+		if integration.MappingConfig == "" && integration.OutputTemplate == "" {
+			// Если нет маппинга, перенаправляем на страницу настройки
+			c.Redirect(http.StatusFound, fmt.Sprintf("/integrations/%d/configure", id))
 			return
 		}
 		integration.Mode = "active"
+		database.DB.Save(&integration)
+		c.Redirect(http.StatusFound, "/integrations")
+	} else {
+		c.Redirect(http.StatusFound, "/integrations")
 	}
-
-	database.DB.Save(&integration)
-	c.Redirect(http.StatusFound, "/integrations")
 }
 
 // IntegrationReconfigure - переход в режим переопределения маппинга
@@ -850,7 +893,9 @@ func IntegrationReconfigure(c *gin.Context) {
 	integration.SamplePayload = "" // Очищаем старые данные
 
 	database.DB.Save(&integration)
-	c.Redirect(http.StatusFound, "/integrations")
+	
+	// Перенаправляем на страницу настройки маппинга
+	c.Redirect(http.StatusFound, fmt.Sprintf("/integrations/%d/configure", id))
 }
 
 // IntegrationCancelListening - отмена режима прослушивания

@@ -45,6 +45,18 @@
         <div class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
 
         <div class="card">
+            <!-- Search/Filter -->
+            <div style="padding: 1rem; border-bottom: 1px solid var(--border);">
+                <div style="position: relative; max-width: 400px;">
+                    <i data-lucide="search" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--muted-foreground);"></i>
+                    <input type="text" 
+                           id="integrationSearch" 
+                           placeholder="Поиск по названию, проекту, URL, методам..." 
+                           style="width: 100%; padding: 0.5rem 0.75rem 0.5rem 2.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--background); color: var(--foreground);"
+                           oninput="filterIntegrations(this.value)">
+                </div>
+            </div>
+            
             <div class="table-container">
                 <table>
                     <thead>
@@ -55,6 +67,8 @@
                             <th>Автор</th>
                             {{ end }}
                             <th>Webhook URL</th>
+                            <th title="HTTP методы входящего webhook">HTTP in</th>
+                            <th title="HTTP метод исходящего запроса">HTTP out</th>
                             <th>Статус</th>
                             <th>Target API</th>
                             <th style="text-align: right;">Действия</th>
@@ -64,7 +78,7 @@
                         {{ if .integrations }}
                         {{ range .integrations }}
                         <tr data-integration-id="{{ .ID }}" data-integration-mode="{{ .Mode }}" data-has-payload="{{ if .SamplePayload }}true{{ else }}false{{ end }}">
-                            <td><strong>{{ .Name }}</strong></td>
+                            <td style="word-break: break-word;"><strong>{{ .Name }}</strong></td>
                             <td>
                                 <a href="/projects/{{ .Project.ID }}" style="color: var(--primary); display: inline-flex; align-items: center; gap: 0.25rem;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -80,12 +94,28 @@
                                 </span>
                             </td>
                             {{ end }}
-                            <td>
+                            <td style="white-space: nowrap;">
                                 <code style="font-size: 0.75rem;">/webhook/{{ .WebhookToken }}</code>
                                 <button onclick="copyToClipboard('{{ $.appURL }}{{ $.appPath }}/webhook/{{ .WebhookToken }}')" 
                                         style="background: none; border: none; cursor: pointer; color: var(--primary); margin-left: 0.5rem; padding: 0.25rem;">
                                     <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
                                 </button>
+                            </td>
+                            <td>
+                                <span style="font-size: 0.85rem; color: var(--text-secondary);">
+                                    {{ if eq .WebhookHTTPMethods "*" }}
+                                        <span title="Все методы">*</span>
+                                    {{ else if eq .WebhookHTTPMethods "" }}
+                                        <span title="Все методы">*</span>
+                                    {{ else }}
+                                        <span title="{{ .WebhookHTTPMethods }}">{{ .WebhookHTTPMethods }}</span>
+                                    {{ end }}
+                                </span>
+                            </td>
+                            <td>
+                                <span style="font-size: 0.85rem; color: var(--text-secondary);">
+                                    {{ if .HTTPMethod }}{{ .HTTPMethod }}{{ else }}POST{{ end }}
+                                </span>
                             </td>
                             <td>
                                 {{ if eq .Mode "listening" }}
@@ -131,20 +161,23 @@
                                                     <i data-lucide="pause"></i> Деактивировать
                                                 </button>
                                             </form>
-                                            <form method="POST" action="/integrations/{{ .ID }}/reconfigure" class="dropdown-form" onsubmit="return confirm('Переопределить маппинг с новыми данными? Интеграция будет переведена в режим прослушивания.');">
+                                            <form method="POST" action="/integrations/{{ .ID }}/reconfigure" class="dropdown-form" onsubmit="return confirm('Автоматически определить маппинг с новыми данными? Интеграция будет переведена в режим прослушивания.');">
                                                 <button type="submit" class="dropdown-item">
-                                                    <i data-lucide="refresh-cw"></i> Переопределить маппинг
+                                                    <i data-lucide="refresh-cw"></i> Автоопределение маппинга
                                                 </button>
                                             </form>
                                         {{ else }}
+                                            <a href="/integrations/{{ .ID }}/configure" class="dropdown-item">
+                                                <i data-lucide="settings"></i> Настроить маппинг
+                                            </a>
                                             <form method="POST" action="/integrations/{{ .ID }}/toggle" class="dropdown-form">
                                                 <button type="submit" class="dropdown-item">
                                                     <i data-lucide="play"></i> Активировать
                                                 </button>
                                             </form>
-                                            <form method="POST" action="/integrations/{{ .ID }}/reconfigure" class="dropdown-form" onsubmit="return confirm('Переопределить маппинг?');">
+                                            <form method="POST" action="/integrations/{{ .ID }}/reconfigure" class="dropdown-form" onsubmit="return confirm('Автоматически определить маппинг с новыми данными?');">
                                                 <button type="submit" class="dropdown-item">
-                                                    <i data-lucide="refresh-cw"></i> Переопределить маппинг
+                                                    <i data-lucide="refresh-cw"></i> Автоопределение маппинга
                                                 </button>
                                             </form>
                                         {{ end }}
@@ -221,20 +254,23 @@
                                             <i data-lucide="pause"></i> Деактивировать
                                         </button>
                                     </form>
-                                    <form method="POST" action="/integrations/{{ .ID }}/reconfigure" class="dropdown-form" onsubmit="return confirm('Переопределить маппинг?');">
+                                    <form method="POST" action="/integrations/{{ .ID }}/reconfigure" class="dropdown-form" onsubmit="return confirm('Автоматически определить маппинг с новыми данными?');">
                                         <button type="submit" class="dropdown-item">
-                                            <i data-lucide="refresh-cw"></i> Переопределить маппинг
+                                            <i data-lucide="refresh-cw"></i> Автоопределение маппинга
                                         </button>
                                     </form>
                                 {{ else }}
+                                    <a href="/integrations/{{ .ID }}/configure" class="dropdown-item">
+                                        <i data-lucide="settings"></i> Настроить маппинг
+                                    </a>
                                     <form method="POST" action="/integrations/{{ .ID }}/toggle" class="dropdown-form">
                                         <button type="submit" class="dropdown-item">
                                             <i data-lucide="play"></i> Активировать
                                         </button>
                                     </form>
-                                    <form method="POST" action="/integrations/{{ .ID }}/reconfigure" class="dropdown-form" onsubmit="return confirm('Переопределить маппинг?');">
+                                    <form method="POST" action="/integrations/{{ .ID }}/reconfigure" class="dropdown-form" onsubmit="return confirm('Автоматически определить маппинг с новыми данными?');">
                                         <button type="submit" class="dropdown-item">
-                                            <i data-lucide="refresh-cw"></i> Переопределить маппинг
+                                            <i data-lucide="refresh-cw"></i> Автоопределение маппинга
                                         </button>
                                     </form>
                                 {{ end }}
@@ -265,6 +301,24 @@
                                 {{ else }}
                                 <span class="badge badge-danger">Неактивна</span>
                                 {{ end }}
+                            </span>
+                        </div>
+                        <div class="mobile-card-row">
+                            <span class="mobile-card-label">HTTP in</span>
+                            <span class="mobile-card-value">
+                                {{ if eq .WebhookHTTPMethods "*" }}
+                                    <span title="Все методы">*</span>
+                                {{ else if eq .WebhookHTTPMethods "" }}
+                                    <span title="Все методы">*</span>
+                                {{ else }}
+                                    {{ .WebhookHTTPMethods }}
+                                {{ end }}
+                            </span>
+                        </div>
+                        <div class="mobile-card-row">
+                            <span class="mobile-card-label">HTTP out</span>
+                            <span class="mobile-card-value">
+                                {{ if .HTTPMethod }}{{ .HTTPMethod }}{{ else }}POST{{ end }}
                             </span>
                         </div>
                         {{ if .TargetAPI }}
@@ -403,6 +457,69 @@
             navigator.clipboard.writeText(text).then(() => {
                 alert('Скопировано: ' + text);
             });
+        }
+
+        function filterIntegrations(searchText) {
+            const search = searchText.toLowerCase().trim();
+            
+            // Фильтруем десктопную таблицу
+            const tableRows = document.querySelectorAll('table tbody tr');
+            let visibleCount = 0;
+            
+            tableRows.forEach(row => {
+                const name = row.querySelector('td:nth-child(1)')?.textContent.toLowerCase() || '';
+                const project = row.querySelector('td:nth-child(2)')?.textContent.toLowerCase() || '';
+                const webhookUrl = row.querySelector('td code')?.textContent.toLowerCase() || '';
+                const httpIn = row.querySelector('td:nth-child(5)')?.textContent.toLowerCase() || '';
+                const httpOut = row.querySelector('td:nth-child(6)')?.textContent.toLowerCase() || '';
+                const status = row.querySelector('td:nth-child(7)')?.textContent.toLowerCase() || '';
+                const targetApi = row.querySelector('td:nth-child(8)')?.textContent.toLowerCase() || '';
+                
+                const matches = name.includes(search) || 
+                               project.includes(search) || 
+                               webhookUrl.includes(search) ||
+                               httpIn.includes(search) ||
+                               httpOut.includes(search) ||
+                               status.includes(search) ||
+                               targetApi.includes(search);
+                
+                if (matches || search === '') {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Фильтруем мобильные карточки
+            const mobileCards = document.querySelectorAll('.mobile-card');
+            mobileCards.forEach(card => {
+                const title = card.querySelector('.mobile-card-title')?.textContent.toLowerCase() || '';
+                const allText = card.textContent.toLowerCase();
+                
+                const matches = allText.includes(search);
+                
+                if (matches || search === '') {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            
+            // Показываем сообщение если ничего не найдено
+            const noResultsMsg = document.getElementById('noSearchResults');
+            if (visibleCount === 0 && search !== '') {
+                if (!noResultsMsg) {
+                    const msg = document.createElement('tr');
+                    msg.id = 'noSearchResults';
+                    msg.innerHTML = '<td colspan="100%" style="text-align: center; padding: 2rem; color: var(--muted-foreground);">Ничего не найдено</td>';
+                    document.querySelector('table tbody').appendChild(msg);
+                }
+            } else {
+                if (noResultsMsg) {
+                    noResultsMsg.remove();
+                }
+            }
         }
 
         function toggleDropdown(event, id, button) {

@@ -62,6 +62,57 @@
                 </div>
 
                 <div class="form-group">
+                    <label>Source API (опционально)</label>
+                    <input type="text" name="source_api" value="{{ .integration.SourceAPI }}">
+                    <small>Для документации, откуда ожидаются данные</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Разрешенные HTTP методы (входящий webhook)</label>
+                    <div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 0.5rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" name="webhook_methods" value="*" id="webhook_all_methods" 
+                                   onchange="toggleAllMethods(this)" 
+                                   {{ if or (eq .integration.WebhookHTTPMethods "*") (eq .integration.WebhookHTTPMethods "") }}checked{{ end }}
+                                   style="width: auto; margin: 0;">
+                            <span>Все методы</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" name="webhook_methods" value="GET" class="method-checkbox"
+                                   data-method="GET"
+                                   style="width: auto; margin: 0;">
+                            <span>GET</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" name="webhook_methods" value="POST" class="method-checkbox"
+                                   data-method="POST"
+                                   style="width: auto; margin: 0;">
+                            <span>POST</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" name="webhook_methods" value="PUT" class="method-checkbox"
+                                   data-method="PUT"
+                                   style="width: auto; margin: 0;">
+                            <span>PUT</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" name="webhook_methods" value="PATCH" class="method-checkbox"
+                                   data-method="PATCH"
+                                   style="width: auto; margin: 0;">
+                            <span>PATCH</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" name="webhook_methods" value="DELETE" class="method-checkbox"
+                                   data-method="DELETE"
+                                   style="width: auto; margin: 0;">
+                            <span>DELETE</span>
+                        </label>
+                    </div>
+                    <input type="hidden" name="webhook_http_methods" id="webhook_http_methods_input" value="{{ .integration.WebhookHTTPMethods }}">
+                    <small>Какие HTTP методы разрешены для входящего webhook (по умолчанию: все)</small>
+                </div>
+
+                <div class="form-group">
                     <label>Target API URL *</label>
                     {{ if .isDemo }}
                     <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
@@ -78,7 +129,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label>HTTP метод *</label>
+                    <label>HTTP метод (исходящий) *</label>
                     <select name="http_method" required>
                         <option value="POST" {{ if eq .integration.HTTPMethod "POST" }}selected{{ end }}>POST</option>
                         <option value="GET" {{ if eq .integration.HTTPMethod "GET" }}selected{{ end }}>GET</option>
@@ -86,13 +137,7 @@
                         <option value="PATCH" {{ if eq .integration.HTTPMethod "PATCH" }}selected{{ end }}>PATCH</option>
                         <option value="DELETE" {{ if eq .integration.HTTPMethod "DELETE" }}selected{{ end }}>DELETE</option>
                     </select>
-                    <small>Метод HTTP запроса к Target API</small>
-                </div>
-
-                <div class="form-group">
-                    <label>Source API (опционально)</label>
-                    <input type="text" name="source_api" value="{{ .integration.SourceAPI }}">
-                    <small>Для документации, откуда ожидаются данные</small>
+                    <small>Метод HTTP запроса к Target API (исходящий)</small>
                 </div>
 
                 <!-- Authentication Section -->
@@ -315,6 +360,11 @@
             const headers = collectCustomHeaders();
             console.log('Collected headers:', headers);
             console.log('Hidden field value:', document.getElementById('custom_headers_input').value);
+            
+            // Собираем webhook методы перед отправкой
+            collectWebhookMethods();
+            console.log('Webhook methods:', document.getElementById('webhook_http_methods_input').value);
+            
             return true; // Разрешаем отправку
         }
         
@@ -445,11 +495,84 @@
             }
         }
 
+        function toggleAllMethods(checkbox) {
+            const methodCheckboxes = document.querySelectorAll('.method-checkbox');
+            if (checkbox.checked) {
+                // Если выбрано "Все методы", снимаем все остальные галочки
+                methodCheckboxes.forEach(cb => {
+                    cb.checked = false;
+                    cb.disabled = true;
+                });
+            } else {
+                // Если снято "Все методы", разрешаем выбор отдельных методов
+                methodCheckboxes.forEach(cb => {
+                    cb.disabled = false;
+                });
+            }
+            collectWebhookMethods();
+        }
+
+        function collectWebhookMethods() {
+            const allMethodsCheckbox = document.getElementById('webhook_all_methods');
+            const methodCheckboxes = document.querySelectorAll('.method-checkbox');
+            
+            if (allMethodsCheckbox.checked) {
+                // Если выбрано "Все методы"
+                document.getElementById('webhook_http_methods_input').value = '*';
+            } else {
+                // Собираем выбранные методы
+                const selectedMethods = [];
+                methodCheckboxes.forEach(cb => {
+                    if (cb.checked) {
+                        selectedMethods.push(cb.value);
+                    }
+                });
+                
+                // Если ничего не выбрано, по умолчанию все методы
+                if (selectedMethods.length === 0) {
+                    document.getElementById('webhook_http_methods_input').value = '*';
+                } else {
+                    document.getElementById('webhook_http_methods_input').value = selectedMethods.join(',');
+                }
+            }
+        }
+
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             toggleAuthFields();
             toggleSignatureFields();
             loadExistingHeaders();
+            
+            // Инициализируем состояние чекбоксов методов
+            const allMethodsCheckbox = document.getElementById('webhook_all_methods');
+            const methodCheckboxes = document.querySelectorAll('.method-checkbox');
+            const savedMethods = '{{ .integration.WebhookHTTPMethods }}';
+            
+            // Устанавливаем состояние чекбоксов на основе сохраненного значения
+            if (savedMethods === '*' || savedMethods === '') {
+                allMethodsCheckbox.checked = true;
+                methodCheckboxes.forEach(cb => {
+                    cb.checked = false;
+                    cb.disabled = true;
+                });
+            } else {
+                allMethodsCheckbox.checked = false;
+                const methods = savedMethods.split(',');
+                methodCheckboxes.forEach(cb => {
+                    const method = cb.getAttribute('data-method');
+                    cb.checked = methods.includes(method);
+                    cb.disabled = false;
+                });
+            }
+            
+            // Добавляем обработчики для отдельных методов
+            methodCheckboxes.forEach(cb => {
+                cb.addEventListener('change', collectWebhookMethods);
+            });
+            
+            // Инициализируем скрытое поле
+            collectWebhookMethods();
+            
             // Инициализируем иконки Lucide после загрузки заголовков
             if (typeof lucide !== 'undefined') {
                 lucide.createIcons();

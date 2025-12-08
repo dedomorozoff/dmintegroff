@@ -334,9 +334,9 @@
                     </button>
                 </form>
                 {{ else if eq .integration.Mode "active" }}
-                <form method="POST" action="/integrations/{{ .integration.ID }}/reconfigure" style="display: inline; margin: 0;" onsubmit="return confirm('Переопределить маппинг с новыми данными? Интеграция будет переведена в режим прослушивания.');">
+                <form method="POST" action="/integrations/{{ .integration.ID }}/reconfigure" style="display: inline; margin: 0;" onsubmit="return confirm('Автоматически определить маппинг с новыми данными? Интеграция будет переведена в режим прослушивания для получения нового образца.');">
                     <button type="submit" class="btn btn-secondary">
-                        <i data-lucide="refresh-cw"></i> Переопределить маппинг
+                        <i data-lucide="refresh-cw"></i> Автоопределение маппинга
                     </button>
                 </form>
                 {{ end }}
