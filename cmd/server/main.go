@@ -10,6 +10,7 @@ import (
 	"dmintegroff/internal/services"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"time"
 
@@ -68,5 +69,14 @@ func main() {
 
 	addr := fmt.Sprintf("%s:%s", host, port)
 	logger.Log.Info("Server starting on " + addr)
-	r.Run(addr)
+	
+	// Use http.Server to ensure HOST binding is respected
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: r,
+	}
+	
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		logger.Log.Fatal("Server failed to start: " + err.Error())
+	}
 }
