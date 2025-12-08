@@ -67,8 +67,6 @@
                             <th>Автор</th>
                             {{ end }}
                             <th>Webhook URL</th>
-                            <th title="HTTP методы входящего webhook">HTTP in</th>
-                            <th title="HTTP метод исходящего запроса">HTTP out</th>
                             <th>Статус</th>
                             <th>Target API</th>
                             <th style="text-align: right;">Действия</th>
@@ -100,22 +98,6 @@
                                         style="background: none; border: none; cursor: pointer; color: var(--primary); margin-left: 0.5rem; padding: 0.25rem;">
                                     <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
                                 </button>
-                            </td>
-                            <td>
-                                <span style="font-size: 0.85rem; color: var(--text-secondary);">
-                                    {{ if eq .WebhookHTTPMethods "*" }}
-                                        <span title="Все методы">*</span>
-                                    {{ else if eq .WebhookHTTPMethods "" }}
-                                        <span title="Все методы">*</span>
-                                    {{ else }}
-                                        <span title="{{ .WebhookHTTPMethods }}">{{ .WebhookHTTPMethods }}</span>
-                                    {{ end }}
-                                </span>
-                            </td>
-                            <td>
-                                <span style="font-size: 0.85rem; color: var(--text-secondary);">
-                                    {{ if .HTTPMethod }}{{ .HTTPMethod }}{{ else }}POST{{ end }}
-                                </span>
                             </td>
                             <td>
                                 {{ if eq .Mode "listening" }}
@@ -156,6 +138,9 @@
                                             <a href="/integrations/{{ .ID }}/configure" class="dropdown-item">
                                                 <i data-lucide="settings"></i> Редактировать маппинг
                                             </a>
+                                            <a href="/integrations/{{ .ID }}/outputs" class="dropdown-item">
+                                                <i data-lucide="git-branch"></i> Дополнительные выходы
+                                            </a>
                                             <form method="POST" action="/integrations/{{ .ID }}/toggle" class="dropdown-form">
                                                 <button type="submit" class="dropdown-item">
                                                     <i data-lucide="pause"></i> Деактивировать
@@ -169,6 +154,9 @@
                                         {{ else }}
                                             <a href="/integrations/{{ .ID }}/configure" class="dropdown-item">
                                                 <i data-lucide="settings"></i> Настроить маппинг
+                                            </a>
+                                            <a href="/integrations/{{ .ID }}/outputs" class="dropdown-item">
+                                                <i data-lucide="git-branch"></i> Дополнительные выходы
                                             </a>
                                             <form method="POST" action="/integrations/{{ .ID }}/toggle" class="dropdown-form">
                                                 <button type="submit" class="dropdown-item">
@@ -197,7 +185,7 @@
                         {{ end }}
                         {{ else }}
                         <tr>
-                            <td colspan="{{ if eq .role "admin" }}7{{ else }}6{{ end }}" style="text-align: center; padding: 3rem; color: var(--muted-foreground);">
+                            <td colspan="{{ if eq .role "admin" }}5{{ else }}4{{ end }}" style="text-align: center; padding: 3rem; color: var(--muted-foreground);">
                                 <div style="margin-bottom: 1rem;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                                         <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>

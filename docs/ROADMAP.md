@@ -191,50 +191,48 @@ This is a test
 
 ---
 
-#### 4. Множественные маппинги на один webhook
+#### 4. ✅ Множественные маппинги на один webhook
 **Описание:** Возможность настроить несколько маппингов (трансформаций) для одного входящего webhook с отправкой на разные Target API.
 
-**Текущее состояние:** Один webhook = одна интеграция = один Target API = один маппинг.
+**Статус:** ✅ Реализовано (9 декабря 2024)
 
-**Планируемая реализация:**
+**Реализация:**
 
 **4.1. Архитектура**
-- Один webhook может иметь несколько "выходов" (outputs)
-- Каждый выход имеет свой Target API и маппинг
-- Выходы выполняются параллельно или последовательно (настраивается)
-- Независимая обработка ошибок для каждого выхода
+- ✅ Один webhook может иметь несколько "выходов" (outputs)
+- ✅ Каждый выход имеет свой Target API и маппинг
+- ✅ Выходы выполняются параллельно (через goroutines)
+- ✅ Независимая обработка ошибок для каждого выхода
 
 **4.2. UI для управления выходами**
-- Список выходов на странице настройки интеграции
-- Кнопка "Добавить выход" для создания нового маппинга
-- Каждый выход имеет:
-  - Название (для идентификации)
-  - Target API URL
-  - HTTP метод
-  - Аутентификация (OAuth, Bearer, Basic)
-  - Маппинг/шаблон
-  - Условия выполнения (опционально)
-  - Приоритет/порядок выполнения
+- ✅ Список выходов на странице `/integrations/:id/outputs`
+- ✅ Кнопка "Управление выходами" в меню интеграции
+- ✅ Кнопка "Добавить выход" для создания нового маппинга
+- ✅ Каждый выход имеет:
+  - ✅ Название и описание (для идентификации)
+  - ✅ Target API URL
+  - ✅ HTTP метод
+  - ✅ Аутентификация (OAuth, Bearer, Basic)
+  - ✅ Маппинг/шаблон (JSON, XML, Text, Custom)
+  - ✅ Условия выполнения (поле готово, логика в разработке)
+  - ✅ Приоритет/порядок выполнения
 
 **4.3. Настройка маппинга для каждого выхода**
-- Отдельная страница настройки для каждого выхода
-- Использование одного `SamplePayload` для всех выходов
-- Возможность копировать маппинг между выходами
-- Предпросмотр результата для каждого выхода
+- ✅ Отдельная страница настройки для каждого выхода
+- ✅ Использование одного `SamplePayload` для всех выходов
+- ✅ Поддержка шаблонов и простого маппинга
+- ✅ Кнопка "Протестировать" для предпросмотра результата
 
-**4.4. Условное выполнение (опционально)**
-- Выполнять выход только при определенных условиях
-- Примеры условий:
-  - `{{event_type}} == "user.created"`
-  - `{{amount}} > 1000`
-  - `{{status}} in ["pending", "processing"]`
-- Простой язык выражений или JSON Path
+**4.4. Условное выполнение**
+- ✅ Поле для условия в UI
+- 🔄 Парсер условий (пока заглушка, выполняются все выходы)
+- 📋 Планируется: полноценный парсер выражений
 
 **4.5. Обработка ошибок**
-- Независимая обработка для каждого выхода
-- Если один выход упал - остальные продолжают работать
-- Логирование ошибок с указанием выхода
-- Retry механизм для каждого выхода отдельно
+- ✅ Независимая обработка для каждого выхода
+- ✅ Если один выход упал - остальные продолжают работать
+- ✅ Логирование ошибок с указанием выхода
+- 📋 Планируется: Retry механизм для каждого выхода отдельно
 
 **Польза:**
 - Один webhook → несколько систем (например: CRM + Analytics + Notification)
@@ -271,56 +269,39 @@ Webhook: событие пользователя
    └─ Маппинг: создать тикет
 ```
 
-**Файлы для изменения:**
-- `internal/models/integration.go` - добавить модель `IntegrationOutput`
-- `internal/controllers/integration_controller.go` - логика обработки множественных выходов
-- `internal/services/webhook_processor.go` - параллельная/последовательная обработка
-- `templates/pages/integration_configure.html` - UI для управления выходами
-- `templates/pages/integration_output_configure.html` - новая страница для настройки выхода
-- Миграция БД для создания таблицы `integration_outputs`
+**Изменённые/созданные файлы:**
+- ✅ `internal/models/integration_output.go` - новая модель `IntegrationOutput`
+- ✅ `internal/controllers/integration_output_controller.go` - контроллер для управления выходами
+- ✅ `internal/services/output_processor.go` - параллельная обработка выходов
+- ✅ `internal/controllers/integration_controller.go` - обновлен WebhookHandler
+- ✅ `templates/pages/integration_outputs.html` - список выходов
+- ✅ `templates/pages/integration_output_create.html` - форма создания выхода
+- ✅ `templates/pages/integration_output_configure.html` - настройка маппинга выхода
+- ✅ `templates/pages/integration_output_edit.html` - редактирование выхода
+- ✅ `templates/pages/integrations.html` - добавлена кнопка "Управление выходами"
+- ✅ `migrations/007_create_integration_outputs.sql` - миграция БД
+- ✅ `cmd/server/main.go` и `cmd/admin/main.go` - добавлена автомиграция
 
-**Модель данных:**
-```go
-type IntegrationOutput struct {
-    ID              uint   `gorm:"primaryKey"`
-    IntegrationID   uint   `gorm:"not null;index"`
-    Name            string `gorm:"not null"` // "CRM Output", "Analytics Output"
-    TargetAPI       string `gorm:"not null"`
-    HTTPMethod      string `gorm:"default:POST"`
-    MappingConfig   string `gorm:"type:text"`
-    OutputTemplate  string `gorm:"type:text"`
-    TemplateType    string `gorm:"default:json"`
-    Condition       string `gorm:"type:text"` // Условие выполнения
-    Priority        int    `gorm:"default:0"` // Порядок выполнения
-    Enabled         bool   `gorm:"default:true"`
-    
-    // Аутентификация (копия из Integration)
-    AuthType           string
-    OAuth2TokenURL     string
-    OAuth2ClientID     string
-    OAuth2ClientSecret string
-    BearerToken        string
-    BasicAuthUser      string
-    BasicAuthPass      string
-    CustomHeaders      string
-    
-    CreatedAt time.Time
-    UpdatedAt time.Time
-}
+**Реализованные API endpoints:**
 ```
-
-**API endpoints:**
-```
-GET    /integrations/:id/outputs              - список выходов
-GET    /integrations/:id/outputs/create       - форма создания выхода
-POST   /integrations/:id/outputs              - создать выход
+GET    /integrations/:id/outputs                      - список выходов
+GET    /integrations/:id/outputs/create               - форма создания выхода
+POST   /integrations/:id/outputs                      - создать выход
 GET    /integrations/:id/outputs/:output_id/configure - настройка маппинга выхода
 POST   /integrations/:id/outputs/:output_id/configure - сохранить маппинг выхода
-PUT    /integrations/:id/outputs/:output_id   - обновить выход
-DELETE /integrations/:id/outputs/:output_id   - удалить выход
-POST   /integrations/:id/outputs/:output_id/toggle - включить/выключить выход
-POST   /integrations/:id/outputs/:output_id/test - протестировать выход
+GET    /integrations/:id/outputs/:output_id/edit      - форма редактирования выхода
+POST   /integrations/:id/outputs/:output_id/update    - обновить выход
+POST   /integrations/:id/outputs/:output_id/delete    - удалить выход
+POST   /integrations/:id/outputs/:output_id/toggle    - включить/выключить выход
+POST   /integrations/:id/outputs/:output_id/test      - протестировать выход
 ```
+
+**Технические детали:**
+- Выходы выполняются параллельно через goroutines с использованием sync.WaitGroup
+- Каждый выход имеет независимую аутентификацию и настройки
+- Поддержка всех типов шаблонов (JSON, XML, Text, Custom)
+- Обратная совместимость: если выходов нет, используется основной маппинг интеграции
+- Логирование всех операций с выходами
 
 ---
 
@@ -365,19 +346,13 @@ POST   /integrations/:id/outputs/:output_id/test - протестировать 
 - ✅ Использование запроса в качестве образца данных (пункт 1)
 - ✅ Поддержка различных форматов входящих данных (пункт 2)
 - ✅ Тестирование запроса после настройки маппинга (пункт 3)
+- ✅ Множественные маппинги на один webhook (пункт 4)
 - ✅ Исправление бага в редакторе образца данных (пункт 5)
 
-### v2.0.0 (Мажорный релиз)
-- 🔄 Множественные маппинги на один webhook (пункт 4)
-
-### v1.x+2.x (Будущий релиз)
-- 🔄 Поддержка form-data и XML (пункт 2)
-- 🔄 Расширенные возможности парсинга
-
-### v2.0.0 (Мажорный релиз)
-- 🔄 Множественные маппинги на один webhook (пункт 4)
-- 🔄 Условное выполнение выходов
-- 🔄 Параллельная обработка выходов
+### v2.0.0 (Будущий релиз)
+- 🔄 Полноценный парсер условий для выходов
+- 🔄 Retry механизм для выходов
+- 🔄 Последовательное выполнение выходов (опция)
 
 ---
 
@@ -422,4 +397,4 @@ POST   /integrations/:id/outputs/:output_id/test - протестировать 
 
 ---
 
-**Последнее обновление:** 8 декабря 2024 (реализованы пункты 1, 2, 3 и 5 - все высокоприоритетные задачи!)
+**Последнее обновление:** 9 декабря 2024 (реализованы все высокоприоритетные задачи: пункты 1, 2, 3, 4 и 5!)

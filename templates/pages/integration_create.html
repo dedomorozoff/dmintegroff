@@ -339,6 +339,14 @@
                     </div>
                 </div>
 
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin-bottom: 0;">
+                        <input type="checkbox" name="hide_in_logs" value="true" style="width: auto; margin: 0;">
+                        <span>Скрывать логи этой интеграции в разделе "Тесты интеграций"</span>
+                    </label>
+                    <small style="margin-top: 0.5rem; display: block;">Полезно для служебных интеграций, чтобы не загромождать список логов</small>
+                </div>
+
                 <div style="display: flex; gap: 1rem; margin-top: 2rem;">
                     <button type="submit" class="btn btn-success">✅ Создать интеграцию</button>
                     <a href="/integrations" class="btn btn-secondary">Отмена</a>

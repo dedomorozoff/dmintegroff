@@ -1,5 +1,71 @@
 {{ define "pages/project_view.html" }}
 {{ template "partials/head.html" . }}
+
+<style>
+    /* Dropdown menu styles */
+    .dropdown {
+        position: relative;
+        display: inline-block;
+    }
+
+    .dropdown-menu {
+        display: none;
+        position: fixed;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        min-width: 200px;
+        z-index: 9999;
+        padding: 0.5rem 0;
+    }
+
+    .dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        color: var(--foreground);
+        text-decoration: none;
+        transition: background-color 0.2s;
+        cursor: pointer;
+        border: none;
+        background: none;
+        width: 100%;
+        text-align: left;
+        font-size: 0.875rem;
+    }
+
+    .dropdown-item:hover {
+        background-color: var(--accent);
+    }
+
+    .dropdown-item i {
+        width: 16px;
+        height: 16px;
+    }
+
+    .dropdown-divider {
+        height: 1px;
+        background-color: var(--border);
+        margin: 0.5rem 0;
+    }
+
+    .dropdown-form {
+        margin: 0;
+        padding: 0;
+    }
+
+    .dropdown-toggle {
+        cursor: pointer;
+    }
+
+    .dropdown-toggle i {
+        width: 16px;
+        height: 16px;
+    }
+</style>
+
 {{ template "partials/sidebar.html" . }}
 
     <!-- Main Content -->
@@ -87,19 +153,72 @@
                             </td>
                             <td>{{ if .TargetAPI }}{{ .TargetAPI }}{{ else }}<span style="color: var(--muted-foreground);">-</span>{{ end }}</td>
                             <td style="text-align: right;">
-                                <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-                                    <a href="/integrations/{{ .ID }}/configure" class="btn btn-success btn-sm" title="Настроить">
-                                        <i data-lucide="settings"></i>
-                                    </a>
-                                    <a href="/integrations/{{ .ID }}/edit" class="btn btn-secondary btn-sm" title="Редактировать">
-                                        <i data-lucide="pencil"></i>
-                                    </a>
-                                    <form method="POST" action="/projects/{{ $.project.ID }}/integrations/{{ .ID }}/delete" style="display: inline;"
-                                        onsubmit="return confirm('Удалить интеграцию {{ .Name }}?');">
-                                        <button type="submit" class="btn btn-danger btn-sm" title="Удалить">
-                                            <i data-lucide="trash-2"></i>
-                                        </button>
-                                    </form>
+                                <div class="dropdown" style="position: relative; display: inline-flex; align-items: center; gap: 0.5rem;">
+                                    <button class="btn btn-secondary btn-sm dropdown-toggle" onclick="toggleDropdown(event, '{{ .ID }}', this)" style="padding: 0.5rem 0.75rem;">
+                                        <i data-lucide="more-vertical"></i>
+                                    </button>
+                                    <div class="dropdown-menu" id="dropdown-{{ .ID }}" style="display: none; position: fixed; background: var(--card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); min-width: 200px; z-index: 9999;">
+                                        {{ if eq .Mode "listening" }}
+                                            <a href="/integrations/{{ .ID }}/configure" class="dropdown-item">
+                                                <i data-lucide="settings"></i> Настроить маппинг
+                                            </a>
+                                            {{ if and .SamplePayload .MappingConfig }}
+                                            <form method="POST" action="/integrations/{{ .ID }}/toggle" class="dropdown-form">
+                                                <button type="submit" class="dropdown-item">
+                                                    <i data-lucide="play"></i> Активировать
+                                                </button>
+                                            </form>
+                                            {{ end }}
+                                            <form method="POST" action="/integrations/{{ .ID }}/cancel-listening" class="dropdown-form" onsubmit="return confirm('Отменить прослушивание? Интеграция будет деактивирована.');">
+                                                <button type="submit" class="dropdown-item">
+                                                    <i data-lucide="x"></i> Отменить прослушивание
+                                                </button>
+                                            </form>
+                                        {{ else if eq .Mode "active" }}
+                                            <a href="/integrations/{{ .ID }}/configure" class="dropdown-item">
+                                                <i data-lucide="settings"></i> Редактировать маппинг
+                                            </a>
+                                            <a href="/integrations/{{ .ID }}/outputs" class="dropdown-item">
+                                                <i data-lucide="git-branch"></i> Дополнительные выходы
+                                            </a>
+                                            <form method="POST" action="/integrations/{{ .ID }}/toggle" class="dropdown-form">
+                                                <button type="submit" class="dropdown-item">
+                                                    <i data-lucide="pause"></i> Деактивировать
+                                                </button>
+                                            </form>
+                                            <form method="POST" action="/integrations/{{ .ID }}/reconfigure" class="dropdown-form" onsubmit="return confirm('Автоматически определить маппинг с новыми данными? Интеграция будет переведена в режим прослушивания.');">
+                                                <button type="submit" class="dropdown-item">
+                                                    <i data-lucide="refresh-cw"></i> Автоопределение маппинга
+                                                </button>
+                                            </form>
+                                        {{ else }}
+                                            <a href="/integrations/{{ .ID }}/configure" class="dropdown-item">
+                                                <i data-lucide="settings"></i> Настроить маппинг
+                                            </a>
+                                            <a href="/integrations/{{ .ID }}/outputs" class="dropdown-item">
+                                                <i data-lucide="git-branch"></i> Дополнительные выходы
+                                            </a>
+                                            <form method="POST" action="/integrations/{{ .ID }}/toggle" class="dropdown-form">
+                                                <button type="submit" class="dropdown-item">
+                                                    <i data-lucide="play"></i> Активировать
+                                                </button>
+                                            </form>
+                                            <form method="POST" action="/integrations/{{ .ID }}/reconfigure" class="dropdown-form" onsubmit="return confirm('Автоматически определить маппинг с новыми данными?');">
+                                                <button type="submit" class="dropdown-item">
+                                                    <i data-lucide="refresh-cw"></i> Автоопределение маппинга
+                                                </button>
+                                            </form>
+                                        {{ end }}
+                                        <div class="dropdown-divider"></div>
+                                        <a href="/integrations/{{ .ID }}/edit" class="dropdown-item">
+                                            <i data-lucide="pencil"></i> Редактировать
+                                        </a>
+                                        <form method="POST" action="/projects/{{ $.project.ID }}/integrations/{{ .ID }}/delete" class="dropdown-form" onsubmit="return confirm('Удалить интеграцию {{ .Name }}?');">
+                                            <button type="submit" class="dropdown-item" style="color: var(--destructive);">
+                                                <i data-lucide="trash-2"></i> Удалить
+                                            </button>
+                                        </form>
+                                    </div>
                                 </div>
                             </td>
                         </tr>
@@ -122,13 +241,57 @@
 
     <script src="https://unpkg.com/lucide@latest"></script>
     <script>
-        lucide.createIcons();
+        lucide.createIcons({
+            attrs: {
+                width: '16',
+                height: '16'
+            }
+        });
         
         function copyToClipboard(text) {
             navigator.clipboard.writeText(text).then(() => {
                 alert('Скопировано: ' + text);
             });
         }
+
+        // Dropdown menu functions
+        function toggleDropdown(event, id, button) {
+            event.stopPropagation();
+            const dropdown = document.getElementById('dropdown-' + id);
+            const allDropdowns = document.querySelectorAll('.dropdown-menu');
+            
+            allDropdowns.forEach(d => {
+                if (d !== dropdown) {
+                    d.style.display = 'none';
+                }
+            });
+            
+            if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+                const rect = button.getBoundingClientRect();
+                dropdown.style.display = 'block';
+                dropdown.style.top = (rect.bottom + window.scrollY) + 'px';
+                dropdown.style.left = (rect.left + window.scrollX - dropdown.offsetWidth + rect.width) + 'px';
+                
+                // Re-render lucide icons in dropdown
+                setTimeout(() => lucide.createIcons({
+                    attrs: {
+                        width: '16',
+                        height: '16'
+                    }
+                }), 0);
+            } else {
+                dropdown.style.display = 'none';
+            }
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.dropdown')) {
+                document.querySelectorAll('.dropdown-menu').forEach(d => {
+                    d.style.display = 'none';
+                });
+            }
+        });
     </script>
 </body>
 </html>

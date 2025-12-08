@@ -279,6 +279,9 @@ func IntegrationStore(c *gin.Context) {
 		
 		// Webhook HTTP methods (incoming)
 		WebhookHTTPMethods: webhookHTTPMethods,
+		
+		// Logs visibility
+		HideInLogs: c.PostForm("hide_in_logs") == "true",
 	}
 	
 	// Log custom headers for debugging
@@ -392,7 +395,7 @@ func WebhookHandler(c *gin.Context) {
 		RequestBody:    string(payloadJSON),
 		RequestHeaders: string(headersJSON),
 		StatusCode:     200,
-		LogType:        "webhook",
+		LogType:        "incoming",
 	}
 	CreateLogWithLimit(&incomingLog)
 
@@ -410,7 +413,8 @@ func WebhookHandler(c *gin.Context) {
 
 	// If active, process the webhook
 	if integration.Mode == "active" {
-		if err := services.ProcessWebhook(integration.ID, payload); err != nil {
+		// Используем новую функцию, которая поддерживает множественные выходы
+		if err := services.ProcessWebhookWithOutputs(integration.ID, payload); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
@@ -756,11 +760,15 @@ func IntegrationUpdate(c *gin.Context) {
 	}
 	integration.WebhookHTTPMethods = webhookHTTPMethods
 	
+	// Update hide in logs setting
+	integration.HideInLogs = c.PostForm("hide_in_logs") == "true"
+	
 	// Log custom headers for debugging
 	logger.Log.WithFields(map[string]interface{}{
 		"integration_id":       integration.ID,
 		"custom_headers":       integration.CustomHeaders,
 		"webhook_http_methods": integration.WebhookHTTPMethods,
+		"hide_in_logs":         integration.HideInLogs,
 	}).Info("Updating integration with custom headers and webhook methods")
 	
 	// Validate signature config if enabled

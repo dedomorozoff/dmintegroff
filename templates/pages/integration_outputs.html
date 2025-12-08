@@ -1,0 +1,257 @@
+{{ define "pages/integration_outputs.html" }}
+{{ template "partials/head.html" . }}
+    {{ template "partials/sidebar.html" . }}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <div>
+                <h1>Дополнительные выходы интеграции: {{ .integration.Name }}</h1>
+                <p class="text-muted">Настройте несколько выходов для отправки данных на разные Target API</p>
+            </div>
+            <div class="page-actions">
+                <a href="/integrations/{{ .integration.ID }}/outputs/create" class="btn btn-primary">
+                    <i class="icon">➕</i> Добавить выход
+                </a>
+                <a href="/integrations" class="btn btn-secondary">
+                    <i class="icon">←</i> К списку интеграций
+                </a>
+            </div>
+        </div>
+
+        {{ if .outputs }}
+        <div class="card">
+            <div class="card-header">
+                <h3>Список выходов ({{ len .outputs }})</h3>
+            </div>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Приоритет</th>
+                            <th>Название</th>
+                            <th>Target API</th>
+                            <th>Метод</th>
+                            <th>Маппинг</th>
+                            <th>Статус</th>
+                            <th style="text-align: right;">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range .outputs }}
+                        <tr>
+                            <td>
+                                <span class="badge badge-info">{{ .Priority }}</span>
+                            </td>
+                            <td>
+                                <strong>{{ .Name }}</strong>
+                                {{ if .Description }}
+                                <br><small class="text-muted">{{ .Description }}</small>
+                                {{ end }}
+                            </td>
+                            <td>
+                                <code>{{ .TargetAPI }}</code>
+                            </td>
+                            <td>
+                                <span class="badge badge-method-{{ .HTTPMethod }}">{{ .HTTPMethod }}</span>
+                            </td>
+                            <td>
+                                {{ if .OutputTemplate }}
+                                <span class="badge badge-success">Шаблон ({{ .TemplateType }})</span>
+                                {{ else if .MappingConfig }}
+                                <span class="badge badge-success">Маппинг</span>
+                                {{ else }}
+                                <span class="badge badge-warning">Не настроен</span>
+                                {{ end }}
+                            </td>
+                            <td>
+                                {{ if .Enabled }}
+                                <span class="badge badge-success">Включен</span>
+                                {{ else }}
+                                <span class="badge badge-secondary">Выключен</span>
+                                {{ end }}
+                            </td>
+                            <td style="text-align: right;">
+                                <div class="dropdown" style="position: relative; display: inline-flex; align-items: center; gap: 0.5rem;">
+                                    <button class="btn btn-secondary btn-sm dropdown-toggle" onclick="toggleDropdown(event, '{{ .ID }}', this)" style="padding: 0.5rem 0.75rem;">
+                                        <i data-lucide="more-vertical" style="width: 16px; height: 16px;"></i>
+                                    </button>
+                                    <div class="dropdown-menu" id="dropdown-{{ .ID }}" style="display: none; position: fixed; background: var(--card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); min-width: 200px; z-index: 9999;">
+                                        <a href="/integrations/{{ $.integration.ID }}/outputs/{{ .ID }}/configure" class="dropdown-item">
+                                            <i data-lucide="settings"></i> Настроить маппинг
+                                        </a>
+                                        <button onclick="testOutput({{ $.integration.ID }}, {{ .ID }}); closeDropdown('{{ .ID }}');" class="dropdown-item" style="width: 100%; text-align: left; background: none; border: none; cursor: pointer;">
+                                            <i data-lucide="flask-conical"></i> Тестировать
+                                        </button>
+                                        <div class="dropdown-divider"></div>
+                                        <a href="/integrations/{{ $.integration.ID }}/outputs/{{ .ID }}/edit" class="dropdown-item">
+                                            <i data-lucide="pencil"></i> Редактировать
+                                        </a>
+                                        <form method="POST" action="/integrations/{{ $.integration.ID }}/outputs/{{ .ID }}/toggle" class="dropdown-form">
+                                            <button type="submit" class="dropdown-item">
+                                                <i data-lucide="{{ if .Enabled }}pause{{ else }}play{{ end }}"></i> {{ if .Enabled }}Выключить{{ else }}Включить{{ end }}
+                                            </button>
+                                        </form>
+                                        <form method="POST" action="/integrations/{{ $.integration.ID }}/outputs/{{ .ID }}/delete" class="dropdown-form" onsubmit="return confirm('Удалить этот выход?');">
+                                            <button type="submit" class="dropdown-item" style="color: var(--destructive);">
+                                                <i data-lucide="trash-2"></i> Удалить
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {{ else }}
+        <div class="alert alert-info">
+            <h3>Выходы не настроены</h3>
+            <p>Создайте первый выход для отправки данных на Target API.</p>
+            <a href="/integrations/{{ .integration.ID }}/outputs/create" class="btn btn-primary">
+                <i class="icon">➕</i> Создать первый выход
+            </a>
+        </div>
+        {{ end }}
+
+        <div class="card mt-4">
+            <div class="card-header">
+                <h3>ℹ️ Информация о выходах</h3>
+            </div>
+            <div class="card-body">
+                <p><strong>Множественные выходы</strong> позволяют одному webhook отправлять данные на несколько Target API с разными маппингами.</p>
+                <ul>
+                    <li><strong>Приоритет:</strong> Определяет порядок выполнения (меньше = раньше)</li>
+                    <li><strong>Условия:</strong> Можно настроить условия выполнения для каждого выхода</li>
+                    <li><strong>Независимость:</strong> Ошибка в одном выходе не влияет на другие</li>
+                    <li><strong>Общий образец:</strong> Все выходы используют один SamplePayload из интеграции</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal для результатов теста -->
+    <div id="testModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Результат тестирования выхода</h2>
+                <button class="modal-close" onclick="closeTestModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="testModalBody">
+                <!-- Результаты будут загружены через JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Dropdown menu functions
+    function toggleDropdown(event, id, button) {
+        event.stopPropagation();
+        const dropdown = document.getElementById('dropdown-' + id);
+        const allDropdowns = document.querySelectorAll('.dropdown-menu');
+        
+        allDropdowns.forEach(d => {
+            if (d !== dropdown) {
+                d.style.display = 'none';
+            }
+        });
+        
+        if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+            const rect = button.getBoundingClientRect();
+            dropdown.style.display = 'block';
+            dropdown.style.top = (rect.bottom + window.scrollY) + 'px';
+            dropdown.style.left = (rect.left + window.scrollX - dropdown.offsetWidth + rect.width) + 'px';
+        } else {
+            dropdown.style.display = 'none';
+        }
+    }
+
+    function closeDropdown(id) {
+        const dropdown = document.getElementById('dropdown-' + id);
+        if (dropdown) {
+            dropdown.style.display = 'none';
+        }
+    }
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('.dropdown')) {
+            document.querySelectorAll('.dropdown-menu').forEach(d => {
+                d.style.display = 'none';
+            });
+        }
+    });
+
+    function testOutput(integrationId, outputId) {
+        fetch(`/integrations/${integrationId}/outputs/${outputId}/test`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                document.getElementById('testModalBody').innerHTML = `
+                    <div class="test-result">
+                        <h3>✅ Тестирование успешно</h3>
+                        
+                        <div class="result-section">
+                            <h4>Входные данные (SamplePayload):</h4>
+                            <pre><code>${data.input}</code></pre>
+                        </div>
+                        
+                        <div class="result-section">
+                            <h4>Результат трансформации:</h4>
+                            <pre><code>${data.output}</code></pre>
+                        </div>
+                        
+                        <div class="result-section">
+                            <h4>Информация о запросе:</h4>
+                            <ul>
+                                <li><strong>Target API:</strong> <code>${data.target_api}</code></li>
+                                <li><strong>HTTP метод:</strong> <span class="badge badge-method-${data.http_method}">${data.http_method}</span></li>
+                                <li><strong>Тип шаблона:</strong> ${data.template_type || 'json'}</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            } else {
+                document.getElementById('testModalBody').innerHTML = `
+                    <div class="alert alert-danger">
+                        <h3>❌ Ошибка тестирования</h3>
+                        <p>${data.error}</p>
+                    </div>
+                `;
+            }
+            document.getElementById('testModal').style.display = 'flex';
+        })
+        .catch(error => {
+            document.getElementById('testModalBody').innerHTML = `
+                <div class="alert alert-danger">
+                    <h3>❌ Ошибка</h3>
+                    <p>${error.message}</p>
+                </div>
+            `;
+            document.getElementById('testModal').style.display = 'flex';
+        });
+    }
+
+    function closeTestModal() {
+        document.getElementById('testModal').style.display = 'none';
+    }
+
+    // Закрытие модального окна при клике вне его
+    window.onclick = function(event) {
+        const modal = document.getElementById('testModal');
+        if (event.target === modal) {
+            closeTestModal();
+        }
+    }
+    </script>
+    </main>
+
+{{ template "partials/scripts.html" . }}
+{{ end }}

@@ -113,6 +113,16 @@
                 </div>
 
                 <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin-bottom: 0;">
+                        <input type="checkbox" name="hide_in_logs" value="true" 
+                               {{ if .integration.HideInLogs }}checked{{ end }}
+                               style="width: auto; margin: 0;">
+                        <span>Скрывать логи этой интеграции в разделе "Тесты интеграций"</span>
+                    </label>
+                    <small style="margin-top: 0.5rem; display: block;">Полезно для служебных интеграций, чтобы не загромождать список логов</small>
+                </div>
+
+                <div class="form-group">
                     <label>Target API URL *</label>
                     {{ if .isDemo }}
                     <div style="display: flex; gap: 0.5rem; align-items: flex-start;">

@@ -63,7 +63,34 @@
         {{ range .logs }}
         <div class="log-entry {{ if .ErrorMessage }}error-log{{ end }}">
             <div class="log-header">
-                <div>
+                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    {{ if eq .LogType "incoming" }}
+                    <span style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; background: #10b981; color: white; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">
+                        <i data-lucide="arrow-down-circle" style="width: 14px; height: 14px;"></i>
+                        ВХОДЯЩИЙ
+                    </span>
+                    {{ else if eq .LogType "webhook" }}
+                    <span style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; background: #3b82f6; color: white; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">
+                        <i data-lucide="arrow-up-circle" style="width: 14px; height: 14px;"></i>
+                        ИСХОДЯЩИЙ
+                    </span>
+                    {{ else if eq .LogType "graphql" }}
+                    <span style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; background: #8b5cf6; color: white; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">
+                        <i data-lucide="database" style="width: 14px; height: 14px;"></i>
+                        GRAPHQL
+                    </span>
+                    {{ else if eq .LogType "test" }}
+                    <span style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; background: #f59e0b; color: white; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">
+                        <i data-lucide="flask-conical" style="width: 14px; height: 14px;"></i>
+                        ТЕСТ
+                    </span>
+                    {{ else if eq .LogType "error" }}
+                    <span style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; background: #ef4444; color: white; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">
+                        <i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i>
+                        ОШИБКА
+                    </span>
+                    {{ end }}
+                    
                     <span class="log-method {{ .Method }}">{{ .Method }}</span>
                     <span class="log-status {{ if .ErrorMessage }}error{{ else }}success{{ end }}">
                         {{ if .ErrorMessage }}Ошибка{{ else }}Успешно{{ end }}
@@ -82,8 +109,18 @@
                     <i data-lucide="folder-kanban" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
                     {{ .Integration.Project.Name }}
                     {{ end }}
+                    {{ if eq .LogType "webhook" }}
                     <span style="margin: 0 8px;">•</span>
-                    ID: {{ .IntegrationID }}
+                    {{ if .OutputName }}
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; background: #3b82f6; color: white; border-radius: 4px; font-size: 0.85rem; font-weight: 600;">
+                        <i data-lucide="git-branch" style="width: 12px; height: 12px;"></i>
+                        {{ .OutputName }}
+                    </span>
+                    <span style="margin: 0 8px;">•</span>
+                    {{ end }}
+                    <span style="color: var(--muted-foreground);">Target:</span>
+                    <code style="font-size: 0.9em; background: var(--muted); padding: 2px 6px; border-radius: 4px;">{{ .URL }}</code>
+                    {{ end }}
                     {{ else }}
                     <i data-lucide="webhook" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
                     Интеграция #{{ .IntegrationID }}
@@ -115,12 +152,17 @@
 
             <div class="log-section">
                 <div class="log-section-title">
+                    <i data-lucide="file-text" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
                     {{ if eq .LogType "incoming" }}
-                    <i data-lucide="arrow-down-circle" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
-                    Входящий webhook
+                    Тело входящего запроса
+                    {{ else if eq .LogType "webhook" }}
+                    Тело исходящего запроса
+                    {{ else if eq .LogType "graphql" }}
+                    GraphQL запрос
+                    {{ else if eq .LogType "test" }}
+                    Тело тестового запроса
                     {{ else }}
-                    <i data-lucide="arrow-up-circle" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
-                    Исходящий запрос к Target API
+                    Тело запроса
                     {{ end }}
                 </div>
                 <pre class="log-code syntax-highlight" data-headers="{{ .RequestHeaders }}"><code class="log-body">{{ .RequestBody }}</code></pre>
@@ -130,7 +172,11 @@
             <div class="log-section">
                 <div class="log-section-title">
                     <i data-lucide="check-circle" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+                    {{ if .OutputName }}
+                    Ответ от Target API ({{ .OutputName }})
+                    {{ else }}
                     Ответ от Target API
+                    {{ end }}
                 </div>
                 <pre class="log-code syntax-highlight" data-headers="{{ .RequestHeaders }}"><code class="log-body">{{ .ResponseBody }}</code></pre>
             </div>

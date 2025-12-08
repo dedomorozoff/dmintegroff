@@ -81,6 +81,18 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 		authorized.POST("/api/integrations/:id/test-mapping", controllers.IntegrationTestMapping)
 		authorized.POST("/api/integrations/:id/test-oauth", controllers.IntegrationTestOAuth)
 		
+		// Integration Outputs (Multiple Mappings)
+		authorized.GET("/integrations/:id/outputs", controllers.IntegrationOutputsList)
+		authorized.GET("/integrations/:id/outputs/create", controllers.IntegrationOutputCreate)
+		authorized.POST("/integrations/:id/outputs", controllers.IntegrationOutputStore)
+		authorized.GET("/integrations/:id/outputs/:output_id/configure", controllers.IntegrationOutputConfigure)
+		authorized.POST("/integrations/:id/outputs/:output_id/configure", controllers.IntegrationOutputSaveMapping)
+		authorized.GET("/integrations/:id/outputs/:output_id/edit", controllers.IntegrationOutputEdit)
+		authorized.POST("/integrations/:id/outputs/:output_id/update", controllers.IntegrationOutputUpdate)
+		authorized.POST("/integrations/:id/outputs/:output_id/delete", controllers.IntegrationOutputDelete)
+		authorized.POST("/integrations/:id/outputs/:output_id/toggle", controllers.IntegrationOutputToggle)
+		authorized.POST("/integrations/:id/outputs/:output_id/test", controllers.IntegrationOutputTest)
+		
 		// GraphQL
 		authorized.POST("/api/graphql/introspect/:id", controllers.IntrospectGraphQLSchema)
 		authorized.GET("/api/graphql/schema/:id", controllers.GetGraphQLSchema)

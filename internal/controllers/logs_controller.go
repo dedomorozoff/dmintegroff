@@ -77,7 +77,11 @@ func LogsPage(c *gin.Context) {
 	// Specialist видит только логи своих интеграций
 	if role != "admin" {
 		query = query.Joins("JOIN integrations ON integrations.id = request_logs.integration_id").
-			Where("integrations.created_by_id = ?", userID)
+			Where("integrations.created_by_id = ? AND integrations.hide_in_logs = ?", userID, false)
+	} else {
+		// Admin тоже не видит скрытые логи
+		query = query.Joins("JOIN integrations ON integrations.id = request_logs.integration_id").
+			Where("integrations.hide_in_logs = ?", false)
 	}
 
 	// Фильтры

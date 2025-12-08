@@ -65,4 +65,7 @@ type Integration struct {
 	
 	// Webhook HTTP Methods (incoming)
 	WebhookHTTPMethods string `gorm:"default:'*'" json:"webhook_http_methods"` // Allowed HTTP methods for incoming webhook: *, GET, POST, PUT, PATCH, DELETE (comma-separated)
+	
+	// Logs visibility
+	HideInLogs bool `gorm:"default:false" json:"hide_in_logs"` // Hide this integration's logs in Tests page
 }

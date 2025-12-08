@@ -30,7 +30,7 @@ func main() {
 	}
 
 	database.Connect()
-	database.Migrate(&models.User{}, &models.Project{}, &models.Integration{}, &models.RequestLog{}, &models.WebhookTest{}, &models.WebhookTestRequest{})
+	database.Migrate(&models.User{}, &models.Project{}, &models.Integration{}, &models.IntegrationOutput{}, &models.RequestLog{}, &models.WebhookTest{}, &models.WebhookTestRequest{})
 	database.SeedAdmin()
 
 	// Cleanup expired test webhooks on startup
