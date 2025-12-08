@@ -282,6 +282,22 @@
                 </div>
             </div>
 
+            {{ if .integration.SamplePayload }}
+            <div style="margin-top: 2rem; padding: 1rem; background: #2d3748; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+                    <div>
+                        <strong><i data-lucide="flask"></i> Тестирование маппинга</strong>
+                        <p style="margin: 0.5rem 0 0 0; color: var(--text-secondary); font-size: 0.9em;">
+                            Протестируйте трансформацию данных перед сохранением
+                        </p>
+                    </div>
+                    <button type="button" class="btn btn-primary" onclick="testMapping()">
+                        <i data-lucide="play-circle"></i> Протестировать запрос
+                    </button>
+                </div>
+            </div>
+            {{ end }}
+
             <div style="display: flex; gap: 1rem; margin-top: 2rem; flex-wrap: wrap;">
                 <button type="submit" class="btn btn-success" onclick="handleFormSubmit(event)">
                     {{ if eq .integration.Mode "active" }}
@@ -310,7 +326,162 @@
             </div>
         </form>
     </div>
+
+    <!-- Test Mapping Modal -->
+    <div id="testMappingModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2><i data-lucide="flask"></i> Результаты тестирования</h2>
+                <button class="btn-icon" onclick="closeTestModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="testResults">
+                    <!-- Results will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
 </main>
+
+<style>
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        overflow-y: auto;
+        padding: 2rem;
+    }
+
+    .modal-content {
+        background: var(--background);
+        border-radius: 12px;
+        width: 90%;
+        max-height: 90vh;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    .test-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .test-section h3 {
+        margin: 0 0 0.75rem 0;
+        font-size: 1rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .test-section pre {
+        background: #1a1f2e;
+        padding: 1rem;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin: 0;
+        max-height: 400px;
+    }
+
+    .test-section code {
+        font-family: 'Courier New', monospace;
+        font-size: 0.9em;
+        line-height: 1.5;
+        color: #abb2bf;
+    }
+
+    .test-info {
+        background: #2d3748;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+    }
+
+    .test-info p {
+        margin: 0.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .test-info strong {
+        min-width: 120px;
+    }
+
+    .btn-icon {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.25rem;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: color 0.2s ease;
+    }
+
+    .btn-icon:hover {
+        color: var(--text-primary);
+    }
+
+    .loading-spinner {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 3rem;
+        gap: 1rem;
+    }
+
+    .spinner {
+        border: 3px solid var(--border);
+        border-top: 3px solid var(--primary);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
 
 <script src="/static/js/common.js"></script>
 <script src="/static/js/json-highlight.js"></script>
@@ -370,6 +541,11 @@
                     if (textarea.dataset.highlighterInitialized !== 'true') {
                         console.log('Initializing samplePayloadTextarea highlighter (delayed)');
                         new JSONHighlighter('samplePayloadTextarea', 'samplePayloadTextarea_preview');
+                        
+                        // Если поле пустое, добавляем placeholder
+                        if (!textarea.value.trim()) {
+                            textarea.placeholder = '{\n  "example": "Вставьте JSON здесь"\n}';
+                        }
                     } else {
                         console.log('samplePayloadTextarea already initialized');
                         // Просто обновляем подсветку
@@ -379,6 +555,9 @@
                         }
                     }
                 }
+                
+                // Фокусируемся на textarea для удобства
+                textarea.focus();
             }, 150);
         }
     }
@@ -555,19 +734,30 @@
 
         const text = textarea.value.trim();
         if (!text) {
-            validationDiv.innerHTML = '<div style="padding: 1rem; background: #ef4444; color: white; border-radius: 8px;">❌ JSON пустой</div>';
+            validationDiv.innerHTML = '<div style="padding: 1rem; background: #f59e0b; color: white; border-radius: 8px;">⚠️ JSON пустой. Вставьте данные для проверки.</div>';
             return false;
         }
 
         try {
-            JSON.parse(text);
-            validationDiv.innerHTML = '<div style="padding: 1rem; background: #10b981; color: white; border-radius: 8px;">✅ JSON валиден!</div>';
+            const parsed = JSON.parse(text);
+            const objectCount = typeof parsed === 'object' ? Object.keys(parsed).length : 0;
+            validationDiv.innerHTML = `<div style="padding: 1rem; background: #10b981; color: white; border-radius: 8px;">✅ JSON валиден! ${objectCount > 0 ? `Найдено полей: ${objectCount}` : ''}</div>`;
             setTimeout(() => {
                 validationDiv.innerHTML = '';
             }, 3000);
             return true;
         } catch (e) {
-            validationDiv.innerHTML = `<div style="padding: 1rem; background: #ef4444; color: white; border-radius: 8px;">❌ Ошибка в JSON: ${e.message}</div>`;
+            // Улучшенное сообщение об ошибке
+            let errorMsg = e.message;
+            const match = errorMsg.match(/position (\d+)/);
+            if (match) {
+                const pos = parseInt(match[1]);
+                const lines = text.substring(0, pos).split('\n');
+                const line = lines.length;
+                const col = lines[lines.length - 1].length + 1;
+                errorMsg = `${errorMsg} (строка ${line}, символ ${col})`;
+            }
+            validationDiv.innerHTML = `<div style="padding: 1rem; background: #ef4444; color: white; border-radius: 8px;">❌ Ошибка в JSON: ${errorMsg}</div>`;
             return false;
         }
     }
@@ -1016,44 +1206,10 @@ Email: {{`{{user.email}}`}}
                 outputTemplate.setAttribute('autocapitalize', 'off');
                 outputTemplate.setAttribute('spellcheck', 'false');
 
-                // Флаг для разрешения paste (только при Ctrl+V)
-                let allowPaste = false;
-                let pasteTimeout = null;
-
-                // Отслеживаем Ctrl+V
-                outputTemplate.addEventListener('keydown', (e) => {
-                    if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) {
-                        console.log('Ctrl+V detected, allowing paste');
-                        allowPaste = true;
-
-                        // Сбрасываем флаг через 100мс
-                        if (pasteTimeout) clearTimeout(pasteTimeout);
-                        pasteTimeout = setTimeout(() => {
-                            allowPaste = false;
-                        }, 100);
-                    }
-                }, true);
-
-                // Обработчик вставки - только чистый текст без HTML/стилей
+                // Простой обработчик вставки - только чистый текст
                 outputTemplate.addEventListener('paste', (e) => {
-                    console.log('Paste event triggered, allowPaste:', allowPaste);
-
-                    // Если paste НЕ вызван через Ctrl+V - блокируем полностью
-                    if (!allowPaste) {
-                        console.log('Paste blocked - not triggered by Ctrl+V');
-                        e.preventDefault();
-                        e.stopPropagation();
-                        e.stopImmediatePropagation();
-                        return false;
-                    }
-
                     e.preventDefault();
-                    e.stopPropagation();
-                    e.stopImmediatePropagation();
-
                     const text = (e.clipboardData || window.clipboardData).getData('text/plain');
-                    console.log('Pasting text:', text);
-
                     const start = outputTemplate.selectionStart;
                     const end = outputTemplate.selectionEnd;
                     const currentValue = outputTemplate.value;
@@ -1067,114 +1223,9 @@ Email: {{`{{user.email}}`}}
                     outputTemplate.selectionStart = newPosition;
                     outputTemplate.selectionEnd = newPosition;
 
-                    // Триггерим событие input для обновления подсветки
-                    outputTemplate.dispatchEvent(new Event('input', { bubbles: true }));
-
-                    console.log('Paste completed, new value length:', newValue.length);
-
-                    // Сбрасываем флаг
-                    allowPaste = false;
-                }, true);
-
-                // Обработчик keydown - перехватываем ввод кавычек
-                const handleQuoteKey = (e) => {
-                    // Пропускаем Ctrl+V
-                    if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) {
-                        return;
-                    }
-
-                    console.log('Key pressed:', e.key, 'keyCode:', e.keyCode, 'which:', e.which);
-
-                    // Проверяем различные варианты кавычек
-                    const isQuote = e.key === '"' || e.key === "'" || e.key === '`' ||
-                        e.keyCode === 222 || e.which === 222 ||
-                        e.keyCode === 192 || e.which === 192;
-
-                    if (isQuote) {
-                        console.log('Quote key detected! Preventing default');
-
-                        // Сохраняем текущее состояние
-                        const start = outputTemplate.selectionStart;
-                        const end = outputTemplate.selectionEnd;
-                        const currentValue = outputTemplate.value;
-
-                        // Предотвращаем стандартное поведение
-                        e.preventDefault();
-                        e.stopPropagation();
-                        e.stopImmediatePropagation();
-
-                        // Определяем, какую кавычку вставить
-                        let quote = e.key;
-                        if (!quote || quote.length !== 1) {
-                            quote = e.shiftKey ? '"' : "'";
-                        }
-
-                        // Вставляем кавычку вручную
-                        const newValue = currentValue.substring(0, start) + quote + currentValue.substring(end);
-                        outputTemplate.value = newValue;
-
-                        // Устанавливаем курсор после кавычки
-                        const newPosition = start + 1;
-                        outputTemplate.selectionStart = newPosition;
-                        outputTemplate.selectionEnd = newPosition;
-
-                        // Триггерим событие input
-                        outputTemplate.dispatchEvent(new Event('input', { bubbles: true }));
-
-                        console.log('Quote inserted manually:', quote);
-
-                        return false;
-                    }
-                };
-
-                outputTemplate.addEventListener('keydown', handleQuoteKey, true);
-                outputTemplate.addEventListener('keypress', handleQuoteKey, true);
-
-                // Обработчик input - проверяем на мусор
-                let lastCleanValue = outputTemplate.value;
-                let cleanupTimeout = null;
-
-                outputTemplate.addEventListener('input', (e) => {
-                    const currentValue = outputTemplate.value;
-
-                    // Очищаем предыдущий таймаут
-                    if (cleanupTimeout) {
-                        clearTimeout(cleanupTimeout);
-                    }
-
-                    // Проверяем через небольшую задержку (на случай если мусор добавляется асинхронно)
-                    cleanupTimeout = setTimeout(() => {
-                        const value = outputTemplate.value;
-
-                        // Проверяем, не появился ли HTML-мусор
-                        if (value.includes('rgba(') || value.includes('style=') || value.includes(';">') ||
-                            value.includes('0.15);') || /\d+,\s*\d+,\s*\d+,\s*[\d.]+\)/.test(value)) {
-
-                            console.warn('Detected HTML garbage in textarea, cleaning...');
-                            console.log('Before:', value);
-
-                            // Агрессивная очистка
-                            let cleaned = value
-                                .replace(/rgba?\([^)]+\)[^"]*">/g, '')
-                                .replace(/style="[^"]*"/g, '')
-                                .replace(/\d+,\s*\d+,\s*\d+,\s*[\d.]+\);?"?>/g, '')
-                                .replace(/;">/g, '');
-
-                            console.log('After:', cleaned);
-
-                            if (cleaned !== value) {
-                                const cursorPos = outputTemplate.selectionStart;
-                                outputTemplate.value = cleaned;
-                                outputTemplate.selectionStart = Math.min(cursorPos, cleaned.length);
-                                outputTemplate.selectionEnd = Math.min(cursorPos, cleaned.length);
-                                outputTemplate.dispatchEvent(new Event('input', { bubbles: true }));
-                                console.log('Cleaned value');
-                            }
-                        } else {
-                            lastCleanValue = value;
-                        }
-                    }, 50);
-                }, true);
+                    // Обновляем подсветку
+                    outputTemplate.dispatchEvent(new Event('input'));
+                });
             } else {
                 console.warn('outputTemplate not found');
             }
@@ -1185,6 +1236,13 @@ Email: {{`{{user.email}}`}}
             // Добавляем обработчик paste для samplePayloadTextarea
             const samplePayloadTextarea = document.getElementById('samplePayloadTextarea');
             if (samplePayloadTextarea) {
+                // Отключаем автозаполнение
+                samplePayloadTextarea.setAttribute('autocomplete', 'off');
+                samplePayloadTextarea.setAttribute('autocorrect', 'off');
+                samplePayloadTextarea.setAttribute('autocapitalize', 'off');
+                samplePayloadTextarea.setAttribute('spellcheck', 'false');
+                
+                // Простой обработчик вставки
                 samplePayloadTextarea.addEventListener('paste', (e) => {
                     e.preventDefault();
                     const text = (e.clipboardData || window.clipboardData).getData('text/plain');
@@ -1213,6 +1271,117 @@ Email: {{`{{user.email}}`}}
         // Инициализация Lucide иконок
         if (window.lucide) {
             window.lucide.createIcons();
+        }
+    });
+
+    // Test Mapping Functions
+    function testMapping() {
+        const modal = document.getElementById('testMappingModal');
+        const resultsDiv = document.getElementById('testResults');
+        
+        // Show loading
+        resultsDiv.innerHTML = `
+            <div class="loading-spinner">
+                <div class="spinner"></div>
+                <p>Тестирование маппинга...</p>
+            </div>
+        `;
+        modal.style.display = 'flex';
+        
+        // Send test request
+        fetch('/api/integrations/{{ .integration.ID }}/test-mapping', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                displayTestResults(data);
+            } else {
+                displayTestError(data.error || 'Unknown error');
+            }
+        })
+        .catch(error => {
+            displayTestError('Network error: ' + error.message);
+        });
+    }
+
+    function displayTestResults(data) {
+        const resultsDiv = document.getElementById('testResults');
+        
+        resultsDiv.innerHTML = `
+            <div class="test-info">
+                <p><strong>Target API:</strong> <code>${data.target_api || 'Not set'}</code></p>
+                <p><strong>HTTP Method:</strong> <span class="badge badge-primary">${data.http_method || 'POST'}</span></p>
+                ${data.template_type ? `<p><strong>Template Type:</strong> <span class="badge badge-secondary">${data.template_type}</span></p>` : ''}
+            </div>
+            
+            <div class="test-section">
+                <h3><i data-lucide="download"></i> Входные данные (Sample Payload)</h3>
+                <pre><code>${escapeHtml(data.input)}</code></pre>
+            </div>
+            
+            <div class="test-section">
+                <h3><i data-lucide="arrow-right"></i> Результат трансформации</h3>
+                <pre><code>${escapeHtml(data.output)}</code></pre>
+            </div>
+            
+            <div style="margin-top: 1.5rem; padding: 1rem; background: #10b981; color: white; border-radius: 8px;">
+                <strong>✅ Тестирование успешно!</strong>
+                <p style="margin: 0.5rem 0 0 0;">Маппинг работает корректно. Вы можете сохранить изменения.</p>
+            </div>
+        `;
+        
+        // Reinitialize icons
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+    }
+
+    function displayTestError(error) {
+        const resultsDiv = document.getElementById('testResults');
+        
+        resultsDiv.innerHTML = `
+            <div style="padding: 2rem; background: #ef4444; color: white; border-radius: 8px; text-align: center;">
+                <h3 style="margin: 0 0 1rem 0;"><i data-lucide="alert-circle"></i> Ошибка тестирования</h3>
+                <p style="margin: 0; font-family: monospace;">${escapeHtml(error)}</p>
+            </div>
+            
+            <div style="margin-top: 1.5rem; padding: 1rem; background: #2d3748; border-radius: 8px;">
+                <strong>Возможные причины:</strong>
+                <ul style="margin: 0.5rem 0 0 1.5rem; line-height: 1.8;">
+                    <li>Нет образца данных (SamplePayload)</li>
+                    <li>Неверный формат JSON в образце</li>
+                    <li>Ошибка в шаблоне или маппинге</li>
+                    <li>Неверный синтаксис плейсхолдеров</li>
+                </ul>
+            </div>
+        `;
+        
+        // Reinitialize icons
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+    }
+
+    function closeTestModal() {
+        const modal = document.getElementById('testMappingModal');
+        modal.style.display = 'none';
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Close modal on outside click
+    document.addEventListener('click', function(event) {
+        const modal = document.getElementById('testMappingModal');
+        if (modal && event.target === modal) {
+            closeTestModal();
         }
     });
 </script>

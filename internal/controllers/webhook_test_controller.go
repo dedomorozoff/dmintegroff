@@ -312,6 +312,58 @@ func generateWebhookTestToken() string {
 	return hex.EncodeToString(b)
 }
 
+// UseRequestAsSample saves a webhook test request as sample payload for an integration
+func UseRequestAsSample(c *gin.Context) {
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	token := c.Param("token")
+	requestID := c.Param("request_id")
+
+	// Check that webhook belongs to user
+	var webhookTest models.WebhookTest
+	if err := database.DB.Where("token = ? AND user_id = ?", token, userID).First(&webhookTest).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Webhook not found"})
+		return
+	}
+
+	// Get the request
+	var request models.WebhookTestRequest
+	if err := database.DB.Where("id = ? AND webhook_test_id = ?", requestID, webhookTest.ID).First(&request).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Request not found"})
+		return
+	}
+
+	// Get integration ID from request body
+	var requestBody struct {
+		IntegrationID uint `json:"integration_id" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&requestBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Integration ID is required"})
+		return
+	}
+
+	// Check that integration belongs to user
+	var integration models.Integration
+	if err := database.DB.Where("id = ? AND created_by_id = ?", requestBody.IntegrationID, userID).First(&integration).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Integration not found"})
+		return
+	}
+
+	// Update integration with sample payload
+	integration.SamplePayload = request.Body
+	if err := database.DB.Save(&integration).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save sample payload"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":         "success",
+		"message":        "Request saved as sample payload",
+		"integration_id": integration.ID,
+		"redirect_url":   fmt.Sprintf("/integrations/%d/configure", integration.ID),
+	})
+}
+
 // CleanupExpiredWebhooks removes expired test webhooks and their requests
 func CleanupExpiredWebhooks() {
 	// Delete expired webhooks (older than 24 hours)

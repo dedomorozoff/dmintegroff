@@ -78,6 +78,7 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 		authorized.GET("/integrations/:id/enrichment-configure", controllers.IntegrationEnrichmentConfigure)
 		authorized.POST("/integrations/:id/enrichment-configure", controllers.IntegrationEnrichmentConfigureSave)
 		authorized.GET("/api/integrations/:id/check", controllers.IntegrationCheckUpdate)
+		authorized.POST("/api/integrations/:id/test-mapping", controllers.IntegrationTestMapping)
 		authorized.POST("/api/integrations/:id/test-oauth", controllers.IntegrationTestOAuth)
 		
 		// GraphQL
@@ -128,6 +129,7 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 		authorized.GET("/webhook-test/:token", controllers.WebhookTestPage)
 		authorized.GET("/api/webhook-test/:token/requests", controllers.GetWebhookTestRequests)
 		authorized.DELETE("/api/webhook-test/:token", controllers.DeleteWebhookTest)
+		authorized.POST("/api/webhook-test/:token/use-as-sample/:request_id", controllers.UseRequestAsSample)
 		
 		// Metrics Dashboard (защищённый)
 		authorized.GET("/metrics/dashboard", controllers.NewMetricsController(healthService).Dashboard)

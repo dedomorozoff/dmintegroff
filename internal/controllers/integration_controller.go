@@ -9,7 +9,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"sort"
 	"strconv"
@@ -313,25 +315,42 @@ func WebhookHandler(c *gin.Context) {
 		return
 	}
 
-	// Пытаемся распарсить как JSON
-	var payload map[string]interface{}
-	if err := json.Unmarshal(bodyBytes, &payload); err != nil {
+	// Получаем Content-Type
+	contentType := c.GetHeader("Content-Type")
+	
+	// Парсим форму если это form-data
+	var formValues url.Values
+	var multipartForm *multipart.Form
+	if strings.Contains(contentType, "application/x-www-form-urlencoded") {
+		if err := c.Request.ParseForm(); err == nil {
+			formValues = c.Request.Form
+		}
+	} else if strings.Contains(contentType, "multipart/form-data") {
+		if err := c.Request.ParseMultipartForm(32 << 20); err == nil { // 32 MB max
+			multipartForm = c.Request.MultipartForm
+		}
+	}
+
+	// Парсим payload в зависимости от Content-Type
+	payload, payloadJSON, err := utils.ParsePayload(contentType, bodyBytes, formValues, multipartForm)
+	if err != nil {
 		// Логируем ошибку парсинга
 		logger.Log.WithFields(map[string]interface{}{
 			"integration_id": integration.ID,
+			"content_type":   contentType,
 			"error":          err.Error(),
 			"body_preview":   string(bodyBytes[:min(len(bodyBytes), 100)]),
-		}).Error("Failed to parse webhook body as JSON")
+		}).Error("Failed to parse webhook body")
 		
-		// Если не JSON, возвращаем ошибку с подробностями
+		// Возвращаем ошибку с подробностями
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Invalid JSON",
-			"details": err.Error(),
+			"error":        "Failed to parse request body",
+			"details":      err.Error(),
+			"content_type": contentType,
 		})
 		return
 	}
 
-	payloadJSON := bodyBytes // Используем оригинальные байты
 	headersJSON, _ := json.Marshal(c.Request.Header)
 
 	// Логируем входящий webhook
@@ -869,6 +888,107 @@ func IntegrationCancelListening(c *gin.Context) {
 }
 
 // IntegrationTestOAuth - тестирование OAuth конфигурации
+// IntegrationTestMapping tests the mapping configuration without activating the integration
+func IntegrationTestMapping(c *gin.Context) {
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
+	idStr := c.Param("id")
+	id, _ := strconv.ParseUint(idStr, 10, 32)
+
+	var integration models.Integration
+	query := database.DB
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+	if err := query.First(&integration, uint(id)).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Integration not found"})
+		return
+	}
+
+	// Check if sample payload exists
+	if integration.SamplePayload == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No sample payload available"})
+		return
+	}
+
+	// Parse sample payload
+	var payload map[string]interface{}
+	if err := json.Unmarshal([]byte(integration.SamplePayload), &payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid sample payload JSON"})
+		return
+	}
+
+	// Process the transformation
+	var transformed map[string]interface{}
+	var transformedString string
+	var isStringTemplate bool
+
+	if integration.OutputTemplate != "" {
+		processor := utils.NewTemplateProcessor()
+		templateType := integration.TemplateType
+		if templateType == "" {
+			templateType = "json"
+		}
+
+		if templateType == "json" {
+			var err error
+			transformed, err = processor.ProcessTemplate(integration.OutputTemplate, payload)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "Template processing failed: " + err.Error(),
+				})
+				return
+			}
+		} else {
+			var err error
+			transformedString, err = processor.ProcessTemplateString(integration.OutputTemplate, payload)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "Template processing failed: " + err.Error(),
+				})
+				return
+			}
+			isStringTemplate = true
+		}
+	} else if integration.MappingConfig != "" {
+		var mapping map[string]string
+		if err := json.Unmarshal([]byte(integration.MappingConfig), &mapping); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid mapping config"})
+			return
+		}
+
+		transformed = make(map[string]interface{})
+		for targetField, sourceField := range mapping {
+			if v, err := utils.GetValueByPath(payload, sourceField); err == nil {
+				transformed[targetField] = v
+			}
+		}
+	} else {
+		transformed = payload
+	}
+
+	// Prepare response
+	var transformedOutput string
+	if isStringTemplate {
+		transformedOutput = transformedString
+	} else {
+		transformedJSON, _ := json.MarshalIndent(transformed, "", "  ")
+		transformedOutput = string(transformedJSON)
+	}
+
+	inputJSON, _ := json.MarshalIndent(payload, "", "  ")
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":      "success",
+		"input":       string(inputJSON),
+		"output":      transformedOutput,
+		"target_api":  integration.TargetAPI,
+		"http_method": integration.HTTPMethod,
+		"template_type": integration.TemplateType,
+	})
+}
+
 func IntegrationTestOAuth(c *gin.Context) {
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
