@@ -21,11 +21,19 @@
 - XML атрибуты сохраняются с суффиксом `_attributes`
 - Plain text разбивается на строки с подсчетом
 
+#### Ручное редактирование в UI
+- Выбор формата в редакторе образца данных (JSON, XML, Form-data, Text)
+- Автоматическая конвертация в JSON при нажатии кнопки
+- Валидация для каждого формата с понятными сообщениями
+- Placeholder с примерами для каждого формата
+
 ### Технические изменения
 - Создан новый файл `internal/utils/format_parser.go` с парсерами
 - Обновлен `WebhookHandler` для поддержки разных форматов
 - Добавлены функции: `ParseJSON`, `ParseFormURLEncoded`, `ParseMultipartForm`, `ParseXML`, `ParsePlainText`
 - Автоматическое определение Content-Type
+- Обновлен UI в `integration_configure.html` с выбором формата
+- JavaScript функции для конвертации: `xmlToJson`, `formToJson`, `convertPayloadToJSON`
 
 ### Примеры использования
 - Form-data: `user=John&email=john@example.com` → JSON

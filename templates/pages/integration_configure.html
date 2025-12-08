@@ -59,10 +59,10 @@
     </div>
 
     <div class="card">
-        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
             <h2 class="card-title"><i data-lucide="download"></i> Полученные данные (образец)</h2>
             <button type="button" class="btn btn-secondary" onclick="toggleEditPayload()" id="editPayloadBtn">
-                <i data-lucide="edit"></i> Редактировать JSON
+                <i data-lucide="edit"></i> Редактировать
             </button>
         </div>
         <div id="payloadView">
@@ -71,18 +71,36 @@
         </div>
         <div id="payloadEdit" style="display: none;">
             <form method="POST" action="/integrations/{{ .integration.ID }}/configure" id="payloadEditForm">
+                <div style="margin-bottom: 1rem; padding: 1rem; background: #2d3748; border-radius: 8px;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">
+                        <i data-lucide="file-type"></i> Формат входных данных
+                    </label>
+                    <select id="samplePayloadFormat" onchange="updatePayloadEditor()" 
+                            style="padding: 0.5rem; border-radius: 6px; background: #1a1f2e; color: #abb2bf; border: 1px solid #4a5568; width: 100%; max-width: 300px;">
+                        <option value="json">JSON</option>
+                        <option value="xml">XML</option>
+                        <option value="form">Form-data (key=value)</option>
+                        <option value="text">Plain Text</option>
+                    </select>
+                    <p style="margin: 0.5rem 0 0 0; color: var(--text-secondary); font-size: 0.875rem;">
+                        Выберите формат, в котором вы хотите ввести образец данных. Он будет автоматически преобразован в JSON для маппинга.
+                    </p>
+                </div>
                 <div class="json-editor-container" style="position: relative;">
                     <textarea name="sample_payload" id="samplePayloadTextarea" class="json-editor json-editor-dark"
                         style="width: 100%; min-height: 300px; font-family: 'Courier New', monospace; padding: 1rem; border-radius: 8px; font-size: 0.95em; line-height: 1.5;"
-                        placeholder="Вставьте JSON здесь...">{{ .integration.SamplePayload }}</textarea>
+                        placeholder="Вставьте данные здесь...">{{ .integration.SamplePayload }}</textarea>
                     <div id="samplePayloadTextarea_preview" class="json-preview"></div>
                 </div>
-                <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-                    <button type="button" class="btn btn-secondary" onclick="formatPayload()">
+                <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-secondary" onclick="formatPayload()" id="formatPayloadBtn">
                         <i data-lucide="align-left"></i> Автоотступы
                     </button>
                     <button type="button" class="btn btn-secondary" onclick="validatePayload()">
                         <i data-lucide="check-circle"></i> Проверить
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="convertPayloadToJSON()">
+                        <i data-lucide="arrow-right"></i> Конвертировать в JSON
                     </button>
                     <button type="submit" class="btn btn-success"><i data-lucide="save"></i> Сохранить
                         изменения</button>
@@ -525,7 +543,7 @@
         if (view.style.display === 'none') {
             view.style.display = 'block';
             edit.style.display = 'none';
-            btn.innerHTML = '<i data-lucide="edit"></i> Редактировать JSON';
+            btn.innerHTML = '<i data-lucide="edit"></i> Редактировать';
             if (window.lucide) window.lucide.createIcons();
         } else {
             view.style.display = 'none';
@@ -541,11 +559,6 @@
                     if (textarea.dataset.highlighterInitialized !== 'true') {
                         console.log('Initializing samplePayloadTextarea highlighter (delayed)');
                         new JSONHighlighter('samplePayloadTextarea', 'samplePayloadTextarea_preview');
-                        
-                        // Если поле пустое, добавляем placeholder
-                        if (!textarea.value.trim()) {
-                            textarea.placeholder = '{\n  "example": "Вставьте JSON здесь"\n}';
-                        }
                     } else {
                         console.log('samplePayloadTextarea already initialized');
                         // Просто обновляем подсветку
@@ -556,10 +569,171 @@
                     }
                 }
                 
+                // Обновляем placeholder в зависимости от формата
+                updatePayloadEditor();
+                
                 // Фокусируемся на textarea для удобства
                 textarea.focus();
             }, 150);
         }
+    }
+
+    // Обновление редактора образца в зависимости от формата
+    function updatePayloadEditor() {
+        const format = document.getElementById('samplePayloadFormat').value;
+        const textarea = document.getElementById('samplePayloadTextarea');
+        const formatBtn = document.getElementById('formatPayloadBtn');
+        
+        const placeholders = {
+            json: '{\n  "user": "John Doe",\n  "email": "john@example.com",\n  "age": 30\n}',
+            xml: '<?xml version="1.0" encoding="UTF-8"?>\n<root>\n  <user>John Doe</user>\n  <email>john@example.com</email>\n  <age>30</age>\n</root>',
+            form: 'user=John+Doe&email=john@example.com&age=30',
+            text: 'Любой текст\nМожет быть многострочным\nИли одной строкой'
+        };
+        
+        // Обновляем placeholder только если поле пустое
+        if (!textarea.value.trim()) {
+            textarea.placeholder = placeholders[format] || placeholders.json;
+        }
+        
+        // Показываем/скрываем кнопку форматирования (только для JSON)
+        if (formatBtn) {
+            formatBtn.style.display = format === 'json' ? 'inline-flex' : 'none';
+        }
+        
+        // Обновляем иконки
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+    }
+
+    // Конвертация в JSON
+    function convertPayloadToJSON() {
+        const format = document.getElementById('samplePayloadFormat').value;
+        const textarea = document.getElementById('samplePayloadTextarea');
+        const validationDiv = document.getElementById('payloadValidation');
+        const text = textarea.value.trim();
+        
+        if (!text) {
+            validationDiv.innerHTML = '<div style="padding: 1rem; background: #f59e0b; color: white; border-radius: 8px;">⚠️ Нет данных для конвертации</div>';
+            return;
+        }
+        
+        if (format === 'json') {
+            validationDiv.innerHTML = '<div style="padding: 1rem; background: #3b82f6; color: white; border-radius: 8px;">ℹ️ Данные уже в формате JSON</div>';
+            setTimeout(() => { validationDiv.innerHTML = ''; }, 2000);
+            return;
+        }
+        
+        try {
+            let jsonData;
+            
+            if (format === 'xml') {
+                // Простая конвертация XML в JSON
+                jsonData = xmlToJson(text);
+            } else if (format === 'form') {
+                // Конвертация form-data в JSON
+                jsonData = formToJson(text);
+            } else if (format === 'text') {
+                // Конвертация text в JSON
+                const lines = text.split('\n');
+                jsonData = {
+                    text: text,
+                    lines: lines,
+                    line_count: lines.length,
+                    length: text.length
+                };
+            }
+            
+            // Форматируем и вставляем JSON
+            const formatted = JSON.stringify(jsonData, null, 2);
+            textarea.value = formatted;
+            textarea.dispatchEvent(new Event('input'));
+            
+            // Переключаем формат на JSON
+            document.getElementById('samplePayloadFormat').value = 'json';
+            updatePayloadEditor();
+            
+            validationDiv.innerHTML = '<div style="padding: 1rem; background: #10b981; color: white; border-radius: 8px;">✅ Успешно конвертировано в JSON!</div>';
+            setTimeout(() => { validationDiv.innerHTML = ''; }, 3000);
+        } catch (e) {
+            validationDiv.innerHTML = `<div style="padding: 1rem; background: #ef4444; color: white; border-radius: 8px;">❌ Ошибка конвертации: ${e.message}</div>`;
+        }
+    }
+
+    // Простая конвертация XML в JSON
+    function xmlToJson(xml) {
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xml, 'text/xml');
+        
+        if (xmlDoc.getElementsByTagName('parsererror').length > 0) {
+            throw new Error('Invalid XML');
+        }
+        
+        function parseNode(node) {
+            const obj = {};
+            
+            // Обрабатываем атрибуты
+            if (node.attributes && node.attributes.length > 0) {
+                const attrs = {};
+                for (let i = 0; i < node.attributes.length; i++) {
+                    attrs[node.attributes[i].name] = node.attributes[i].value;
+                }
+                obj['_attributes'] = attrs;
+            }
+            
+            // Обрабатываем дочерние элементы
+            if (node.childNodes.length === 1 && node.childNodes[0].nodeType === 3) {
+                // Текстовый узел
+                return node.childNodes[0].nodeValue.trim();
+            }
+            
+            for (let i = 0; i < node.childNodes.length; i++) {
+                const child = node.childNodes[i];
+                if (child.nodeType === 1) { // Element node
+                    const childName = child.nodeName;
+                    const childValue = parseNode(child);
+                    
+                    if (obj[childName]) {
+                        if (!Array.isArray(obj[childName])) {
+                            obj[childName] = [obj[childName]];
+                        }
+                        obj[childName].push(childValue);
+                    } else {
+                        obj[childName] = childValue;
+                    }
+                }
+            }
+            
+            return obj;
+        }
+        
+        return parseNode(xmlDoc.documentElement);
+    }
+
+    // Конвертация form-data в JSON
+    function formToJson(formData) {
+        const obj = {};
+        const pairs = formData.split('&');
+        
+        for (const pair of pairs) {
+            const [key, value] = pair.split('=');
+            if (key) {
+                const decodedKey = decodeURIComponent(key.replace(/\+/g, ' '));
+                const decodedValue = decodeURIComponent((value || '').replace(/\+/g, ' '));
+                
+                if (obj[decodedKey]) {
+                    if (!Array.isArray(obj[decodedKey])) {
+                        obj[decodedKey] = [obj[decodedKey]];
+                    }
+                    obj[decodedKey].push(decodedValue);
+                } else {
+                    obj[decodedKey] = decodedValue;
+                }
+            }
+        }
+        
+        return obj;
     }
 
     // Переключение между режимами трансформации
@@ -729,19 +903,44 @@
     function validatePayload() {
         const textarea = document.getElementById('samplePayloadTextarea');
         const validationDiv = document.getElementById('payloadValidation');
+        const format = document.getElementById('samplePayloadFormat').value;
 
         if (!textarea || !validationDiv) return;
 
         const text = textarea.value.trim();
         if (!text) {
-            validationDiv.innerHTML = '<div style="padding: 1rem; background: #f59e0b; color: white; border-radius: 8px;">⚠️ JSON пустой. Вставьте данные для проверки.</div>';
+            validationDiv.innerHTML = '<div style="padding: 1rem; background: #f59e0b; color: white; border-radius: 8px;">⚠️ Данные пустые. Вставьте данные для проверки.</div>';
             return false;
         }
 
         try {
-            const parsed = JSON.parse(text);
-            const objectCount = typeof parsed === 'object' ? Object.keys(parsed).length : 0;
-            validationDiv.innerHTML = `<div style="padding: 1rem; background: #10b981; color: white; border-radius: 8px;">✅ JSON валиден! ${objectCount > 0 ? `Найдено полей: ${objectCount}` : ''}</div>`;
+            if (format === 'json') {
+                // Валидация JSON
+                const parsed = JSON.parse(text);
+                const objectCount = typeof parsed === 'object' ? Object.keys(parsed).length : 0;
+                validationDiv.innerHTML = `<div style="padding: 1rem; background: #10b981; color: white; border-radius: 8px;">✅ JSON валиден! ${objectCount > 0 ? `Найдено полей: ${objectCount}` : ''}</div>`;
+            } else if (format === 'xml') {
+                // Валидация XML
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(text, 'text/xml');
+                if (xmlDoc.getElementsByTagName('parsererror').length > 0) {
+                    throw new Error('Invalid XML structure');
+                }
+                validationDiv.innerHTML = '<div style="padding: 1rem; background: #10b981; color: white; border-radius: 8px;">✅ XML валиден!</div>';
+            } else if (format === 'form') {
+                // Валидация form-data
+                const pairs = text.split('&');
+                let validPairs = 0;
+                for (const pair of pairs) {
+                    if (pair.includes('=')) validPairs++;
+                }
+                validationDiv.innerHTML = `<div style="padding: 1rem; background: #10b981; color: white; border-radius: 8px;">✅ Form-data валиден! Найдено пар: ${validPairs}</div>`;
+            } else if (format === 'text') {
+                // Валидация text
+                const lines = text.split('\n');
+                validationDiv.innerHTML = `<div style="padding: 1rem; background: #10b981; color: white; border-radius: 8px;">✅ Text валиден! Строк: ${lines.length}, символов: ${text.length}</div>`;
+            }
+            
             setTimeout(() => {
                 validationDiv.innerHTML = '';
             }, 3000);
@@ -749,15 +948,17 @@
         } catch (e) {
             // Улучшенное сообщение об ошибке
             let errorMsg = e.message;
-            const match = errorMsg.match(/position (\d+)/);
-            if (match) {
-                const pos = parseInt(match[1]);
-                const lines = text.substring(0, pos).split('\n');
-                const line = lines.length;
-                const col = lines[lines.length - 1].length + 1;
-                errorMsg = `${errorMsg} (строка ${line}, символ ${col})`;
+            if (format === 'json') {
+                const match = errorMsg.match(/position (\d+)/);
+                if (match) {
+                    const pos = parseInt(match[1]);
+                    const lines = text.substring(0, pos).split('\n');
+                    const line = lines.length;
+                    const col = lines[lines.length - 1].length + 1;
+                    errorMsg = `${errorMsg} (строка ${line}, символ ${col})`;
+                }
             }
-            validationDiv.innerHTML = `<div style="padding: 1rem; background: #ef4444; color: white; border-radius: 8px;">❌ Ошибка в JSON: ${errorMsg}</div>`;
+            validationDiv.innerHTML = `<div style="padding: 1rem; background: #ef4444; color: white; border-radius: 8px;">❌ Ошибка: ${errorMsg}</div>`;
             return false;
         }
     }
