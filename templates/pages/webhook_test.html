@@ -1,0 +1,1716 @@
+{{ define "pages/webhook_test.html" }}
+{{ template "partials/head.html" . }}
+{{ template "partials/sidebar.html" . }}
+
+<main class="main-content">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>Тест вебхуков</h1>
+        <p>Отправляйте запросы и смотрите результаты (обновление каждые 5 сек)</p>
+    </div>
+
+    <!-- Mobile Header -->
+    <div class="page-header-mobile">
+        <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Меню">
+            <i data-lucide="menu"></i>
+        </button>
+        <a href="/dashboard">
+            <img src="/static/img/logo.png" alt="dmIntegroff" class="page-header-logo">
+        </a>
+        <h1 class="page-header-title">Тестовый вебхук</h1>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
+    {{ if .expired }}
+    <div class="card">
+        <div class="card-body" style="text-align: center; padding: 3rem;">
+            <i data-lucide="clock" style="width: 64px; height: 64px; color: var(--warning); margin-bottom: 1rem;"></i>
+            <h2>Срок действия истёк</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                Этот тестовый вебхук больше не активен. Создайте новый на дашборде.
+            </p>
+            <a href="/dashboard" class="btn btn-primary">
+                <i data-lucide="arrow-left"></i>
+                Вернуться на дашборд
+            </a>
+        </div>
+    </div>
+    {{ else }}
+
+    <!-- Webhook URL Card -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">URL вебхука для тестов входящих запросов</h2>
+            <button class="btn btn-danger btn-sm" onclick="deleteWebhook()">
+                <i data-lucide="trash-2"></i>
+                Удалить
+            </button>
+        </div>
+        <div class="card-body">
+            <div style="background: var(--secondary); padding: 1rem; border-radius: 8px; font-family: monospace; word-break: break-all; margin-bottom: 1rem; position: relative; display: flex; align-items: center;">
+                <code id="webhook-url" style="color: var(--primary); flex: 1; padding-right: 45px; cursor: pointer;" ondblclick="copyWebhookURL(event)" title="Двойной клик для копирования">{{ .webhook_url }}</code>
+                <button class="btn-icon webhook-copy-btn" onclick="copyWebhookURL(event)" title="Копировать URL" style="position: absolute; right: 8px; z-index: 10;">
+                    <i data-lucide="copy" style="width: 16px; height: 16px;"></i>
+                </button>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.25rem;">
+                        Истекает: {{ .webhook_test.ExpiresAt.Format "02.01.2006 15:04" }}
+                    </p>
+                    <p style="color: var(--text-secondary); font-size: 0.875rem;">
+                        Запросов получено: <span id="request-count">{{ len .requests }}</span>
+                    </p>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-primary" onclick="sendTestRequest()">
+                        <i data-lucide="send"></i>
+                        Тестовый запрос
+                    </button>
+                    <button class="btn btn-secondary" onclick="showCustomRequestModal()">
+                        <i data-lucide="settings"></i>
+                        Тест исходящих запросов
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sent Requests List -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Отправленные запросы</h2>
+            <button class="btn btn-secondary btn-sm" onclick="clearSentRequests()">
+                <i data-lucide="trash-2"></i>
+                Очистить
+            </button>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            <div id="sent-requests-container">
+                <div class="empty-state" id="sent-empty-state">
+                    <i data-lucide="send" style="width: 64px; height: 64px; color: var(--text-secondary); margin-bottom: 1rem;"></i>
+                    <p style="color: var(--text-secondary);">Пока нет отправленных запросов</p>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Received Requests List -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Полученные запросы</h2>
+            <span class="badge badge-primary" id="live-indicator" style="display: flex; align-items: center; gap: 0.25rem;">
+                <i data-lucide="radio" style="width: 12px; height: 12px;"></i>
+                <span>Обновление: 5 сек</span>
+            </span>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            <div id="requests-container">
+                {{ if .requests }}
+                {{ range .requests }}
+                <div class="request-item" data-id="{{ .ID }}">
+                    <div class="request-header">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <span class="badge badge-{{ if eq .Method "GET" }}primary{{ else if eq .Method "POST" }}success{{ else if eq .Method "PUT" }}warning{{ else if eq .Method "DELETE" }}danger{{ else }}secondary{{ end }}">
+                                {{ .Method }}
+                            </span>
+                            <span style="font-family: monospace; font-size: 0.875rem;">{{ .URL }}</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <span style="color: var(--text-secondary); font-size: 0.875rem;">
+                                {{ .CreatedAt.Format "15:04:05" }}
+                            </span>
+                            <button class="btn-icon" onclick="toggleRequest('{{ .ID }}')">
+                                <i data-lucide="chevron-down" id="chevron-{{ .ID }}"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="request-details" id="details-{{ .ID }}" style="display: none;">
+                        <div class="request-section">
+                            <h4>Заголовки</h4>
+                            <pre><code>{{ .Headers }}</code></pre>
+                        </div>
+                        {{ if .QueryParams }}
+                        <div class="request-section">
+                            <h4>Query параметры</h4>
+                            <pre><code>{{ .QueryParams }}</code></pre>
+                        </div>
+                        {{ end }}
+                        {{ if .Body }}
+                        <div class="request-section">
+                            <h4>Тело запроса</h4>
+                            <pre><code>{{ .Body }}</code></pre>
+                        </div>
+                        {{ end }}
+                        <div class="request-section">
+                            <h4>Информация</h4>
+                            <p><strong>IP адрес:</strong> {{ .ClientIP }}</p>
+                            <p><strong>Время:</strong> {{ .CreatedAt.Format "02.01.2006 15:04:05" }}</p>
+                        </div>
+                        <div class="request-section" style="border-top: 1px solid var(--border); padding-top: 1rem; margin-top: 1rem;">
+                            <button class="btn btn-primary" onclick="showUseAsSampleModal({{ .ID }}, {{ printf "%q" .Body }})">
+                                <i data-lucide="download"></i>
+                                Использовать как образец данных
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {{ end }}
+                {{ else }}
+                <div class="empty-state" id="empty-state">
+                    <i data-lucide="inbox" style="width: 64px; height: 64px; color: var(--text-secondary); margin-bottom: 1rem;"></i>
+                    <p style="color: var(--text-secondary);">Пока нет запросов</p>
+                    <p style="color: var(--text-secondary); font-size: 0.875rem;">
+                        Отправьте запрос на URL выше, чтобы увидеть его здесь
+                    </p>
+                </div>
+                {{ end }}
+            </div>
+        </div>
+    </div>
+
+    {{ end }}
+
+    <!-- Modal for selecting integration -->
+    <div id="useAsSampleModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Выберите интеграцию</h2>
+                <button class="btn-icon" onclick="closeUseAsSampleModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                    Выберите интеграцию, для которой хотите использовать этот запрос как образец данных
+                </p>
+                <div id="integrationsList" style="max-height: 400px; overflow-y: auto;">
+                    <!-- Integrations will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for custom request -->
+    <div id="customRequestModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2>Отправить кастомный запрос</h2>
+                <button class="btn-icon" onclick="closeCustomRequestModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="customRequestForm">
+                    <!-- Target URL -->
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label for="targetUrl" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">
+                            URL назначения
+                            <span style="font-weight: normal; color: var(--text-secondary); font-size: 0.875rem;">(двойной клик или кнопка для копирования)</span>
+                        </label>
+                        <div class="url-buttons" style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="setCurrentWebhookUrl()" title="Текущий тестовый вебхук dmIntegroff (всегда разрешен)"></button>
+                                <i data-lucide="flask-conical" style="width: 14px; height: 14px;"></i>
+                                <span class="btn-text">Вебхук</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="setTestUrl('httpbin')" title="HTTPBin - тестовый сервис для отладки HTTP запросов">
+                                <i data-lucide="globe" style="width: 14px; height: 14px;"></i>
+                                <span class="btn-text">HTTPBin</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="setTestUrl('jsonplaceholder')" title="JSONPlaceholder - фейковый REST API для тестирования">
+                                <i data-lucide="database" style="width: 14px; height: 14px;"></i>
+                                <span class="btn-text">JSON API</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="setTestUrl('postman')" title="Postman Echo - сервис для тестирования API запросов">
+                                <i data-lucide="send" style="width: 14px; height: 14px;"></i>
+                                <span class="btn-text">Echo</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="clearUrl()">
+                                <i data-lucide="x" style="width: 14px; height: 14px;"></i>
+                                <span class="btn-text">Очистить</span>
+                            </button>
+                        </div>
+                        <div style="position: relative; display: flex; align-items: center;">
+                            <input type="url" id="targetUrl" class="form-control" placeholder="https://api.example.com/webhook" style="width: 100%; padding-right: 45px;" ondblclick="copyTargetUrl(event)" title="Двойной клик для копирования">
+                            <button type="button" class="btn-icon url-copy-btn" onclick="copyTargetUrl(event)" title="Копировать URL" style="position: absolute; right: 8px; z-index: 10;">
+                                <i data-lucide="copy" style="width: 16px; height: 16px;"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- HTTP Method -->
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label for="httpMethod" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">HTTP Метод</label>
+                        <select id="httpMethod" class="form-control" style="width: 100%;">
+                            <option value="GET">GET</option>
+                            <option value="POST" selected>POST</option>
+                            <option value="PUT">PUT</option>
+                            <option value="PATCH">PATCH</option>
+                            <option value="DELETE">DELETE</option>
+                            <option value="HEAD">HEAD</option>
+                            <option value="OPTIONS">OPTIONS</option>
+                        </select>
+                    </div>
+
+                    <!-- Headers -->
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Заголовки</label>
+                        <div id="headersContainer">
+                            <div class="header-row" style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <input type="text" placeholder="Название заголовка" class="form-control header-name" style="flex: 1;" value="Content-Type">
+                                <input type="text" placeholder="Значение" class="form-control header-value" style="flex: 1;" value="application/json">
+                                <button type="button" class="btn btn-danger btn-sm" onclick="removeHeaderRow(this)">
+                                    <i data-lucide="x"></i>
+                                </button>
+                            </div>
+                            <div class="header-row" style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <input type="text" placeholder="Название заголовка" class="form-control header-name" style="flex: 1;" value="User-Agent">
+                                <input type="text" placeholder="Значение" class="form-control header-value" style="flex: 1;" value="DmIntegroff">
+                                <button type="button" class="btn btn-danger btn-sm" onclick="removeHeaderRow(this)">
+                                    <i data-lucide="x"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="addHeaderRow()">
+                            <i data-lucide="plus"></i>
+                            Добавить заголовок
+                        </button>
+                    </div>
+
+                    <!-- Query Parameters -->
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Query параметры</label>
+                        <div id="queryContainer">
+                            <!-- Query params will be added here -->
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="addQueryRow()">
+                            <i data-lucide="plus"></i>
+                            Добавить параметр
+                        </button>
+                    </div>
+
+                    <!-- Request Body -->
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label for="requestBody" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Тело запроса</label>
+                        <div class="template-buttons" style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="setBodyTemplate('json')">
+                                <i data-lucide="braces" style="width: 14px; height: 14px;"></i>
+                                <span class="btn-text">JSON</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="setBodyTemplate('xml')">
+                                <i data-lucide="code" style="width: 14px; height: 14px;"></i>
+                                <span class="btn-text">XML</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="setBodyTemplate('form')">
+                                <i data-lucide="form-input" style="width: 14px; height: 14px;"></i>
+                                <span class="btn-text">Form</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="setBodyTemplate('text')">
+                                <i data-lucide="type" style="width: 14px; height: 14px;"></i>
+                                <span class="btn-text">Text</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="clearBody()">
+                                <i data-lucide="eraser" style="width: 14px; height: 14px;"></i>
+                                <span class="btn-text">Очистить</span>
+                            </button>
+                        </div>
+                        <textarea id="requestBody" class="form-control" rows="8" placeholder="Введите тело запроса...">{
+  "test": true,
+  "message": "Кастомный запрос",
+  "timestamp": "2024-12-11T12:00:00.000Z",
+  "data": {
+    "custom": true
+  }
+}</textarea>
+                    </div>
+
+                    <!-- Send Button -->
+                    <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+                        <button type="button" class="btn btn-secondary" onclick="closeCustomRequestModal()">
+                            Отмена
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i data-lucide="send"></i>
+                            Отправить запрос
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</main>
+
+<style>
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+    }
+
+    .modal-content {
+        background: var(--background);
+        border-radius: 12px;
+        max-width: 600px;
+        width: 90%;
+        max-height: 90vh;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 1.25rem;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+        overflow-y: auto;
+        flex: 1;
+        max-height: calc(90vh - 120px); /* Учитываем высоту заголовка */
+    }
+
+    .integration-item {
+        padding: 1rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        margin-bottom: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .integration-item:hover {
+        background: var(--secondary);
+        border-color: var(--primary);
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--background);
+        color: var(--foreground);
+        font-size: 0.875rem;
+        transition: border-color 0.2s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(139, 142, 255, 0.2);
+    }
+
+    .header-row, .query-row {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+        align-items: center;
+    }
+
+    .header-row input, .query-row input {
+        flex: 1;
+    }
+
+    .btn-sm {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+    }
+
+    textarea.form-control {
+        resize: vertical;
+        font-family: monospace;
+        line-height: 1.4;
+        min-height: 120px;
+    }
+
+    /* Стили для кнопок URL и шаблонов */
+    .url-buttons .btn, .template-buttons .btn {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        white-space: nowrap;
+    }
+
+    /* Стили для кнопки копирования в поле URL */
+    .url-copy-btn {
+        background: var(--secondary);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 4px;
+        transition: all 0.2s ease;
+    }
+
+    .url-copy-btn:hover {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+
+    .url-copy-btn:active {
+        transform: scale(0.95);
+    }
+
+    /* Стили для кнопки копирования в основном окне вебхука */
+    .webhook-copy-btn {
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 4px;
+        transition: all 0.2s ease;
+        color: var(--text-secondary);
+    }
+
+    .webhook-copy-btn:hover {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+
+    .webhook-copy-btn:active {
+        transform: scale(0.95);
+    }
+
+    /* Улучшения для мобильных устройств */
+    @media (max-width: 768px) {
+        .modal-content {
+            width: 95%;
+            max-height: 95vh;
+            margin: 0.5rem;
+        }
+        
+        .modal-body {
+            padding: 1rem;
+            max-height: calc(95vh - 100px);
+        }
+        
+        .header-row, .query-row {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .header-row input, .query-row input {
+            flex: none;
+            width: 100%;
+        }
+        
+        .btn-sm {
+            padding: 0.4rem 0.6rem;
+            font-size: 0.75rem;
+        }
+        
+        .url-buttons .btn .btn-text,
+        .template-buttons .btn .btn-text {
+            display: none;
+        }
+        
+        .url-buttons .btn,
+        .template-buttons .btn {
+            min-width: 36px;
+            justify-content: center;
+        }
+        
+        textarea.form-control {
+            min-height: 100px;
+        }
+        
+        .url-copy-btn {
+            padding: 6px;
+        }
+        
+        .url-copy-btn i {
+            width: 14px !important;
+            height: 14px !important;
+        }
+        
+        .webhook-copy-btn {
+            padding: 6px;
+        }
+        
+        .webhook-copy-btn i {
+            width: 14px !important;
+            height: 14px !important;
+        }
+    }
+
+    /* Кастомный скроллбар для модального окна */
+    .modal-body::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .modal-body::-webkit-scrollbar-track {
+        background: var(--secondary);
+        border-radius: 4px;
+    }
+
+    .modal-body::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 4px;
+    }
+
+    .modal-body::-webkit-scrollbar-thumb:hover {
+        background: var(--primary);
+    }
+
+    .integration-info h3 {
+        margin: 0 0 0.25rem 0;
+        font-size: 1rem;
+    }
+
+    .integration-info p {
+        margin: 0;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+
+    .loading-spinner {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 2rem;
+    }
+
+    .spinner {
+        border: 3px solid var(--border);
+        border-top: 3px solid var(--primary);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .request-item {
+        border-bottom: 1px solid var(--border);
+        transition: background 0.2s ease;
+    }
+
+    .request-item:last-child {
+        border-bottom: none;
+    }
+
+    .request-item:hover {
+        background: var(--secondary);
+    }
+
+    .request-item.new {
+        animation: highlight 1s ease;
+    }
+
+    @keyframes highlight {
+        0% { background: rgba(139, 142, 255, 0.3); }
+        100% { background: transparent; }
+    }
+
+    /* Стили для отправленных запросов */
+    .sent-request {
+        border-left: 3px solid var(--primary);
+    }
+
+    .sent-request:hover {
+        background: var(--secondary);
+        border-left-color: var(--success);
+    }
+
+    .request-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        cursor: pointer;
+    }
+
+    .request-details {
+        padding: 0 1.5rem 1rem 1.5rem;
+        border-top: 1px solid var(--border);
+    }
+
+    .request-section {
+        margin-top: 1rem;
+    }
+
+    .request-section h4 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .request-section pre {
+        background: var(--secondary);
+        padding: 1rem;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin: 0;
+    }
+
+    .request-section code {
+        font-family: monospace;
+        font-size: 0.875rem;
+        color: var(--text-primary);
+    }
+
+    .request-section p {
+        margin: 0.5rem 0;
+        font-size: 0.875rem;
+    }
+
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem;
+        text-align: center;
+    }
+
+    .btn-icon {
+        background: transparent;
+        border: none;
+        border-radius: var(--radius);
+        cursor: pointer;
+        padding: 0.2rem;
+        color: var(--muted-foreground);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+
+    .btn-icon:hover {
+        background: var(--secondary);
+        color: var(--foreground);
+    }
+
+    .btn-icon i {
+        width: 18px;
+        height: 18px;
+        transition: transform 0.2s ease-in-out;
+    }
+
+    #live-indicator {
+        animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+</style>
+
+{{ template "partials/scripts.html" . }}
+<script>
+    const token = "{{ .token }}";
+    let pollInterval;
+    let sentRequests = []; // Хранилище отправленных запросов
+    
+    // Инициализация иконок после загрузки
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    });
+
+    // Копирование URL в буфер обмена
+    function copyWebhookURL(event) {
+        // Предотвращаем всплытие события, чтобы избежать двойного срабатывания
+        if (event) {
+            event.stopPropagation();
+        }
+        
+        const url = document.getElementById('webhook-url').textContent;
+        if (!url) {
+            console.error('Webhook URL not found');
+            return;
+        }
+        
+        navigator.clipboard.writeText(url).then(() => {
+            showNotification('URL скопирован в буфер обмена', 'success');
+            
+            // Визуальная обратная связь - изменяем иконку на галочку
+            const button = event && event.target ? event.target.closest('.webhook-copy-btn') : null;
+            if (button) {
+                const icon = button.querySelector('i');
+                if (icon) {
+                    const originalIcon = icon.getAttribute('data-lucide');
+                    
+                    icon.setAttribute('data-lucide', 'check');
+                    if (typeof lucide !== 'undefined') {
+                        lucide.createIcons();
+                    }
+                    
+                    // Возвращаем иконку обратно через 1 секунду
+                    setTimeout(() => {
+                        icon.setAttribute('data-lucide', originalIcon);
+                        if (typeof lucide !== 'undefined') {
+                            lucide.createIcons();
+                        }
+                    }, 1000);
+                }
+            }
+            
+        }).catch(err => {
+            console.error('Failed to copy URL:', err);
+            showNotification('Не удалось скопировать URL', 'error');
+        });
+    }
+
+    // Удаление вебхука
+    function deleteWebhook() {
+        if (!confirm('Вы уверены, что хотите удалить этот тестовый вебхук?')) {
+            return;
+        }
+
+        fetch(`/api/webhook-test/${token}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            showNotification('Тестовый вебхук удалён', 'success');
+            setTimeout(() => {
+                window.location.href = '/dashboard';
+            }, 1000);
+        })
+        .catch(error => {
+            showNotification('Ошибка при удалении', 'error');
+        });
+    }
+
+    // Отправка тестового запроса
+    function sendTestRequest() {
+        const url = document.getElementById('webhook-url').textContent;
+        const requestData = {
+            url: url,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'User-Agent': 'DmIntegroff',
+                'X-Test-Header': 'Test Value'
+            },
+            body: JSON.stringify({
+                test: true,
+                message: 'Тестовый запрос',
+                timestamp: new Date().toISOString()
+            })
+        };
+        
+        const startTime = Date.now();
+        
+        fetch(url, {
+            method: requestData.method,
+            headers: requestData.headers,
+            body: requestData.body
+        })
+        .then(response => {
+            const duration = Date.now() - startTime;
+            return response.json().then(data => ({
+                status: response.status,
+                status_text: response.statusText,
+                headers: Object.fromEntries(response.headers.entries()),
+                body: JSON.stringify(data, null, 2),
+                duration_ms: duration
+            }));
+        })
+        .then(responseData => {
+            addSentRequest(requestData, responseData);
+            showNotification('Тестовый запрос отправлен', 'success');
+        })
+        .catch(error => {
+            const duration = Date.now() - startTime;
+            addSentRequest(requestData, {
+                error: error.message,
+                duration_ms: duration
+            });
+            showNotification('Ошибка при отправке запроса', 'error');
+        });
+    }
+
+    // Переключение отображения деталей запроса
+    function toggleRequest(id) {
+        const details = document.getElementById(`details-${id}`);
+        const chevron = document.getElementById(`chevron-${id}`);
+        
+        if (details && chevron) {
+            if (details.style.display === 'none' || details.style.display === '') {
+                details.style.display = 'block';
+                chevron.style.transform = 'rotate(180deg)';
+            } else {
+                details.style.display = 'none';
+                chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+    }
+
+    // Polling для обновления запросов
+    function pollRequests() {
+        fetch(`/api/webhook-test/${token}/requests`)
+            .then(response => response.json())
+            .then(data => {
+                updateRequests(data.requests);
+            })
+            .catch(error => {
+                console.error('Ошибка при получении запросов:', error);
+            });
+    }
+
+    // Обновление списка запросов
+    function updateRequests(requests) {
+        const container = document.getElementById('requests-container');
+        const emptyState = document.getElementById('empty-state');
+        const countElement = document.getElementById('request-count');
+        
+        if (!container || !countElement) {
+            console.error('Required elements not found');
+            return;
+        }
+        
+        if (!requests || requests.length === 0) {
+            if (!emptyState) {
+                container.innerHTML = `
+                    <div class="empty-state" id="empty-state">
+                        <i data-lucide="inbox" style="width: 64px; height: 64px; color: var(--text-secondary); margin-bottom: 1rem;"></i>
+                        <p style="color: var(--text-secondary);">Пока нет запросов</p>
+                        <p style="color: var(--text-secondary); font-size: 0.875rem;">
+                            Отправьте запрос на URL выше, чтобы увидеть его здесь
+                        </p>
+                    </div>
+                `;
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            }
+            return;
+        }
+
+        // Удаляем empty state если есть
+        if (emptyState) {
+            emptyState.remove();
+        }
+
+        // Обновляем счётчик
+        countElement.textContent = requests.length;
+
+        // Проверяем новые запросы
+        const existingIds = Array.from(container.querySelectorAll('.request-item')).map(el => el.dataset.id);
+        
+        requests.forEach(request => {
+            const requestId = String(request.id || request.ID);
+            if (!existingIds.includes(requestId)) {
+                addRequestToList(request);
+            }
+        });
+    }
+
+    // Добавление нового запроса в список
+    function addRequestToList(request) {
+        const container = document.getElementById('requests-container');
+        const date = new Date(request.created_at || request.CreatedAt);
+        const time = date.toLocaleTimeString('ru-RU');
+        const fullDate = date.toLocaleString('ru-RU');
+        
+        const methodColors = {
+            'GET': 'primary',
+            'POST': 'success',
+            'PUT': 'warning',
+            'DELETE': 'danger'
+        };
+        const method = request.method || request.Method || 'UNKNOWN';
+        const url = request.url || request.URL || '/';
+        const methodColor = methodColors[method] || 'secondary';
+
+        const requestHTML = `
+            <div class="request-item new" data-id="${request.id || request.ID}">
+                <div class="request-header" onclick="toggleRequest(${request.id || request.ID})">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span class="badge badge-${methodColor}">${method}</span>
+                        <span style="font-family: monospace; font-size: 0.875rem;">${url}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <span style="color: var(--text-secondary); font-size: 0.875rem;">${time}</span>
+                        <button class="btn-icon">
+                            <i data-lucide="chevron-down" id="chevron-${request.id || request.ID}"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="request-details" id="details-${request.id || request.ID}" style="display: none;">
+                    <div class="request-section">
+                        <h4>Заголовки</h4>
+                        <pre><code>${request.headers || request.Headers || ''}</code></pre>
+                    </div>
+                    ${(request.query_params || request.QueryParams) ? `
+                    <div class="request-section">
+                        <h4>Query параметры</h4>
+                        <pre><code>${request.query_params || request.QueryParams}</code></pre>
+                    </div>
+                    ` : ''}
+                    ${(request.body || request.Body) ? `
+                    <div class="request-section">
+                        <h4>Тело запроса</h4>
+                        <pre><code>${request.body || request.Body}</code></pre>
+                    </div>
+                    ` : ''}
+                    <div class="request-section">
+                        <h4>Информация</h4>
+                        <p><strong>IP адрес:</strong> ${request.client_ip || request.ClientIP || 'N/A'}</p>
+                        <p><strong>Время:</strong> ${fullDate}</p>
+                    </div>
+                    <div class="request-section" style="border-top: 1px solid var(--border); padding-top: 1rem; margin-top: 1rem;">
+                        <button class="btn btn-primary" onclick="showUseAsSampleModal(${request.id || request.ID}, ${JSON.stringify(request.body || request.Body || '')})">
+                            <i data-lucide="download"></i>
+                            Использовать как образец данных
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        container.insertAdjacentHTML('afterbegin', requestHTML);
+        
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+
+        // Убираем класс new через секунду
+        setTimeout(() => {
+            const element = container.querySelector(`[data-id="${request.id || request.ID}"]`);
+            if (element) {
+                element.classList.remove('new');
+            }
+        }, 1000);
+    }
+
+    // Уведомления
+    function showNotification(message, type) {
+        // Проверяем, что параметры переданы
+        if (!message) {
+            console.error('showNotification: message is required');
+            return;
+        }
+        
+        // Определяем цвета для разных типов уведомлений
+        let backgroundColor, textColor;
+        switch(type) {
+            case 'success':
+                backgroundColor = 'var(--success)';
+                textColor = 'white';
+                break;
+            case 'warning':
+                backgroundColor = '#f59e0b'; // Желтый/оранжевый
+                textColor = 'white';
+                break;
+            case 'error':
+                backgroundColor = 'var(--destructive)';
+                textColor = 'white';
+                break;
+            default:
+                backgroundColor = 'var(--primary)';
+                textColor = 'white';
+        }
+        
+        // Простая реализация уведомлений
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            background: ${backgroundColor};
+            color: ${textColor};
+            border-radius: 8px;
+            z-index: 9999;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            word-wrap: break-word;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        `;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+
+        // Увеличиваем время показа для предупреждений
+        const displayTime = type === 'warning' ? 5000 : 3000;
+
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            notification.style.transition = 'opacity 0.3s ease';
+            setTimeout(() => {
+                notification.remove();
+            }, 300);
+        }, displayTime);
+    }
+
+    // Запускаем polling каждые 5 секунд
+    pollInterval = setInterval(pollRequests, 5000);
+
+    // Останавливаем polling при уходе со страницы
+    window.addEventListener('beforeunload', () => {
+        clearInterval(pollInterval);
+    });
+
+    // Mobile Sidebar Toggle
+    function toggleMobileSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.querySelector('.sidebar-overlay');
+        sidebar.classList.toggle('mobile-open');
+        overlay.classList.toggle('active');
+    }
+    
+    function closeMobileSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.querySelector('.sidebar-overlay');
+        sidebar.classList.remove('mobile-open');
+        overlay.classList.remove('active');
+    }
+
+    // Use as sample functionality
+    let currentRequestId = null;
+    let currentRequestBody = null;
+
+    function showUseAsSampleModal(requestId, requestBody) {
+        currentRequestId = requestId;
+        currentRequestBody = requestBody;
+        
+        const modal = document.getElementById('useAsSampleModal');
+        const integrationsList = document.getElementById('integrationsList');
+        
+        // Show loading
+        integrationsList.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+        modal.style.display = 'flex';
+        
+        // Load integrations
+        fetch('/api/integrations')
+            .then(response => response.json())
+            .then(data => {
+                if (!data.integrations || data.integrations.length === 0) {
+                    integrationsList.innerHTML = `
+                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                            <p>У вас пока нет интеграций</p>
+                            <a href="/integrations/create" class="btn btn-primary" style="margin-top: 1rem;">
+                                <i data-lucide="plus"></i>
+                                Создать интеграцию
+                            </a>
+                        </div>
+                    `;
+                    if (typeof lucide !== 'undefined') {
+                        lucide.createIcons();
+                    }
+                    return;
+                }
+                
+                integrationsList.innerHTML = data.integrations.map(integration => `
+                    <div class="integration-item" onclick="useAsSample(${integration.id})">
+                        <div class="integration-info">
+                            <h3>${integration.name}</h3>
+                            <p>${integration.target_api || 'Не указан Target API'}</p>
+                        </div>
+                        <i data-lucide="arrow-right"></i>
+                    </div>
+                `).join('');
+                
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            })
+            .catch(error => {
+                integrationsList.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--destructive);">
+                        <p>Ошибка при загрузке интеграций</p>
+                    </div>
+                `;
+                console.error('Error loading integrations:', error);
+            });
+    }
+
+    function closeUseAsSampleModal() {
+        const modal = document.getElementById('useAsSampleModal');
+        modal.style.display = 'none';
+        currentRequestId = null;
+        currentRequestBody = null;
+    }
+
+    function useAsSample(integrationId) {
+        if (!currentRequestId || !integrationId) {
+            showNotification('Ошибка: не выбран запрос или интеграция', 'error');
+            return;
+        }
+
+        fetch(`/api/webhook-test/${token}/use-as-sample/${currentRequestId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                integration_id: integrationId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showNotification('Образец данных сохранён', 'success');
+                closeUseAsSampleModal();
+                
+                // Redirect to configuration page after a short delay
+                setTimeout(() => {
+                    window.location.href = data.redirect_url;
+                }, 1000);
+            } else {
+                showNotification(data.error || 'Ошибка при сохранении', 'error');
+            }
+        })
+        .catch(error => {
+            showNotification('Ошибка при сохранении образца', 'error');
+            console.error('Error:', error);
+        });
+    }
+
+    // Custom Request Modal Functions
+    function showCustomRequestModal() {
+        const modal = document.getElementById('customRequestModal');
+        modal.style.display = 'flex';
+        
+        // Set current webhook URL as default
+        setCurrentWebhookUrl();
+        
+        // Re-initialize icons
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    }
+
+    function setCurrentWebhookUrl() {
+        const webhookUrl = document.getElementById('webhook-url').textContent;
+        document.getElementById('targetUrl').value = webhookUrl;
+    }
+
+    function setTestUrl(service) {
+        const urls = {
+            'httpbin': 'https://httpbin.org/post',
+            'jsonplaceholder': 'https://jsonplaceholder.typicode.com/posts',
+            'postman': 'https://postman-echo.com/post'
+        };
+        
+        if (urls[service]) {
+            document.getElementById('targetUrl').value = urls[service];
+        }
+    }
+
+    function clearUrl() {
+        document.getElementById('targetUrl').value = '';
+    }
+
+    // Функции для работы с отправленными запросами
+    function addSentRequest(requestData, responseData) {
+        const sentRequest = {
+            id: Date.now(),
+            timestamp: new Date(),
+            request: requestData,
+            response: responseData
+        };
+        
+        sentRequests.unshift(sentRequest); // Добавляем в начало массива
+        
+        // Ограничиваем количество сохраненных запросов
+        if (sentRequests.length > 50) {
+            sentRequests = sentRequests.slice(0, 50);
+        }
+        
+        updateSentRequestsList();
+    }
+
+    function updateSentRequestsList() {
+        const container = document.getElementById('sent-requests-container');
+        const emptyState = document.getElementById('sent-empty-state');
+        
+        if (sentRequests.length === 0) {
+            if (!emptyState) {
+                container.innerHTML = `
+                    <div class="empty-state" id="sent-empty-state">
+                        <i data-lucide="send" style="width: 64px; height: 64px; color: var(--text-secondary); margin-bottom: 1rem;"></i>
+                        <p style="color: var(--text-secondary);">Пока нет отправленных запросов</p>
+                        
+                    </div>
+                `;
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            }
+            return;
+        }
+
+        // Удаляем empty state если есть
+        if (emptyState) {
+            emptyState.remove();
+        }
+
+        // Генерируем HTML для всех запросов
+        const requestsHTML = sentRequests.map(sentReq => {
+            const req = sentReq.request;
+            const resp = sentReq.response;
+            const time = sentReq.timestamp.toLocaleTimeString('ru-RU');
+            const fullDate = sentReq.timestamp.toLocaleString('ru-RU');
+            
+            // Определяем цвет статуса
+            let statusColor = 'secondary';
+            if (resp.status >= 200 && resp.status < 300) statusColor = 'success';
+            else if (resp.status >= 300 && resp.status < 400) statusColor = 'warning';
+            else if (resp.status >= 400) statusColor = 'danger';
+            
+            // Определяем цвет метода
+            const methodColors = {
+                'GET': 'primary',
+                'POST': 'success',
+                'PUT': 'warning',
+                'DELETE': 'danger'
+            };
+            const methodColor = methodColors[req.method] || 'secondary';
+            
+            // Сокращаем URL для отображения
+            const displayUrl = req.url.length > 50 ? req.url.substring(0, 47) + '...' : req.url;
+            
+            return `
+                <div class="request-item sent-request" data-id="${sentReq.id}">
+                    <div class="request-header" onclick="toggleSentRequest('${sentReq.id}')">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <span class="badge badge-${methodColor}">${req.method}</span>
+                            <span style="font-family: monospace; font-size: 0.875rem;" title="${req.url}">${displayUrl}</span>
+                            ${resp.status ? `<span class="badge badge-${statusColor}">${resp.status}</span>` : ''}
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <span style="color: var(--text-secondary); font-size: 0.875rem;">${time}</span>
+                            ${resp.duration_ms ? `<span style="color: var(--text-secondary); font-size: 0.75rem;">${resp.duration_ms}ms</span>` : ''}
+                            <button class="btn-icon">
+                                <i data-lucide="chevron-down" id="sent-chevron-${sentReq.id}"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="request-details" id="sent-details-${sentReq.id}" style="display: none;">
+                        <div class="request-section">
+                            <h4>Запрос</h4>
+                            <p><strong>URL:</strong> ${req.url}</p>
+                            <p><strong>Метод:</strong> ${req.method}</p>
+                            ${req.headers && Object.keys(req.headers).length > 0 ? `
+                            <p><strong>Заголовки:</strong></p>
+                            <pre><code>${JSON.stringify(req.headers, null, 2)}</code></pre>
+                            ` : ''}
+                            ${req.body ? `
+                            <p><strong>Тело запроса:</strong></p>
+                            <pre><code>${req.body}</code></pre>
+                            ` : ''}
+                        </div>
+                        <div class="request-section">
+                            <h4>Ответ</h4>
+                            ${resp.error ? `
+                            <p style="color: var(--destructive);"><strong>Ошибка:</strong> ${resp.error}</p>
+                            ` : `
+                            <p><strong>Статус:</strong> ${resp.status} ${resp.status_text || ''}</p>
+                            ${resp.duration_ms ? `<p><strong>Время выполнения:</strong> ${resp.duration_ms}ms</p>` : ''}
+                            ${resp.headers && Object.keys(resp.headers).length > 0 ? `
+                            <p><strong>Заголовки ответа:</strong></p>
+                            <pre><code>${JSON.stringify(resp.headers, null, 2)}</code></pre>
+                            ` : ''}
+                            ${resp.body ? `
+                            <p><strong>Тело ответа:</strong></p>
+                            <pre><code>${resp.body}</code></pre>
+                            ` : ''}
+                            `}
+                        </div>
+                        <div class="request-section" style="border-top: 1px solid var(--border); padding-top: 1rem; margin-top: 1rem;">
+                            <p style="color: var(--text-secondary); font-size: 0.875rem;">
+                                <strong>Время:</strong> ${fullDate}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = requestsHTML;
+        
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    }
+
+    function toggleSentRequest(id) {
+        const details = document.getElementById(`sent-details-${id}`);
+        const chevron = document.getElementById(`sent-chevron-${id}`);
+        
+        if (details && chevron) {
+            if (details.style.display === 'none' || details.style.display === '') {
+                details.style.display = 'block';
+                chevron.style.transform = 'rotate(180deg)';
+            } else {
+                details.style.display = 'none';
+                chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+    }
+
+    function clearSentRequests() {
+        if (confirm('Очистить историю отправленных запросов?')) {
+            sentRequests = [];
+            updateSentRequestsList();
+            showNotification('История отправленных запросов очищена', 'success');
+        }
+    }
+
+    function copyTargetUrl(event) {
+        // Предотвращаем всплытие события
+        if (event) {
+            event.stopPropagation();
+        }
+        
+        const urlInput = document.getElementById('targetUrl');
+        const url = urlInput.value.trim();
+        
+        if (!url) {
+            showNotification('URL пуст', 'error');
+            return;
+        }
+        
+        navigator.clipboard.writeText(url).then(() => {
+            showNotification('URL скопирован в буфер обмена', 'success');
+            
+            // Визуальная обратная связь - изменяем иконку на галочку
+            const button = event && event.target ? event.target.closest('.url-copy-btn') : null;
+            if (button) {
+                const icon = button.querySelector('i');
+                if (icon) {
+                    const originalIcon = icon.getAttribute('data-lucide');
+                    
+                    icon.setAttribute('data-lucide', 'check');
+                    if (typeof lucide !== 'undefined') {
+                        lucide.createIcons();
+                    }
+                    
+                    // Возвращаем иконку обратно через 1 секунду
+                    setTimeout(() => {
+                        icon.setAttribute('data-lucide', originalIcon);
+                        if (typeof lucide !== 'undefined') {
+                            lucide.createIcons();
+                        }
+                    }, 1000);
+                }
+            }
+            
+        }).catch(err => {
+            console.error('Failed to copy URL:', err);
+            showNotification('Не удалось скопировать URL', 'error');
+        });
+    }
+
+    function closeCustomRequestModal() {
+        const modal = document.getElementById('customRequestModal');
+        modal.style.display = 'none';
+    }
+
+    function addHeaderRow() {
+        const container = document.getElementById('headersContainer');
+        const row = document.createElement('div');
+        row.className = 'header-row';
+        row.style.cssText = 'display: flex; gap: 0.5rem; margin-bottom: 0.5rem;';
+        row.innerHTML = `
+            <input type="text" placeholder="Название заголовка" class="form-control header-name" style="flex: 1;">
+            <input type="text" placeholder="Значение" class="form-control header-value" style="flex: 1;">
+            <button type="button" class="btn btn-danger btn-sm" onclick="removeHeaderRow(this)">
+                <i data-lucide="x"></i>
+            </button>
+        `;
+        container.appendChild(row);
+        
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    }
+
+    function removeHeaderRow(button) {
+        button.closest('.header-row').remove();
+    }
+
+    function addQueryRow() {
+        const container = document.getElementById('queryContainer');
+        const row = document.createElement('div');
+        row.className = 'query-row';
+        row.style.cssText = 'display: flex; gap: 0.5rem; margin-bottom: 0.5rem;';
+        row.innerHTML = `
+            <input type="text" placeholder="Название параметра" class="form-control query-name" style="flex: 1;">
+            <input type="text" placeholder="Значение" class="form-control query-value" style="flex: 1;">
+            <button type="button" class="btn btn-danger btn-sm" onclick="removeQueryRow(this)">
+                <i data-lucide="x"></i>
+            </button>
+        `;
+        container.appendChild(row);
+        
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    }
+
+    function removeQueryRow(button) {
+        button.closest('.query-row').remove();
+    }
+
+    function setBodyTemplate(type) {
+        const textarea = document.getElementById('requestBody');
+        const timestamp = new Date().toISOString();
+        
+        switch(type) {
+            case 'json':
+                textarea.value = `{
+  "test": true,
+  "message": "Кастомный JSON запрос",
+  "timestamp": "${timestamp}",
+  "data": {
+    "custom": true,
+    "type": "json"
+  }
+}`;
+                break;
+            case 'xml':
+                textarea.value = `<?xml version="1.0" encoding="UTF-8"?>
+<request>
+    <test>true</test>
+    <message>Кастомный XML запрос</message>
+    <timestamp>${timestamp}</timestamp>
+    <data>
+        <custom>true</custom>
+        <type>xml</type>
+    </data>
+</request>`;
+                break;
+            case 'form':
+                textarea.value = `test=true&message=Кастомный+Form+запрос&timestamp=${encodeURIComponent(timestamp)}&custom=true&type=form`;
+                break;
+            case 'text':
+                textarea.value = `Кастомный текстовый запрос
+Время: ${timestamp}
+Тип: text
+Тест: true`;
+                break;
+        }
+    }
+
+    function clearBody() {
+        document.getElementById('requestBody').value = '';
+    }
+
+    // Handle custom request form submission
+    document.getElementById('customRequestForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        sendCustomRequest();
+    });
+
+    function sendCustomRequest() {
+        const targetUrl = document.getElementById('targetUrl').value.trim();
+        const method = document.getElementById('httpMethod').value;
+        const body = document.getElementById('requestBody').value;
+        
+        // Validate URL
+        if (!targetUrl) {
+            showNotification('Укажите URL назначения', 'error');
+            return;
+        }
+
+        try {
+            new URL(targetUrl); // Validate URL format
+        } catch (e) {
+            showNotification('Некорректный URL', 'error');
+            return;
+        }
+        
+        // Collect headers
+        const headers = {
+            'User-Agent': 'DmIntegroff' // Всегда добавляем наш User-Agent
+        };
+        document.querySelectorAll('.header-row').forEach(row => {
+            const name = row.querySelector('.header-name').value.trim();
+            const value = row.querySelector('.header-value').value.trim();
+            if (name && value) {
+                headers[name] = value;
+            }
+        });
+
+        // Collect query parameters
+        const queryParams = new URLSearchParams();
+        document.querySelectorAll('.query-row').forEach(row => {
+            const name = row.querySelector('.query-name').value.trim();
+            const value = row.querySelector('.query-value').value.trim();
+            if (name && value) {
+                queryParams.append(name, value);
+            }
+        });
+
+        // Build final URL with query parameters
+        let finalUrl = targetUrl;
+        if (queryParams.toString()) {
+            const separator = targetUrl.includes('?') ? '&' : '?';
+            finalUrl += separator + queryParams.toString();
+        }
+
+        // Prepare fetch options
+        const fetchOptions = {
+            method: method,
+            headers: headers,
+            mode: 'cors' // Enable CORS for external URLs
+        };
+
+        // Add body for methods that support it
+        if (['POST', 'PUT', 'PATCH'].includes(method) && body.trim()) {
+            fetchOptions.body = body;
+        }
+
+        // Show loading state
+        const submitBtn = document.querySelector('#customRequestForm button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i data-lucide="loader-2" style="animation: spin 1s linear infinite;"></i> Отправка...';
+        
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+
+        // Prepare proxy request data
+        const proxyData = {
+            url: finalUrl,
+            method: method,
+            headers: headers,
+            body: body.trim() || undefined,
+            query_params: {}
+        };
+
+        // Add query parameters to proxy data (they're already in finalUrl, but let's be explicit)
+        document.querySelectorAll('.query-row').forEach(row => {
+            const name = row.querySelector('.query-name').value.trim();
+            const value = row.querySelector('.query-value').value.trim();
+            if (name && value) {
+                proxyData.query_params[name] = value;
+            }
+        });
+
+        // Send request through proxy to avoid CORS
+        fetch('/api/proxy/http', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(proxyData)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    // Добавляем неудачный запрос в историю
+                    addSentRequest(proxyData, data);
+                    throw new Error(data.error);
+                }
+                
+                // Добавляем успешный запрос в историю
+                addSentRequest(proxyData, data);
+                
+                // Show success notification with response details
+                const statusText = data.status_text || `HTTP ${data.status}`;
+                showNotification(`✅ Запрос выполнен: ${statusText} (${data.duration_ms}ms)`, 'success');
+                
+                // Show response in console for debugging
+                console.log('Proxy Response:', data);
+                console.log('Response Body:', data.body);
+                console.log('Response Headers:', data.headers);
+                
+                // If it's our webhook, don't close modal so user can see the result
+                const webhookUrl = document.getElementById('webhook-url').textContent;
+                if (!finalUrl.startsWith(webhookUrl.split('?')[0])) {
+                    closeCustomRequestModal();
+                }
+            })
+            .catch(error => {
+                console.error('Error sending custom request:', error);
+                
+                // Если запрос еще не добавлен в историю (ошибка на уровне fetch), добавляем
+                if (!sentRequests.some(req => req.request.url === proxyData.url && 
+                    Math.abs(req.timestamp.getTime() - Date.now()) < 5000)) {
+                    addSentRequest(proxyData, { error: error.message });
+                }
+                
+                let errorMessage = error.message;
+                
+                // Улучшенные сообщения об ошибках
+                if (error.message.includes('local/private networks')) {
+                    errorMessage = '🔒 Запросы к локальным/приватным сетям заблокированы из соображений безопасности';
+                } else if (error.message.includes('Invalid URL')) {
+                    errorMessage = '🔗 Некорректный формат URL. Проверьте адрес.';
+                } else if (error.message.includes('Authentication required')) {
+                    errorMessage = '🔐 Требуется авторизация. Обновите страницу.';
+                } else if (error.message.includes('timeout')) {
+                    errorMessage = '⏱️ Превышено время ожидания ответа (30 сек)';
+                }
+                
+                showNotification(`❌ ${errorMessage}`, 'error');
+            })
+            .finally(() => {
+                // Restore button state
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+                
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            });
+    }
+
+    // Close modal on outside click
+    document.addEventListener('click', function(event) {
+        const useAsSampleModal = document.getElementById('useAsSampleModal');
+        const customRequestModal = document.getElementById('customRequestModal');
+        
+        if (useAsSampleModal && event.target === useAsSampleModal) {
+            closeUseAsSampleModal();
+        }
+        
+        if (customRequestModal && event.target === customRequestModal) {
+            closeCustomRequestModal();
+        }
+    });
+</script>
+{{ end }}

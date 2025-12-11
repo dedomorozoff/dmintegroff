@@ -98,18 +98,42 @@ func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 	}
 
 	var transformed map[string]interface{}
+	var transformedString string
+	var isStringTemplate bool
 
 	// Приоритет 1: Используем OutputTemplate, если он задан
 	if integration.OutputTemplate != "" {
 		processor := utils.NewTemplateProcessor()
-		var err error
-		transformed, err = processor.ProcessTemplate(integration.OutputTemplate, payload)
-		if err != nil {
-			logger.Log.WithFields(map[string]interface{}{
-				"integration_id": integrationID,
-				"error":          err.Error(),
-			}).Error("Failed to process output template")
-			return err
+		
+		// Определяем тип шаблона
+		templateType := integration.TemplateType
+		if templateType == "" {
+			templateType = "json" // По умолчанию JSON
+		}
+		
+		// Для JSON используем старый метод (возвращает map)
+		if templateType == "json" {
+			var err error
+			transformed, err = processor.ProcessTemplate(integration.OutputTemplate, payload)
+			if err != nil {
+				logger.Log.WithFields(map[string]interface{}{
+					"integration_id": integrationID,
+					"error":          err.Error(),
+				}).Error("Failed to process output template")
+				return err
+			}
+		} else {
+			// Для других типов (xml, text, custom) используем строковый метод
+			var err error
+			transformedString, err = processor.ProcessTemplateString(integration.OutputTemplate, payload)
+			if err != nil {
+				logger.Log.WithFields(map[string]interface{}{
+					"integration_id": integrationID,
+					"error":          err.Error(),
+				}).Error("Failed to process output template string")
+				return err
+			}
+			isStringTemplate = true
 		}
 	} else if integration.MappingConfig != "" {
 		// Приоритет 2: Используем MappingConfig (старый способ)
@@ -150,8 +174,31 @@ func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 		transformed = payload
 	}
 
-	// Send to target
-	jsonData, _ := json.Marshal(transformed)
+	// Подготавливаем данные для отправки
+	var requestBody []byte
+	var contentType string
+	
+	if isStringTemplate {
+		// Для строковых шаблонов отправляем как есть
+		requestBody = []byte(transformedString)
+		
+		// Определяем Content-Type на основе типа шаблона
+		templateType := integration.TemplateType
+		switch templateType {
+		case "xml":
+			contentType = "application/xml"
+		case "text":
+			contentType = "text/plain"
+		case "custom":
+			contentType = "text/plain" // Для custom используем text/plain по умолчанию
+		default:
+			contentType = "application/json"
+		}
+	} else {
+		// Для JSON маршалим в JSON
+		requestBody, _ = json.Marshal(transformed)
+		contentType = "application/json"
+	}
 	
 	// Используем HTTP метод из настроек интеграции
 	httpMethod := integration.HTTPMethod
@@ -159,7 +206,7 @@ func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 		httpMethod = "POST" // Default to POST
 	}
 	
-	req, err := http.NewRequest(httpMethod, integration.TargetAPI, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest(httpMethod, integration.TargetAPI, bytes.NewBuffer(requestBody))
 	if err != nil {
 		logger.Log.WithFields(map[string]interface{}{
 			"integration_id": integrationID,
@@ -171,7 +218,7 @@ func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 			IntegrationID: integrationID,
 			Method:        httpMethod,
 			URL:           integration.TargetAPI,
-			RequestBody:   string(jsonData),
+			RequestBody:   string(requestBody),
 			StatusCode:    500,
 			LogType:       "webhook",
 			ErrorMessage:  err.Error(),
@@ -181,10 +228,10 @@ func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 		return err
 	}
 	
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", contentType)
 	
 	// Add webhook signature
-	if err := AddSignatureToRequest(req, jsonData, &integration); err != nil {
+	if err := AddSignatureToRequest(req, requestBody, &integration); err != nil {
 		logger.Log.WithFields(map[string]interface{}{
 			"integration_id": integrationID,
 			"error":          err.Error(),
@@ -194,7 +241,7 @@ func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 			IntegrationID: integrationID,
 			Method:        httpMethod,
 			URL:           integration.TargetAPI,
-			RequestBody:   string(jsonData),
+			RequestBody:   string(requestBody),
 			StatusCode:    500,
 			LogType:       "webhook",
 			ErrorMessage:  "Signature generation failed: " + err.Error(),
@@ -215,7 +262,7 @@ func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 			IntegrationID: integrationID,
 			Method:        httpMethod,
 			URL:           integration.TargetAPI,
-			RequestBody:   string(jsonData),
+			RequestBody:   string(requestBody),
 			StatusCode:    500,
 			LogType:       "webhook",
 			ErrorMessage:  "Authentication failed: " + err.Error(),
@@ -224,6 +271,33 @@ func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 		
 		return err
 	}
+	
+	// Add custom headers
+	if err := AddCustomHeaders(req, &integration); err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"integration_id": integrationID,
+			"error":          err.Error(),
+		}).Error("Failed to add custom headers")
+		
+		log := models.RequestLog{
+			IntegrationID: integrationID,
+			Method:        httpMethod,
+			URL:           integration.TargetAPI,
+			RequestBody:   string(requestBody),
+			StatusCode:    500,
+			LogType:       "webhook",
+			ErrorMessage:  "Custom headers failed: " + err.Error(),
+		}
+		CreateLogWithLimit(&log)
+		
+		return err
+	}
+	
+	// Log all request headers for debugging
+	logger.Log.WithFields(map[string]interface{}{
+		"integration_id": integrationID,
+		"headers":        req.Header,
+	}).Debug("Request headers before sending")
 	
 	// Execute request with retry logic
 	client := &http.Client{}
@@ -241,7 +315,7 @@ func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 			IntegrationID: integrationID,
 			Method:        httpMethod,
 			URL:           integration.TargetAPI,
-			RequestBody:   string(jsonData),
+			RequestBody:   string(requestBody),
 			StatusCode:    500,
 			LogType:       "webhook",
 			ErrorMessage:  err.Error(),
@@ -260,15 +334,19 @@ func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 		responseBody = buf.Bytes()
 	}
 
+	// Сохраняем заголовки запроса для логирования
+	requestHeadersJSON, _ := json.Marshal(req.Header)
+
 	// Логируем успешную отправку к target API
 	log := models.RequestLog{
-		IntegrationID: integrationID,
-		Method:        httpMethod,
-		URL:           integration.TargetAPI,
-		RequestBody:   string(jsonData),
-		ResponseBody:  string(responseBody),
-		StatusCode:    resp.StatusCode,
-		LogType:       "webhook",
+		IntegrationID:  integrationID,
+		Method:         httpMethod,
+		URL:            integration.TargetAPI,
+		RequestBody:    string(requestBody),
+		RequestHeaders: string(requestHeadersJSON),
+		ResponseBody:   string(responseBody),
+		StatusCode:     resp.StatusCode,
+		LogType:        "webhook",
 	}
 	CreateLogWithLimit(&log)
 
@@ -276,6 +354,8 @@ func ProcessWebhook(integrationID uint, payload map[string]interface{}) error {
 		"integration_id": integrationID,
 		"target_api":     integration.TargetAPI,
 		"status_code":    resp.StatusCode,
+		"content_type":   contentType,
+		"template_type":  integration.TemplateType,
 	}).Info("Webhook processed successfully")
 
 	return nil

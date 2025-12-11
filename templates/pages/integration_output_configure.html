@@ -1,0 +1,210 @@
+{{ define "pages/integration_output_configure.html" }}
+{{ template "partials/head.html" . }}
+
+<!-- JSON Highlight Styles -->
+<link rel="stylesheet" href="/static/css/json-highlight.css">
+
+{{ template "partials/sidebar.html" . }}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <div>
+                <h1>Настройка маппинга выхода</h1>
+                <p><strong>Интеграция:</strong> {{ .integration.Name }}</p>
+                <p><strong>Выход:</strong> {{ .output.Name }}</p>
+            </div>
+            <a href="/integrations/{{ .integration.ID }}/outputs" class="btn btn-secondary">
+                <i class="icon">←</i> К списку выходов
+            </a>
+        </div>
+
+        {{ if .integration.SamplePayload }}
+        <div class="card">
+            <div class="card-header">
+                <h3>Образец данных (из интеграции)</h3>
+            </div>
+            <div class="card-body">
+                <pre style="background: #1a1f2e; color: #abb2bf; padding: 1rem; border-radius: 8px; overflow-x: auto;">{{ .integration.SamplePayload }}</pre>
+            </div>
+        </div>
+
+        <form method="POST" action="/integrations/{{ .integration.ID }}/outputs/{{ .output.ID }}/configure" class="form mt-4">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Настройка трансформации данных</h3>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label>
+                            <input type="radio" name="mapping_type" value="template" checked onchange="toggleMappingType()">
+                            Использовать шаблон (рекомендуется)
+                        </label>
+                        <label style="margin-left: 2rem;">
+                            <input type="radio" name="mapping_type" value="mapping" onchange="toggleMappingType()">
+                            Использовать простой маппинг
+                        </label>
+                    </div>
+
+                    <!-- Template Mode -->
+                    <div id="template_mode">
+                        <div class="form-group">
+                            <label for="template_type">Тип шаблона</label>
+                            <select id="template_type" name="template_type" class="form-control">
+                                <option value="json" {{ if eq .output.TemplateType "json" }}selected{{ end }}>JSON</option>
+                                <option value="xml" {{ if eq .output.TemplateType "xml" }}selected{{ end }}>XML</option>
+                                <option value="text" {{ if eq .output.TemplateType "text" }}selected{{ end }}>Plain Text</option>
+                                <option value="custom" {{ if eq .output.TemplateType "custom" }}selected{{ end }}>Custom</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="output_template">Шаблон вывода</label>
+                            <textarea id="output_template" name="output_template" class="form-control" rows="15" 
+                                      style="font-family: monospace;">{{ .output.OutputTemplate }}</textarea>
+                            <small class="form-text">
+                                Используйте <code>{{`{{field.path}}`}}</code> для вставки значений из входных данных.
+                                Например: <code>{{`{{user.name}}`}}</code>, <code>{{`{{email}}`}}</code>
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- Mapping Mode -->
+                    <div id="mapping_mode" style="display:none;">
+                        <div class="form-group">
+                            <label>Маппинг полей</label>
+                            <div id="mapping_fields">
+                                {{ range .fields }}
+                                <div class="mapping-row">
+                                    <input type="text" class="form-control" placeholder="Целевое поле" 
+                                           name="target_field[]" value="{{ index $.currentMapping .Path }}">
+                                    <span>=</span>
+                                    <input type="text" class="form-control" readonly value="{{ .Path }}" 
+                                           name="source_field[]">
+                                </div>
+                                {{ end }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="icon">💾</i> Сохранить маппинг
+                </button>
+                <button type="button" class="btn btn-info" onclick="testMapping()">
+                    <i class="icon">🧪</i> Протестировать
+                </button>
+                <a href="/integrations/{{ .integration.ID }}/outputs" class="btn btn-secondary">Отмена</a>
+            </div>
+        </form>
+        {{ else }}
+        <div class="alert alert-warning">
+            <h3>⚠️ Нет образца данных</h3>
+            <p>Для настройки маппинга необходимо сначала получить образец данных в интеграции.</p>
+            <a href="/integrations/{{ .integration.ID }}/configure" class="btn btn-primary">
+                Перейти к настройке интеграции
+            </a>
+        </div>
+        {{ end }}
+    </div>
+
+    <!-- Modal для результатов теста -->
+    <div id="testModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Результат тестирования</h2>
+                <button class="modal-close" onclick="closeTestModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="testModalBody">
+                <!-- Результаты будут загружены через JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+    function toggleMappingType() {
+        const mappingType = document.querySelector('input[name="mapping_type"]:checked').value;
+        if (mappingType === 'template') {
+            document.getElementById('template_mode').style.display = 'block';
+            document.getElementById('mapping_mode').style.display = 'none';
+        } else {
+            document.getElementById('template_mode').style.display = 'none';
+            document.getElementById('mapping_mode').style.display = 'block';
+        }
+    }
+
+    function testMapping() {
+        const integrationId = {{ .integration.ID }};
+        const outputId = {{ .output.ID }};
+        
+        fetch(`/integrations/${integrationId}/outputs/${outputId}/test`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                document.getElementById('testModalBody').innerHTML = `
+                    <div class="test-result">
+                        <h3>✅ Тестирование успешно</h3>
+                        
+                        <div class="result-section">
+                            <h4>Входные данные:</h4>
+                            <pre><code>${data.input}</code></pre>
+                        </div>
+                        
+                        <div class="result-section">
+                            <h4>Результат трансформации:</h4>
+                            <pre><code>${data.output}</code></pre>
+                        </div>
+                        
+                        <div class="result-section">
+                            <h4>Информация:</h4>
+                            <ul>
+                                <li><strong>Target API:</strong> <code>${data.target_api}</code></li>
+                                <li><strong>HTTP метод:</strong> ${data.http_method}</li>
+                                <li><strong>Тип шаблона:</strong> ${data.template_type || 'json'}</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            } else {
+                document.getElementById('testModalBody').innerHTML = `
+                    <div class="alert alert-danger">
+                        <h3>❌ Ошибка</h3>
+                        <p>${data.error}</p>
+                    </div>
+                `;
+            }
+            document.getElementById('testModal').style.display = 'flex';
+        })
+        .catch(error => {
+            document.getElementById('testModalBody').innerHTML = `
+                <div class="alert alert-danger">
+                    <h3>❌ Ошибка</h3>
+                    <p>${error.message}</p>
+                </div>
+            `;
+            document.getElementById('testModal').style.display = 'flex';
+        });
+    }
+
+    function closeTestModal() {
+        document.getElementById('testModal').style.display = 'none';
+    }
+
+    window.onclick = function(event) {
+        const modal = document.getElementById('testModal');
+        if (event.target === modal) {
+            closeTestModal();
+        }
+    }
+    </script>
+    </main>
+
+{{ template "partials/scripts.html" . }}
+{{ end }}

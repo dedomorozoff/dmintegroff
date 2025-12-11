@@ -1,14 +1,20 @@
 package main
 
 import (
+	"dmintegroff/internal/cache"
+	"dmintegroff/internal/controllers"
 	"dmintegroff/internal/database"
 	"dmintegroff/internal/logger"
+	"dmintegroff/internal/middleware"
 	"dmintegroff/internal/models"
 	"dmintegroff/internal/routes"
 	"dmintegroff/internal/services"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -21,9 +27,44 @@ func main() {
 	logger.Init()
 	logger.Log.Info("Starting dmIntegroff server...")
 
+	// Initialize Redis (optional)
+	if err := cache.InitRedis(); err != nil {
+		logger.Log.Warn("Redis initialization failed: " + err.Error())
+	}
+
 	database.Connect()
-	database.Migrate(&models.User{}, &models.Project{}, &models.Integration{}, &models.RequestLog{})
+	database.Migrate(&models.User{}, &models.Project{}, &models.Integration{}, &models.IntegrationOutput{}, &models.RequestLog{}, &models.WebhookTest{}, &models.WebhookTestRequest{})
 	database.SeedAdmin()
+
+	// Initialize rate limiter
+	rateLimitRate := 60  // requests per minute
+	rateLimitBurst := 10 // burst capacity
+	
+	if rateStr := os.Getenv("RATE_LIMIT_RATE"); rateStr != "" {
+		if rate, err := strconv.Atoi(rateStr); err == nil {
+			rateLimitRate = rate
+		}
+	}
+	
+	if burstStr := os.Getenv("RATE_LIMIT_BURST"); burstStr != "" {
+		if burst, err := strconv.Atoi(burstStr); err == nil {
+			rateLimitBurst = burst
+		}
+	}
+	
+	middleware.InitRateLimiter(rateLimitRate, rateLimitBurst)
+
+	// Cleanup expired test webhooks on startup
+	controllers.CleanupExpiredWebhooks()
+
+	// Schedule cleanup every hour
+	go func() {
+		ticker := time.NewTicker(1 * time.Hour)
+		defer ticker.Stop()
+		for range ticker.C {
+			controllers.CleanupExpiredWebhooks()
+		}
+	}()
 
 	// Получаем *sql.DB из GORM для health service
 	sqlDB, err := database.DB.DB()
@@ -48,5 +89,14 @@ func main() {
 
 	addr := fmt.Sprintf("%s:%s", host, port)
 	logger.Log.Info("Server starting on " + addr)
-	r.Run(addr)
+	
+	// Use http.Server to ensure HOST binding is respected
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: r,
+	}
+	
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		logger.Log.Fatal("Server failed to start: " + err.Error())
+	}
 }

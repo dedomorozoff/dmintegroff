@@ -6,15 +6,26 @@
     <main class="main-content">
         <!-- Page Header -->
         <div class="page-header">
-            <h1>Панель управления</h1>
-            <p>Обзор всех интеграций и статистики</p>
+            <div>
+                <h1>Панель управления</h1>
+                <p>Обзор всех интеграций и статистики</p>
+            </div>
+            <button onclick="createWebhookTest()" class="btn btn-primary hide-on-mobile" style="display: flex; align-items: center; gap: 0.5rem;">
+                <i data-lucide="flask-conical"></i>
+                <span>Тестовый вебхук</span>
+            </button>
         </div>
         
         <!-- Mobile Header -->
         <div class="page-header-mobile">
-            <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Меню">
-                <i data-lucide="menu"></i>
-            </button>
+            <div class="mobile-header-actions">
+                <button onclick="createWebhookTest()" class="btn btn-primary mobile-webhook-test-btn" aria-label="Протестировать вебхук">
+                    <i data-lucide="flask-conical"></i>
+                </button>
+                <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Меню">
+                    <i data-lucide="menu"></i>
+                </button>
+            </div>
             <a href="/dashboard">
                 <img src="/static/img/logo.png" alt="dmIntegroff" class="page-header-logo">
             </a>
@@ -80,6 +91,20 @@
                     <div class="stat-card-icon"
                         style="background: color-mix(in srgb, var(--primary) 10%, transparent); opacity: 0.7;">
                         <i data-lucide="activity" style="color: var(--primary);"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div>
+                        <p class="stat-card-title">Ошибки (24ч)</p>
+                        <p class="stat-card-value">{{ if .error_count }}{{ .error_count }}{{ else }}0{{ end }}</p>
+                        <p class="stat-card-change">За последние сутки</p>
+                    </div>
+                    <div class="stat-card-icon"
+                        style="background: color-mix(in srgb, var(--danger) 10%, transparent);">
+                        <i data-lucide="alert-triangle" style="color: var(--danger);"></i>
                     </div>
                 </div>
             </div>
@@ -256,6 +281,27 @@
             </div>
             {{ end }}
 
+            <!-- System Statistics (Admin Only) -->
+            {{ if eq .role "admin" }}
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i data-lucide="server"></i>
+                        Системная статистика
+                    </h2>
+                    <button onclick="refreshSystemStats()" class="btn btn-sm btn-secondary" title="Обновить">
+                        <i data-lucide="refresh-cw"></i>
+                    </button>
+                </div>
+                <div id="system-stats-content">
+                    <div style="padding: 2rem; text-align: center; color: var(--text-secondary);">
+                        <i data-lucide="loader-2" style="animation: spin 1s linear infinite; width: 24px; height: 24px;"></i>
+                        <p style="margin: 0.5rem 0 0 0;">Загрузка системной статистики...</p>
+                    </div>
+                </div>
+            </div>
+            {{ end }}
+
             <!-- Recent Activity -->
             <div class="card">
                 <div class="card-header">
@@ -322,6 +368,31 @@
     </div>
 
     <style>
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .page-header > div {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        @media (max-width: 768px) {
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .page-header button {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
         .step-item[style*="cursor: pointer"]:hover {
             background: var(--secondary);
             border-radius: 8px;
@@ -607,5 +678,195 @@
     document.querySelectorAll('.sidebar a').forEach(link => {
         link.addEventListener('click', closeMobileSidebar);
     });
+
+    // Создание тестового вебхука
+    function createWebhookTest() {
+        // Показываем индикатор загрузки
+        const button = event.target.closest('button');
+        if (button) {
+            button.disabled = true;
+            button.style.opacity = '0.6';
+        }
+        
+        fetch('/api/webhook-test/create', {
+            method: 'POST'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to create webhook test');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.webhook_url) {
+                // Копируем URL в буфер обмена
+                navigator.clipboard.writeText(data.webhook_url).then(() => {
+                    // Открываем страницу с тестовым вебхуком
+                    window.location.href = `/webhook-test/${data.token}`;
+                }).catch(err => {
+                    console.error('Failed to copy URL:', err);
+                    // Всё равно открываем страницу
+                    window.location.href = `/webhook-test/${data.token}`;
+                });
+            } else {
+                throw new Error('No webhook URL in response');
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка при создании тестового вебхука:', error);
+            alert('Не удалось создать тестовый вебхук. Попробуйте ещё раз.');
+            
+            // Восстанавливаем кнопку
+            if (button) {
+                button.disabled = false;
+                button.style.opacity = '1';
+            }
+        });
+    }
+
+    // System Statistics Functions (Admin Only)
+    {{ if eq .role "admin" }}
+    function loadSystemStats() {
+        fetch('/api/system-stats')
+            .then(response => response.json())
+            .then(data => {
+                displaySystemStats(data);
+            })
+            .catch(error => {
+                console.error('Error loading system stats:', error);
+                document.getElementById('system-stats-content').innerHTML = `
+                    <div style="padding: 2rem; text-align: center; color: var(--danger);">
+                        <i data-lucide="alert-circle" style="width: 24px; height: 24px;"></i>
+                        <p style="margin: 0.5rem 0 0 0;">Ошибка загрузки статистики</p>
+                    </div>
+                `;
+                if (window.lucide) window.lucide.createIcons();
+            });
+    }
+
+    function displaySystemStats(data) {
+        const content = document.getElementById('system-stats-content');
+        
+        content.innerHTML = `
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; padding: 1.5rem;">
+                <div class="mini-stat-card">
+                    <div class="mini-stat-header">
+                        <i data-lucide="shield-check" style="color: var(--success);"></i>
+                        <span>Rate Limiter</span>
+                    </div>
+                    <div class="mini-stat-value">${data.rate_limiter.enabled ? 'Активен' : 'Отключен'}</div>
+                    ${data.rate_limiter.enabled ? `
+                        <div class="mini-stat-details">
+                            <small>${data.rate_limiter.rate} req/min, burst: ${data.rate_limiter.burst}</small>
+                            <small>Активных IP: ${data.rate_limiter.active_visitors}</small>
+                        </div>
+                    ` : ''}
+                </div>
+                
+                <div class="mini-stat-card">
+                    <div class="mini-stat-header">
+                        <i data-lucide="activity" style="color: var(--primary);"></i>
+                        <span>Запросы (24ч)</span>
+                    </div>
+                    <div class="mini-stat-value">${data.requests_last_24h}</div>
+                    <div class="mini-stat-details">
+                        <small>Успешность: ${data.success_rate}%</small>
+                    </div>
+                </div>
+                
+                <div class="mini-stat-card">
+                    <div class="mini-stat-header">
+                        <i data-lucide="alert-triangle" style="color: var(--danger);"></i>
+                        <span>Ошибки (24ч)</span>
+                    </div>
+                    <div class="mini-stat-value">${data.errors_last_24h}</div>
+                    <div class="mini-stat-details">
+                        <small>${data.errors_last_24h > 0 ? 'Требует внимания' : 'Всё в порядке'}</small>
+                    </div>
+                </div>
+                
+                <div class="mini-stat-card">
+                    <div class="mini-stat-header">
+                        <i data-lucide="database" style="color: var(--info);"></i>
+                        <span>Всего интеграций</span>
+                    </div>
+                    <div class="mini-stat-value">${data.total_integrations}</div>
+                    <div class="mini-stat-details">
+                        <small>Активных: ${data.active_integrations}</small>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        if (window.lucide) window.lucide.createIcons();
+    }
+
+    function refreshSystemStats() {
+        const content = document.getElementById('system-stats-content');
+        content.innerHTML = `
+            <div style="padding: 2rem; text-align: center; color: var(--text-secondary);">
+                <i data-lucide="loader-2" style="animation: spin 1s linear infinite; width: 24px; height: 24px;"></i>
+                <p style="margin: 0.5rem 0 0 0;">Обновление статистики...</p>
+            </div>
+        `;
+        if (window.lucide) window.lucide.createIcons();
+        
+        loadSystemStats();
+    }
+
+    // Load system stats on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadSystemStats();
+    });
+    {{ end }}
 </script>
+
+<style>
+    .mini-stat-card {
+        background: var(--card-background);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1rem;
+        transition: all 0.2s ease;
+    }
+
+    .mini-stat-card:hover {
+        border-color: var(--primary);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .mini-stat-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+    }
+
+    .mini-stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+
+    .mini-stat-details {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .mini-stat-details small {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+</style>
+
 {{ end }}

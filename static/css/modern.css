@@ -258,10 +258,16 @@ body {
     margin: 0;
 }
 
-.mobile-menu-toggle {
+.mobile-header-actions {
     position: absolute;
     top: 0;
     right: 0;
+    display: none;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.mobile-menu-toggle {
     background: transparent;
     border: 1px solid var(--border);
     color: var(--foreground);
@@ -282,6 +288,21 @@ body {
 
 .mobile-menu-toggle:active {
     transform: scale(0.95);
+}
+
+.mobile-webhook-test-btn {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+}
+
+.mobile-webhook-test-btn i {
+    width: 18px !important;
+    height: 18px !important;
 }
 
 /* Stats Grid */
@@ -428,6 +449,30 @@ body {
     width: 14px !important;
     height: 14px !important;
     stroke-width: 2;
+}
+
+.btn-icon {
+    background: transparent;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    padding: 0.2rem;
+    color: var(--muted-foreground);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+    background: var(--secondary);
+    color: var(--foreground);
+}
+
+.btn-icon i {
+    width: 18px;
+    height: 18px;
+    transition: transform 0.2s ease-in-out;
 }
 
 /* Forms */
@@ -724,10 +769,14 @@ pre {
     
     /* Скрываем обычный page-header и показываем мобильную версию */
     .page-header {
-        display: none;
+        display: none !important;
     }
     
     .page-header-mobile {
+        display: flex;
+    }
+    
+    .mobile-header-actions {
         display: flex;
     }
     
@@ -818,6 +867,7 @@ pre {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 0.75rem;
+    width: 100%;
 }
 
 .quick-action-btn {
@@ -828,6 +878,7 @@ pre {
     padding: 1rem;
     text-align: left;
     height: auto;
+    min-height: fit-content;
 }
 
 .quick-action-header {
@@ -856,10 +907,12 @@ pre {
     font-size: 0.75rem;
     font-weight: 400;
     opacity: 0.7;
-    line-height: 1.3;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    line-height: 1.4;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    width: 100%;
+    max-width: 100%;
 }
 
 /* Getting Started Steps */

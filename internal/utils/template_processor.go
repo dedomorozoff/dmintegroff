@@ -39,6 +39,73 @@ func (tp *TemplateProcessor) ProcessTemplate(template string, sourceData map[str
 	return result, nil
 }
 
+// ProcessTemplateString обрабатывает шаблон любого типа (JSON, XML, text, custom)
+// и возвращает результат как строку
+func (tp *TemplateProcessor) ProcessTemplateString(template string, sourceData map[string]interface{}) (string, error) {
+	if template == "" {
+		return "", fmt.Errorf("template is empty")
+	}
+
+	// Заменяем все плейсхолдеры на значения
+	processedTemplate := tp.replacePlaceholdersString(template, sourceData)
+
+	return processedTemplate, nil
+}
+
+// replacePlaceholdersString заменяет плейсхолдеры для произвольных форматов (не только JSON)
+func (tp *TemplateProcessor) replacePlaceholdersString(template string, sourceData map[string]interface{}) string {
+	// Простой regex для замены {{field.path}}
+	regex := regexp.MustCompile(`\{\{([^}]+)\}\}`)
+	
+	result := regex.ReplaceAllStringFunc(template, func(match string) string {
+		// Извлекаем путь (убираем {{ и }})
+		path := strings.TrimSpace(match[2 : len(match)-2])
+		
+		// Проверяем, это запрос на весь массив (path.*)
+		isArrayWildcard := strings.HasSuffix(path, ".*")
+		if isArrayWildcard {
+			path = strings.TrimSuffix(path, ".*")
+		}
+		
+		// Получаем значение по пути
+		value, err := GetValueByPath(sourceData, path)
+		if err != nil {
+			return "" // Возвращаем пустую строку при ошибке
+		}
+		
+		// Для массивов с wildcard возвращаем JSON представление
+		if isArrayWildcard {
+			jsonValue, err := json.Marshal(value)
+			if err != nil {
+				return ""
+			}
+			return string(jsonValue)
+		}
+		
+		// Для остальных значений конвертируем в строку
+		switch v := value.(type) {
+		case string:
+			return v
+		case nil:
+			return ""
+		default:
+			// Для чисел, булевых и объектов используем JSON представление
+			jsonValue, err := json.Marshal(v)
+			if err != nil {
+				return fmt.Sprintf("%v", v)
+			}
+			// Убираем кавычки для простых типов
+			str := string(jsonValue)
+			if strings.HasPrefix(str, `"`) && strings.HasSuffix(str, `"`) {
+				return str[1 : len(str)-1]
+			}
+			return str
+		}
+	})
+	
+	return result
+}
+
 // replacePlaceholders заменяет все плейсхолдеры {{field.path}} на значения из sourceData
 func (tp *TemplateProcessor) replacePlaceholders(template string, sourceData map[string]interface{}) string {
 	// Используем расширенный regex для захвата кавычек вокруг плейсхолдера

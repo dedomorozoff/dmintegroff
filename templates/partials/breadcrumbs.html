@@ -1,0 +1,29 @@
+{{ define "partials/breadcrumbs.html" }}
+<nav class="breadcrumbs" aria-label="Навигация">
+    {{ if .breadcrumbs }}
+        {{ range $index, $crumb := .breadcrumbs }}
+            {{ if ne $index 0 }}
+                <span class="breadcrumb-separator">
+                    <i data-lucide="chevron-right"></i>
+                </span>
+            {{ end }}
+            
+            <div class="breadcrumb-item {{ if $crumb.Active }}active{{ end }}">
+                {{ if and $crumb.URL (not $crumb.Active) }}
+                    <a href="{{ $crumb.URL }}">
+                        {{ if $crumb.Icon }}
+                            <i data-lucide="{{ $crumb.Icon }}"></i>
+                        {{ end }}
+                        {{ $crumb.Title }}
+                    </a>
+                {{ else }}
+                    {{ if $crumb.Icon }}
+                        <i data-lucide="{{ $crumb.Icon }}"></i>
+                    {{ end }}
+                    {{ $crumb.Title }}
+                {{ end }}
+            </div>
+        {{ end }}
+    {{ end }}
+</nav>
+{{ end }}

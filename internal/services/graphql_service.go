@@ -101,6 +101,11 @@ func (s *GraphQLService) ExecuteQuery(integration *models.Integration, payload m
 		return nil, fmt.Errorf("failed to add authentication: %w", err)
 	}
 
+	// Add custom headers
+	if err := AddCustomHeaders(req, integration); err != nil {
+		return nil, fmt.Errorf("failed to add custom headers: %w", err)
+	}
+
 	// Execute request
 	resp, err := s.client.Do(req)
 	if err != nil {
@@ -263,6 +268,11 @@ func (s *GraphQLService) IntrospectSchema(endpoint string, integration *models.I
 	if integration != nil {
 		if err := s.addAuthentication(req, integration); err != nil {
 			return "", fmt.Errorf("failed to add authentication: %w", err)
+		}
+		
+		// Add custom headers
+		if err := AddCustomHeaders(req, integration); err != nil {
+			return "", fmt.Errorf("failed to add custom headers: %w", err)
 		}
 	}
 

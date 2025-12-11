@@ -2,12 +2,16 @@ package controllers
 
 import (
 	"dmintegroff/internal/database"
+	"dmintegroff/internal/logger"
 	"dmintegroff/internal/models"
 	"dmintegroff/internal/services"
 	"dmintegroff/internal/utils"
 	"encoding/json"
 	"fmt"
+	"io"
+	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"sort"
 	"strconv"
@@ -237,6 +241,12 @@ func IntegrationStore(c *gin.Context) {
 		webhookSignatureAlgorithm = "sha256"
 	}
 
+	// Webhook HTTP methods (incoming)
+	webhookHTTPMethods := c.PostForm("webhook_http_methods")
+	if webhookHTTPMethods == "" {
+		webhookHTTPMethods = "*" // Default to all methods
+	}
+
 	integration := models.Integration{
 		Name:         c.PostForm("name"),
 		WebhookToken: token,
@@ -263,7 +273,22 @@ func IntegrationStore(c *gin.Context) {
 		WebhookSignatureSecret:    c.PostForm("webhook_signature_secret"),
 		WebhookSignatureHeader:    webhookSignatureHeader,
 		WebhookSignatureAlgorithm: webhookSignatureAlgorithm,
+		
+		// Custom headers
+		CustomHeaders: c.PostForm("custom_headers"),
+		
+		// Webhook HTTP methods (incoming)
+		WebhookHTTPMethods: webhookHTTPMethods,
+		
+		// Logs visibility
+		HideInLogs: c.PostForm("hide_in_logs") == "true",
 	}
+	
+	// Log custom headers for debugging
+	logger.Log.WithFields(map[string]interface{}{
+		"custom_headers": integration.CustomHeaders,
+		"name":           integration.Name,
+	}).Info("Creating integration with custom headers")
 	
 	// Validate signature config if enabled
 	if err := services.ValidateSignatureConfig(&integration); err != nil {
@@ -279,6 +304,13 @@ func IntegrationStore(c *gin.Context) {
 	c.Redirect(http.StatusFound, "/integrations")
 }
 
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 func WebhookHandler(c *gin.Context) {
 	token := c.Param("token")
 
@@ -288,16 +320,96 @@ func WebhookHandler(c *gin.Context) {
 		return
 	}
 
-	var payload map[string]interface{}
-	if err := c.BindJSON(&payload); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+	// Проверяем разрешенные HTTP методы для входящего webhook
+	if integration.WebhookHTTPMethods != "" && integration.WebhookHTTPMethods != "*" {
+		allowedMethods := strings.Split(integration.WebhookHTTPMethods, ",")
+		methodAllowed := false
+		currentMethod := c.Request.Method
+		
+		for _, method := range allowedMethods {
+			if strings.TrimSpace(method) == currentMethod {
+				methodAllowed = true
+				break
+			}
+		}
+		
+		if !methodAllowed {
+			c.JSON(http.StatusMethodNotAllowed, gin.H{
+				"error": "HTTP method not allowed",
+				"allowed_methods": integration.WebhookHTTPMethods,
+			})
+			return
+		}
+	}
+
+	// Проверяем размер тела запроса (максимум 10MB)
+	const maxPayloadSize = 10 * 1024 * 1024 // 10MB
+	if c.Request.ContentLength > maxPayloadSize {
+		c.JSON(http.StatusRequestEntityTooLarge, gin.H{
+			"error": "Payload too large",
+			"max_size": "10MB",
+		})
 		return
 	}
 
-	payloadJSON, _ := json.Marshal(payload)
+	// Читаем тело запроса как байты с ограничением
+	bodyBytes, err := io.ReadAll(io.LimitReader(c.Request.Body, maxPayloadSize))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read request body"})
+		return
+	}
+
+	// Дополнительная проверка размера после чтения
+	if len(bodyBytes) > maxPayloadSize {
+		c.JSON(http.StatusRequestEntityTooLarge, gin.H{
+			"error": "Payload too large",
+			"max_size": "10MB",
+		})
+		return
+	}
+
+	// Получаем Content-Type
+	contentType := c.GetHeader("Content-Type")
+	
+	// Парсим форму если это form-data
+	var formValues url.Values
+	var multipartForm *multipart.Form
+	if strings.Contains(contentType, "application/x-www-form-urlencoded") {
+		if err := c.Request.ParseForm(); err == nil {
+			formValues = c.Request.Form
+		}
+	} else if strings.Contains(contentType, "multipart/form-data") {
+		if err := c.Request.ParseMultipartForm(32 << 20); err == nil { // 32 MB max
+			multipartForm = c.Request.MultipartForm
+		}
+	}
+
+	// Парсим payload в зависимости от Content-Type
+	payload, payloadJSON, err := utils.ParsePayload(contentType, bodyBytes, formValues, multipartForm)
+	if err != nil {
+		// Логируем ошибку парсинга
+		logger.Log.WithFields(map[string]interface{}{
+			"integration_id": integration.ID,
+			"content_type":   contentType,
+			"error":          err.Error(),
+			"body_preview":   string(bodyBytes[:min(len(bodyBytes), 100)]),
+		}).Error("Failed to parse webhook body")
+		
+		// Возвращаем ошибку с подробностями
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":        "Failed to parse request body",
+			"details":      err.Error(),
+			"content_type": contentType,
+		})
+		return
+	}
+
 	headersJSON, _ := json.Marshal(c.Request.Header)
 
-	// Логируем входящий webhook
+	// Логируем входящий webhook с помощью структурированного логирования
+	logger.LogWebhookRequest(integration.ID, c.Request.Method, c.Request.URL.Path, contentType, len(bodyBytes), 200)
+
+	// Также сохраняем в БД для истории
 	incomingLog := models.RequestLog{
 		IntegrationID:  integration.ID,
 		Method:         c.Request.Method,
@@ -305,7 +417,7 @@ func WebhookHandler(c *gin.Context) {
 		RequestBody:    string(payloadJSON),
 		RequestHeaders: string(headersJSON),
 		StatusCode:     200,
-		LogType:        "webhook",
+		LogType:        "incoming",
 	}
 	CreateLogWithLimit(&incomingLog)
 
@@ -313,6 +425,8 @@ func WebhookHandler(c *gin.Context) {
 	if integration.Mode == "listening" {
 		integration.SamplePayload = string(payloadJSON)
 		database.DB.Save(&integration)
+
+		logger.LogIntegrationEvent(integration.ID, "sample_captured", "Sample payload captured in listening mode")
 
 		c.JSON(http.StatusOK, gin.H{
 			"status":  "captured",
@@ -323,11 +437,17 @@ func WebhookHandler(c *gin.Context) {
 
 	// If active, process the webhook
 	if integration.Mode == "active" {
-		if err := services.ProcessWebhook(integration.ID, payload); err != nil {
+		// Используем новую функцию, которая поддерживает множественные выходы
+		if err := services.ProcessWebhookWithOutputs(integration.ID, payload); err != nil {
+			logger.LogSystemError("webhook_processor", "process_outputs", err.Error(), map[string]interface{}{
+				"integration_id": integration.ID,
+				"payload_size":   len(bodyBytes),
+			})
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
+		logger.LogIntegrationEvent(integration.ID, "webhook_processed", "Webhook successfully processed")
 		c.JSON(http.StatusOK, gin.H{"status": "success"})
 		return
 	}
@@ -405,6 +525,20 @@ func IntegrationConfigure(c *gin.Context) {
 		return fields[i].Path < fields[j].Path
 	})
 
+	// Получаем информацию о проекте для хлебных крошек
+	var project models.Project
+	var projectName string
+	var projectID uint
+	if integration.ProjectID > 0 {
+		if err := database.DB.First(&project, integration.ProjectID).Error; err == nil {
+			projectName = project.Name
+			projectID = project.ID
+		}
+	}
+
+	// Генерируем хлебные крошки
+	breadcrumbs := utils.IntegrationConfigureBreadcrumbs(integration.Name, integration.ID, projectName, projectID)
+
 	c.HTML(http.StatusOK, "pages/integration_configure.html", gin.H{
 		"title":          "Настройка маппинга",
 		"CurrentPage":    "integrations",
@@ -413,6 +547,7 @@ func IntegrationConfigure(c *gin.Context) {
 		"fields":         fields,
 		"payloadJSON":    payloadJSON,
 		"currentMapping": currentMapping,
+		"breadcrumbs":    breadcrumbs,
 		"username":       session.Get("username"),
 		"role":           role,
 		"appURL":         getAppURL(c),
@@ -491,15 +626,24 @@ func IntegrationSaveMapping(c *gin.Context) {
 	// Получаем output_template или mapping_config
 	outputTemplate := c.PostForm("output_template")
 	mappingConfig := c.PostForm("mapping_config")
+	templateType := c.PostForm("template_type")
 
 	// Валидируем output_template, если он задан
 	if outputTemplate != "" {
-		processor := utils.NewTemplateProcessor()
-		if err := processor.ValidateTemplate(outputTemplate); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid output template: " + err.Error()})
-			return
+		// Для JSON шаблонов валидируем структуру
+		if templateType == "json" || templateType == "" {
+			processor := utils.NewTemplateProcessor()
+			if err := processor.ValidateTemplate(outputTemplate); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid output template: " + err.Error()})
+				return
+			}
 		}
+		// Для других типов (xml, text, custom) просто сохраняем как есть
 		integration.OutputTemplate = outputTemplate
+		integration.TemplateType = templateType
+		if integration.TemplateType == "" {
+			integration.TemplateType = "json" // По умолчанию JSON
+		}
 		// Очищаем старый mapping_config, если используется шаблон
 		integration.MappingConfig = ""
 	} else if mappingConfig != "" {
@@ -507,6 +651,7 @@ func IntegrationSaveMapping(c *gin.Context) {
 		integration.MappingConfig = mappingConfig
 		// Очищаем output_template
 		integration.OutputTemplate = ""
+		integration.TemplateType = "json" // Маппинг всегда генерирует JSON
 	}
 
 	// Активируем интеграцию только если она была в режиме listening или inactive
@@ -649,6 +794,27 @@ func IntegrationUpdate(c *gin.Context) {
 		integration.WebhookSignatureAlgorithm = "sha256"
 	}
 	
+	// Update custom headers
+	integration.CustomHeaders = c.PostForm("custom_headers")
+	
+	// Update webhook HTTP methods
+	webhookHTTPMethods := c.PostForm("webhook_http_methods")
+	if webhookHTTPMethods == "" {
+		webhookHTTPMethods = "*" // Default to all methods
+	}
+	integration.WebhookHTTPMethods = webhookHTTPMethods
+	
+	// Update hide in logs setting
+	integration.HideInLogs = c.PostForm("hide_in_logs") == "true"
+	
+	// Log custom headers for debugging
+	logger.Log.WithFields(map[string]interface{}{
+		"integration_id":       integration.ID,
+		"custom_headers":       integration.CustomHeaders,
+		"webhook_http_methods": integration.WebhookHTTPMethods,
+		"hide_in_logs":         integration.HideInLogs,
+	}).Info("Updating integration with custom headers and webhook methods")
+	
 	// Validate signature config if enabled
 	if err := services.ValidateSignatureConfig(&integration); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Webhook signature configuration error: " + err.Error()})
@@ -739,17 +905,21 @@ func IntegrationToggle(c *gin.Context) {
 	// Переключаем режим
 	if integration.Mode == "active" {
 		integration.Mode = "inactive"
+		database.DB.Save(&integration)
+		c.Redirect(http.StatusFound, "/integrations")
 	} else if integration.Mode == "inactive" || integration.Mode == "listening" {
 		// Проверяем, что есть маппинг перед активацией
-		if integration.MappingConfig == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot activate: mapping not configured"})
+		if integration.MappingConfig == "" && integration.OutputTemplate == "" {
+			// Если нет маппинга, перенаправляем на страницу настройки
+			c.Redirect(http.StatusFound, fmt.Sprintf("/integrations/%d/configure", id))
 			return
 		}
 		integration.Mode = "active"
+		database.DB.Save(&integration)
+		c.Redirect(http.StatusFound, "/integrations")
+	} else {
+		c.Redirect(http.StatusFound, "/integrations")
 	}
-
-	database.DB.Save(&integration)
-	c.Redirect(http.StatusFound, "/integrations")
 }
 
 // IntegrationReconfigure - переход в режим переопределения маппинга
@@ -775,7 +945,9 @@ func IntegrationReconfigure(c *gin.Context) {
 	integration.SamplePayload = "" // Очищаем старые данные
 
 	database.DB.Save(&integration)
-	c.Redirect(http.StatusFound, "/integrations")
+	
+	// Перенаправляем на страницу настройки маппинга
+	c.Redirect(http.StatusFound, fmt.Sprintf("/integrations/%d/configure", id))
 }
 
 // IntegrationCancelListening - отмена режима прослушивания
@@ -800,10 +972,120 @@ func IntegrationCancelListening(c *gin.Context) {
 	integration.Mode = "inactive"
 
 	database.DB.Save(&integration)
-	c.Redirect(http.StatusFound, "/integrations")
+	
+	// Проверяем, откуда пришел запрос
+	redirectTo := c.Query("redirect")
+	if redirectTo == "configure" {
+		// Если из страницы настройки маппинга, возвращаемся туда
+		c.Redirect(http.StatusFound, fmt.Sprintf("/integrations/%d/configure", id))
+	} else {
+		// Иначе на список интеграций
+		c.Redirect(http.StatusFound, "/integrations")
+	}
 }
 
 // IntegrationTestOAuth - тестирование OAuth конфигурации
+// IntegrationTestMapping tests the mapping configuration without activating the integration
+func IntegrationTestMapping(c *gin.Context) {
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
+	idStr := c.Param("id")
+	id, _ := strconv.ParseUint(idStr, 10, 32)
+
+	var integration models.Integration
+	query := database.DB
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+	if err := query.First(&integration, uint(id)).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Integration not found"})
+		return
+	}
+
+	// Check if sample payload exists
+	if integration.SamplePayload == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No sample payload available"})
+		return
+	}
+
+	// Parse sample payload
+	var payload map[string]interface{}
+	if err := json.Unmarshal([]byte(integration.SamplePayload), &payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid sample payload JSON"})
+		return
+	}
+
+	// Process the transformation
+	var transformed map[string]interface{}
+	var transformedString string
+	var isStringTemplate bool
+
+	if integration.OutputTemplate != "" {
+		processor := utils.NewTemplateProcessor()
+		templateType := integration.TemplateType
+		if templateType == "" {
+			templateType = "json"
+		}
+
+		if templateType == "json" {
+			var err error
+			transformed, err = processor.ProcessTemplate(integration.OutputTemplate, payload)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "Template processing failed: " + err.Error(),
+				})
+				return
+			}
+		} else {
+			var err error
+			transformedString, err = processor.ProcessTemplateString(integration.OutputTemplate, payload)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "Template processing failed: " + err.Error(),
+				})
+				return
+			}
+			isStringTemplate = true
+		}
+	} else if integration.MappingConfig != "" {
+		var mapping map[string]string
+		if err := json.Unmarshal([]byte(integration.MappingConfig), &mapping); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid mapping config"})
+			return
+		}
+
+		transformed = make(map[string]interface{})
+		for targetField, sourceField := range mapping {
+			if v, err := utils.GetValueByPath(payload, sourceField); err == nil {
+				transformed[targetField] = v
+			}
+		}
+	} else {
+		transformed = payload
+	}
+
+	// Prepare response
+	var transformedOutput string
+	if isStringTemplate {
+		transformedOutput = transformedString
+	} else {
+		transformedJSON, _ := json.MarshalIndent(transformed, "", "  ")
+		transformedOutput = string(transformedJSON)
+	}
+
+	inputJSON, _ := json.MarshalIndent(payload, "", "  ")
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":      "success",
+		"input":       string(inputJSON),
+		"output":      transformedOutput,
+		"target_api":  integration.TargetAPI,
+		"http_method": integration.HTTPMethod,
+		"template_type": integration.TemplateType,
+	})
+}
+
 func IntegrationTestOAuth(c *gin.Context) {
 	session := sessions.Default(c)
 	userID := session.Get("user_id")

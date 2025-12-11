@@ -21,6 +21,7 @@ func RequestLogger() gin.HandlerFunc {
 			"path":    c.Request.URL.Path,
 			"ip":      c.ClientIP(),
 			"latency": latency,
+			"headers": c.Request.Header,
 		}).Info("HTTP Request")
 	}
 }

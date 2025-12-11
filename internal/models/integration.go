@@ -14,7 +14,8 @@ type Integration struct {
 	Mode           string   `gorm:"default:'listening'" json:"mode"`            // listening, active, inactive
 	SamplePayload  string   `gorm:"type:text" json:"sample_payload"`            // JSON sample from first request
 	MappingConfig  string   `gorm:"type:text" json:"mapping_config"`            // JSON string for field mapping
-	OutputTemplate string   `gorm:"type:text" json:"output_template"`           // JSON template with {{field.path}} placeholders
+	OutputTemplate string   `gorm:"type:text" json:"output_template"`           // Template with {{field.path}} placeholders
+	TemplateType   string   `gorm:"default:'json'" json:"template_type"`        // json, xml, text, custom
 	Status         string   `gorm:"default:'active'" json:"status"`             // active, inactive (deprecated, use Mode)
 	ProjectID      uint     `gorm:"not null;index" json:"project_id"`           // Required project assignment
 	Project        Project  `gorm:"constraint:OnDelete:CASCADE;" json:"project"`
@@ -58,4 +59,13 @@ type Integration struct {
 	EnrichmentQuery      string `gorm:"type:text" json:"enrichment_query"`                  // GraphQL query for enrichment
 	EnrichmentVariables  string `gorm:"type:text" json:"enrichment_variables"`              // Variable mapping for enrichment
 	EnrichmentMergeMode  string `gorm:"default:'merge'" json:"enrichment_merge_mode"`       // merge, replace, append
+	
+	// Custom Headers
+	CustomHeaders string `gorm:"type:text" json:"custom_headers"` // JSON map of custom HTTP headers
+	
+	// Webhook HTTP Methods (incoming)
+	WebhookHTTPMethods string `gorm:"default:'*'" json:"webhook_http_methods"` // Allowed HTTP methods for incoming webhook: *, GET, POST, PUT, PATCH, DELETE (comma-separated)
+	
+	// Logs visibility
+	HideInLogs bool `gorm:"default:false" json:"hide_in_logs"` // Hide this integration's logs in Tests page
 }

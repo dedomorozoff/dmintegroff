@@ -3,6 +3,7 @@ package routes
 import (
 	"dmintegroff/internal/controllers"
 	"dmintegroff/internal/logger"
+	"dmintegroff/internal/middleware"
 	"dmintegroff/internal/models"
 	"dmintegroff/internal/services"
 	"net/http"
@@ -59,6 +60,11 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 		authorized.GET("/dashboard", controllers.DashboardPage)
 		authorized.GET("/api/activity", controllers.GetRecentActivity)
 		authorized.GET("/api/stats", controllers.GetRequestStats)
+		authorized.GET("/api/system-stats", controllers.GetSystemStats)
+		
+		// Analytics
+		authorized.GET("/analytics", controllers.AnalyticsPage)
+		authorized.GET("/api/analytics", controllers.GetAnalytics)
 
 		authorized.GET("/integrations", controllers.IntegrationList)
 		authorized.GET("/api/integrations", controllers.IntegrationsListAPI)
@@ -78,7 +84,20 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 		authorized.GET("/integrations/:id/enrichment-configure", controllers.IntegrationEnrichmentConfigure)
 		authorized.POST("/integrations/:id/enrichment-configure", controllers.IntegrationEnrichmentConfigureSave)
 		authorized.GET("/api/integrations/:id/check", controllers.IntegrationCheckUpdate)
+		authorized.POST("/api/integrations/:id/test-mapping", controllers.IntegrationTestMapping)
 		authorized.POST("/api/integrations/:id/test-oauth", controllers.IntegrationTestOAuth)
+		
+		// Integration Outputs (Multiple Mappings)
+		authorized.GET("/integrations/:id/outputs", controllers.IntegrationOutputsList)
+		authorized.GET("/integrations/:id/outputs/create", controllers.IntegrationOutputCreate)
+		authorized.POST("/integrations/:id/outputs", controllers.IntegrationOutputStore)
+		authorized.GET("/integrations/:id/outputs/:output_id/configure", controllers.IntegrationOutputConfigure)
+		authorized.POST("/integrations/:id/outputs/:output_id/configure", controllers.IntegrationOutputSaveMapping)
+		authorized.GET("/integrations/:id/outputs/:output_id/edit", controllers.IntegrationOutputEdit)
+		authorized.POST("/integrations/:id/outputs/:output_id/update", controllers.IntegrationOutputUpdate)
+		authorized.POST("/integrations/:id/outputs/:output_id/delete", controllers.IntegrationOutputDelete)
+		authorized.POST("/integrations/:id/outputs/:output_id/toggle", controllers.IntegrationOutputToggle)
+		authorized.POST("/integrations/:id/outputs/:output_id/test", controllers.IntegrationOutputTest)
 		
 		// GraphQL
 		authorized.POST("/api/graphql/introspect/:id", controllers.IntrospectGraphQLSchema)
@@ -115,6 +134,13 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 		authorized.GET("/api/logs", controllers.LogsAPI)
 		authorized.POST("/logs/clear", controllers.ClearLogs)
 		authorized.POST("/logs/:id/delete", controllers.DeleteLog)
+		
+		// Request History
+		authorized.GET("/logs/requests", controllers.RequestHistoryPage)
+		authorized.GET("/api/logs/requests", controllers.GetRequestHistory)
+		authorized.GET("/api/logs/requests/:id", controllers.GetRequestDetails)
+		authorized.GET("/api/logs/requests/export", controllers.ExportRequestHistory)
+		authorized.POST("/api/logs/requests/clear", controllers.ClearRequestHistory)
 
 		// Help
 		authorized.GET("/help", controllers.HelpPage)
@@ -122,6 +148,16 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 		// Settings
 		authorized.GET("/settings", controllers.SettingsPage)
 		authorized.POST("/settings/change-password", controllers.ChangePassword)
+		
+		// Webhook Test
+		authorized.POST("/api/webhook-test/create", controllers.CreateWebhookTest)
+		authorized.GET("/webhook-test/:token", controllers.WebhookTestPage)
+		authorized.GET("/api/webhook-test/:token/requests", controllers.GetWebhookTestRequests)
+		authorized.DELETE("/api/webhook-test/:token", controllers.DeleteWebhookTest)
+		authorized.POST("/api/webhook-test/:token/use-as-sample/:request_id", controllers.UseRequestAsSample)
+		
+		// HTTP Proxy (для избежания CORS)
+		authorized.POST("/api/proxy/http", controllers.ProxyHTTPRequest)
 		
 		// Metrics Dashboard (защищённый)
 		authorized.GET("/metrics/dashboard", controllers.NewMetricsController(healthService).Dashboard)
@@ -138,8 +174,14 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 	}
 
 	// Public endpoints - принимаем все HTTP методы для webhook
-	r.Any("/webhook/:token", controllers.WebhookHandler)
-	r.Any("/webhook/test", controllers.TestEndpoint) // Test webhook endpoint
+	// Применяем rate limiting только к webhook endpoints
+	webhookGroup := r.Group("/webhook")
+	webhookGroup.Use(middleware.WebhookRateLimit())
+	{
+		webhookGroup.Any("/:token", controllers.WebhookHandler)
+		webhookGroup.Any("/test", controllers.TestEndpoint) // Test webhook endpoint
+		webhookGroup.Any("/test/:token", controllers.HandleWebhookTest) // Test webhook with token
+	}
 
 	// Error pages - должны быть в конце
 	r.NoRoute(controllers.NotFoundPage)

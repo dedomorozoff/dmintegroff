@@ -173,7 +173,10 @@ func runMigration() {
 		&models.User{},
 		&models.Project{},
 		&models.Integration{},
+		&models.IntegrationOutput{},
 		&models.RequestLog{},
+		&models.WebhookTest{},
+		&models.WebhookTestRequest{},
 	); err != nil {
 		log.Fatal("❌ Ошибка миграции:", err)
 	}
