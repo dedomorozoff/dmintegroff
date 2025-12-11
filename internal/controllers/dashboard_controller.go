@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"dmintegroff/internal/database"
+	"dmintegroff/internal/middleware"
 	"dmintegroff/internal/models"
 	"fmt"
 	"net/http"
@@ -132,6 +133,15 @@ func DashboardPage(c *gin.Context) {
 	}
 	requestQuery.Count(&totalRequests)
 
+	// Подсчитываем количество ошибок за последние 24 часа
+	var errorCount int64
+	errorQuery := database.DB.Model(&models.RequestLog{}).Where("status_code >= ? AND created_at >= datetime('now', '-24 hours')", 400)
+	if role != "admin" {
+		errorQuery = errorQuery.Joins("JOIN integrations ON integrations.id = request_logs.integration_id").
+			Where("integrations.created_by_id = ?", userID)
+	}
+	errorQuery.Count(&errorCount)
+
 	// Определяем прогресс пользователя
 	progress := calculateProgress(userID, role)
 	
@@ -152,6 +162,7 @@ func DashboardPage(c *gin.Context) {
 		"total_integrations":  totalIntegrations,
 		"active_integrations": activeIntegrations,
 		"total_requests":      totalRequests,
+		"error_count":         errorCount,
 		"activities":          activities,
 		"progress":            progress,
 		"progress_completed":  completedSteps,
@@ -428,5 +439,58 @@ func GetRecentActivity(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"activities": activities,
+	})
+}
+// GetSystemStats - API endpoint для получения системной статистики
+func GetSystemStats(c *gin.Context) {
+	session := sessions.Default(c)
+	role := session.Get("role")
+	
+	// Только админы могут видеть системную статистику
+	if role != "admin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		return
+	}
+
+	// Получаем статистику rate limiter
+	rateLimiterStats := middleware.GetRateLimiterStats()
+
+	// Подсчитываем общую статистику
+	var totalIntegrations int64
+	database.DB.Model(&models.Integration{}).Count(&totalIntegrations)
+
+	var activeIntegrations int64
+	database.DB.Model(&models.Integration{}).Where("mode = ?", "active").Count(&activeIntegrations)
+
+	var totalRequests int64
+	database.DB.Model(&models.RequestLog{}).Where("log_type = ?", "webhook").Count(&totalRequests)
+
+	// Запросы за последние 24 часа
+	var requestsLast24h int64
+	database.DB.Model(&models.RequestLog{}).
+		Where("log_type = ? AND created_at >= datetime('now', '-24 hours')", "webhook").
+		Count(&requestsLast24h)
+
+	// Ошибки за последние 24 часа
+	var errorsLast24h int64
+	database.DB.Model(&models.RequestLog{}).
+		Where("status_code >= ? AND created_at >= datetime('now', '-24 hours')", 400).
+		Count(&errorsLast24h)
+
+	// Успешность запросов (%)
+	successRate := float64(0)
+	if requestsLast24h > 0 {
+		successfulRequests := requestsLast24h - errorsLast24h
+		successRate = (float64(successfulRequests) / float64(requestsLast24h)) * 100
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"rate_limiter":        rateLimiterStats,
+		"total_integrations":  totalIntegrations,
+		"active_integrations": activeIntegrations,
+		"total_requests":      totalRequests,
+		"requests_last_24h":   requestsLast24h,
+		"errors_last_24h":     errorsLast24h,
+		"success_rate":        fmt.Sprintf("%.1f", successRate),
 	})
 }

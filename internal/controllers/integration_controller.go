@@ -342,10 +342,29 @@ func WebhookHandler(c *gin.Context) {
 		}
 	}
 
-	// Читаем тело запроса как байты
-	bodyBytes, err := io.ReadAll(c.Request.Body)
+	// Проверяем размер тела запроса (максимум 10MB)
+	const maxPayloadSize = 10 * 1024 * 1024 // 10MB
+	if c.Request.ContentLength > maxPayloadSize {
+		c.JSON(http.StatusRequestEntityTooLarge, gin.H{
+			"error": "Payload too large",
+			"max_size": "10MB",
+		})
+		return
+	}
+
+	// Читаем тело запроса как байты с ограничением
+	bodyBytes, err := io.ReadAll(io.LimitReader(c.Request.Body, maxPayloadSize))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read request body"})
+		return
+	}
+
+	// Дополнительная проверка размера после чтения
+	if len(bodyBytes) > maxPayloadSize {
+		c.JSON(http.StatusRequestEntityTooLarge, gin.H{
+			"error": "Payload too large",
+			"max_size": "10MB",
+		})
 		return
 	}
 
@@ -387,7 +406,10 @@ func WebhookHandler(c *gin.Context) {
 
 	headersJSON, _ := json.Marshal(c.Request.Header)
 
-	// Логируем входящий webhook
+	// Логируем входящий webhook с помощью структурированного логирования
+	logger.LogWebhookRequest(integration.ID, c.Request.Method, c.Request.URL.Path, contentType, len(bodyBytes), 200)
+
+	// Также сохраняем в БД для истории
 	incomingLog := models.RequestLog{
 		IntegrationID:  integration.ID,
 		Method:         c.Request.Method,
@@ -404,6 +426,8 @@ func WebhookHandler(c *gin.Context) {
 		integration.SamplePayload = string(payloadJSON)
 		database.DB.Save(&integration)
 
+		logger.LogIntegrationEvent(integration.ID, "sample_captured", "Sample payload captured in listening mode")
+
 		c.JSON(http.StatusOK, gin.H{
 			"status":  "captured",
 			"message": "Sample data captured. Configure field mapping to activate integration.",
@@ -415,10 +439,15 @@ func WebhookHandler(c *gin.Context) {
 	if integration.Mode == "active" {
 		// Используем новую функцию, которая поддерживает множественные выходы
 		if err := services.ProcessWebhookWithOutputs(integration.ID, payload); err != nil {
+			logger.LogSystemError("webhook_processor", "process_outputs", err.Error(), map[string]interface{}{
+				"integration_id": integration.ID,
+				"payload_size":   len(bodyBytes),
+			})
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
+		logger.LogIntegrationEvent(integration.ID, "webhook_processed", "Webhook successfully processed")
 		c.JSON(http.StatusOK, gin.H{"status": "success"})
 		return
 	}

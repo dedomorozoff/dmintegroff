@@ -5,6 +5,7 @@ import (
 	"dmintegroff/internal/controllers"
 	"dmintegroff/internal/database"
 	"dmintegroff/internal/logger"
+	"dmintegroff/internal/middleware"
 	"dmintegroff/internal/models"
 	"dmintegroff/internal/routes"
 	"dmintegroff/internal/services"
@@ -12,6 +13,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -33,6 +35,24 @@ func main() {
 	database.Connect()
 	database.Migrate(&models.User{}, &models.Project{}, &models.Integration{}, &models.IntegrationOutput{}, &models.RequestLog{}, &models.WebhookTest{}, &models.WebhookTestRequest{})
 	database.SeedAdmin()
+
+	// Initialize rate limiter
+	rateLimitRate := 60  // requests per minute
+	rateLimitBurst := 10 // burst capacity
+	
+	if rateStr := os.Getenv("RATE_LIMIT_RATE"); rateStr != "" {
+		if rate, err := strconv.Atoi(rateStr); err == nil {
+			rateLimitRate = rate
+		}
+	}
+	
+	if burstStr := os.Getenv("RATE_LIMIT_BURST"); burstStr != "" {
+		if burst, err := strconv.Atoi(burstStr); err == nil {
+			rateLimitBurst = burst
+		}
+	}
+	
+	middleware.InitRateLimiter(rateLimitRate, rateLimitBurst)
 
 	// Cleanup expired test webhooks on startup
 	controllers.CleanupExpiredWebhooks()

@@ -559,12 +559,13 @@
                     if (textarea.dataset.highlighterInitialized !== 'true') {
                         console.log('Initializing samplePayloadTextarea highlighter (delayed)');
                         new JSONHighlighter('samplePayloadTextarea', 'samplePayloadTextarea_preview');
+                        textarea.dataset.highlighterInitialized = 'true';
                     } else {
                         console.log('samplePayloadTextarea already initialized');
                         // Просто обновляем подсветку
                         const preview = document.getElementById('samplePayloadTextarea_preview');
                         if (preview && typeof highlightJSON !== 'undefined') {
-                            preview.innerHTML = highlightJSON(textarea.value);
+                            preview.innerHTML = highlightJSON(textarea.value || '');
                         }
                     }
                 }
@@ -573,16 +574,25 @@
                 updatePayloadEditor();
                 
                 // Фокусируемся на textarea для удобства
-                textarea.focus();
+                if (textarea) {
+                    textarea.focus();
+                }
             }, 150);
         }
     }
 
     // Обновление редактора образца в зависимости от формата
     function updatePayloadEditor() {
-        const format = document.getElementById('samplePayloadFormat').value;
+        const formatSelect = document.getElementById('samplePayloadFormat');
         const textarea = document.getElementById('samplePayloadTextarea');
         const formatBtn = document.getElementById('formatPayloadBtn');
+        
+        if (!formatSelect || !textarea) {
+            console.warn('updatePayloadEditor: required elements not found');
+            return;
+        }
+        
+        const format = formatSelect.value;
         
         const placeholders = {
             json: '{\n  "user": "John Doe",\n  "email": "john@example.com",\n  "age": 30\n}',
@@ -591,10 +601,8 @@
             text: 'Любой текст\nМожет быть многострочным\nИли одной строкой'
         };
         
-        // Обновляем placeholder только если поле пустое
-        if (!textarea.value.trim()) {
-            textarea.placeholder = placeholders[format] || placeholders.json;
-        }
+        // Всегда обновляем placeholder
+        textarea.placeholder = placeholders[format] || placeholders.json;
         
         // Показываем/скрываем кнопку форматирования (только для JSON)
         if (formatBtn) {
@@ -866,12 +874,16 @@
         const textarea = document.getElementById('samplePayloadTextarea');
         const validationDiv = document.getElementById('payloadValidation');
 
-        if (!textarea) return;
+        if (!textarea) {
+            console.warn('formatPayload: textarea not found');
+            return;
+        }
 
         const text = textarea.value.trim();
         if (!text) {
             if (validationDiv) {
-                validationDiv.innerHTML = '<div style="padding: 1rem; background: #ef4444; color: white; border-radius: 8px;">❌ Нечего форматировать</div>';
+                validationDiv.innerHTML = '<div style="padding: 1rem; background: #f59e0b; color: white; border-radius: 8px;">⚠️ Нечего форматировать. Вставьте JSON данные.</div>';
+                setTimeout(() => { validationDiv.innerHTML = ''; }, 3000);
             }
             return;
         }
@@ -894,7 +906,18 @@
             }
         } catch (e) {
             if (validationDiv) {
-                validationDiv.innerHTML = `<div style="padding: 1rem; background: #ef4444; color: white; border-radius: 8px;">❌ Ошибка: ${e.message}</div>`;
+                // Улучшенное сообщение об ошибке для JSON
+                let errorMsg = e.message;
+                const match = errorMsg.match(/position (\d+)/);
+                if (match) {
+                    const pos = parseInt(match[1]);
+                    const lines = text.substring(0, pos).split('\n');
+                    const line = lines.length;
+                    const col = lines[lines.length - 1].length + 1;
+                    errorMsg = `${errorMsg} (строка ${line}, символ ${col})`;
+                }
+                validationDiv.innerHTML = `<div style="padding: 1rem; background: #ef4444; color: white; border-radius: 8px;">❌ Ошибка JSON: ${errorMsg}</div>`;
+                setTimeout(() => { validationDiv.innerHTML = ''; }, 5000);
             }
         }
     }
@@ -903,13 +926,19 @@
     function validatePayload() {
         const textarea = document.getElementById('samplePayloadTextarea');
         const validationDiv = document.getElementById('payloadValidation');
-        const format = document.getElementById('samplePayloadFormat').value;
+        const formatSelect = document.getElementById('samplePayloadFormat');
 
-        if (!textarea || !validationDiv) return;
+        if (!textarea || !validationDiv || !formatSelect) {
+            console.warn('validatePayload: required elements not found');
+            return false;
+        }
 
         const text = textarea.value.trim();
+        const format = formatSelect.value;
+
         if (!text) {
             validationDiv.innerHTML = '<div style="padding: 1rem; background: #f59e0b; color: white; border-radius: 8px;">⚠️ Данные пустые. Вставьте данные для проверки.</div>';
+            setTimeout(() => { validationDiv.innerHTML = ''; }, 3000);
             return false;
         }
 
@@ -917,19 +946,19 @@
             if (format === 'json') {
                 // Валидация JSON
                 const parsed = JSON.parse(text);
-                const objectCount = typeof parsed === 'object' ? Object.keys(parsed).length : 0;
+                const objectCount = typeof parsed === 'object' && parsed !== null ? Object.keys(parsed).length : 0;
                 validationDiv.innerHTML = `<div style="padding: 1rem; background: #10b981; color: white; border-radius: 8px;">✅ JSON валиден! ${objectCount > 0 ? `Найдено полей: ${objectCount}` : ''}</div>`;
             } else if (format === 'xml') {
                 // Валидация XML
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(text, 'text/xml');
                 if (xmlDoc.getElementsByTagName('parsererror').length > 0) {
-                    throw new Error('Invalid XML structure');
+                    throw new Error('Неверная структура XML');
                 }
                 validationDiv.innerHTML = '<div style="padding: 1rem; background: #10b981; color: white; border-radius: 8px;">✅ XML валиден!</div>';
             } else if (format === 'form') {
                 // Валидация form-data
-                const pairs = text.split('&');
+                const pairs = text.split('&').filter(pair => pair.trim());
                 let validPairs = 0;
                 for (const pair of pairs) {
                     if (pair.includes('=')) validPairs++;
@@ -1431,19 +1460,16 @@ Email: {{`{{user.email}}`}}
                 console.warn('outputTemplate not found');
             }
 
-            // НЕ инициализируем samplePayloadTextarea здесь - он скрыт
-            // Инициализация происходит в toggleEditPayload()
-
-            // Добавляем обработчик paste для samplePayloadTextarea
+            // Настраиваем samplePayloadTextarea (но не инициализируем подсветку - он скрыт)
             const samplePayloadTextarea = document.getElementById('samplePayloadTextarea');
             if (samplePayloadTextarea) {
-                // Отключаем автозаполнение
+                // Отключаем автозаполнение и проверку орфографии
                 samplePayloadTextarea.setAttribute('autocomplete', 'off');
                 samplePayloadTextarea.setAttribute('autocorrect', 'off');
                 samplePayloadTextarea.setAttribute('autocapitalize', 'off');
                 samplePayloadTextarea.setAttribute('spellcheck', 'false');
                 
-                // Простой обработчик вставки
+                // Простой и надежный обработчик вставки
                 samplePayloadTextarea.addEventListener('paste', (e) => {
                     e.preventDefault();
                     const text = (e.clipboardData || window.clipboardData).getData('text/plain');
@@ -1451,10 +1477,21 @@ Email: {{`{{user.email}}`}}
                     const end = samplePayloadTextarea.selectionEnd;
                     const currentValue = samplePayloadTextarea.value;
 
-                    samplePayloadTextarea.value = currentValue.substring(0, start) + text + currentValue.substring(end);
-                    samplePayloadTextarea.selectionStart = samplePayloadTextarea.selectionEnd = start + text.length;
+                    // Вставляем только чистый текст
+                    const newValue = currentValue.substring(0, start) + text + currentValue.substring(end);
+                    samplePayloadTextarea.value = newValue;
+                    
+                    // Восстанавливаем позицию курсора
+                    const newPosition = start + text.length;
+                    samplePayloadTextarea.selectionStart = newPosition;
+                    samplePayloadTextarea.selectionEnd = newPosition;
+                    
+                    // Обновляем подсветку
                     samplePayloadTextarea.dispatchEvent(new Event('input'));
                 });
+                
+                // Устанавливаем начальный placeholder
+                updatePayloadEditor();
             }
         } else {
             console.error('JSONHighlighter class not found!');
