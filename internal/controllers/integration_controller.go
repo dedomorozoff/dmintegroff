@@ -525,6 +525,20 @@ func IntegrationConfigure(c *gin.Context) {
 		return fields[i].Path < fields[j].Path
 	})
 
+	// Получаем информацию о проекте для хлебных крошек
+	var project models.Project
+	var projectName string
+	var projectID uint
+	if integration.ProjectID > 0 {
+		if err := database.DB.First(&project, integration.ProjectID).Error; err == nil {
+			projectName = project.Name
+			projectID = project.ID
+		}
+	}
+
+	// Генерируем хлебные крошки
+	breadcrumbs := utils.IntegrationConfigureBreadcrumbs(integration.Name, integration.ID, projectName, projectID)
+
 	c.HTML(http.StatusOK, "pages/integration_configure.html", gin.H{
 		"title":          "Настройка маппинга",
 		"CurrentPage":    "integrations",
@@ -533,6 +547,7 @@ func IntegrationConfigure(c *gin.Context) {
 		"fields":         fields,
 		"payloadJSON":    payloadJSON,
 		"currentMapping": currentMapping,
+		"breadcrumbs":    breadcrumbs,
 		"username":       session.Get("username"),
 		"role":           role,
 		"appURL":         getAppURL(c),

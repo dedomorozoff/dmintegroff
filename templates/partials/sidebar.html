@@ -17,6 +17,8 @@
                         data-lucide="webhook"></i> Интеграции</a></li>
             <li><a href="/integrations/create" {{ if eq .CurrentPage "integration_create" }}class="active" {{ end }}><i
                         data-lucide="plus"></i> Создать</a></li>
+            <li><a href="/analytics" {{ if eq .CurrentPage "analytics" }}class="active" {{ end }}><i
+                        data-lucide="bar-chart-3"></i> Аналитика</a></li>
             <li><a href="/logs" {{ if eq .CurrentPage "logs" }}class="active" {{ end }}><i
                         data-lucide="flask-conical"></i> Тесты интеграций</a></li>
         </ul>

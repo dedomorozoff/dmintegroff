@@ -61,6 +61,10 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 		authorized.GET("/api/activity", controllers.GetRecentActivity)
 		authorized.GET("/api/stats", controllers.GetRequestStats)
 		authorized.GET("/api/system-stats", controllers.GetSystemStats)
+		
+		// Analytics
+		authorized.GET("/analytics", controllers.AnalyticsPage)
+		authorized.GET("/api/analytics", controllers.GetAnalytics)
 
 		authorized.GET("/integrations", controllers.IntegrationList)
 		authorized.GET("/api/integrations", controllers.IntegrationsListAPI)
