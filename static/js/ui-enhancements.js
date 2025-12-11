@@ -129,13 +129,13 @@ class UIEnhancements {
     // Form Validation Enhancement
     setupFormValidation() {
         document.addEventListener('input', (e) => {
-            if (e.target.matches('input, textarea, select')) {
+            if (e.target && e.target.matches && e.target.matches('input, textarea, select')) {
                 this.validateField(e.target);
             }
         });
 
         document.addEventListener('blur', (e) => {
-            if (e.target.matches('input, textarea, select')) {
+            if (e.target && e.target.matches && e.target.matches('input, textarea, select')) {
                 this.validateField(e.target);
             }
         });

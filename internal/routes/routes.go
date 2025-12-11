@@ -134,6 +134,13 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 		authorized.GET("/api/logs", controllers.LogsAPI)
 		authorized.POST("/logs/clear", controllers.ClearLogs)
 		authorized.POST("/logs/:id/delete", controllers.DeleteLog)
+		
+		// Request History
+		authorized.GET("/logs/requests", controllers.RequestHistoryPage)
+		authorized.GET("/api/logs/requests", controllers.GetRequestHistory)
+		authorized.GET("/api/logs/requests/:id", controllers.GetRequestDetails)
+		authorized.GET("/api/logs/requests/export", controllers.ExportRequestHistory)
+		authorized.POST("/api/logs/requests/clear", controllers.ClearRequestHistory)
 
 		// Help
 		authorized.GET("/help", controllers.HelpPage)

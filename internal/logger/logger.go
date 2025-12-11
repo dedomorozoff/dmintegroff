@@ -77,6 +77,22 @@ func LogWebhookRequest(integrationID uint, method, url, contentType string, body
 	}).Info("Webhook request processed")
 }
 
+// LogWebhookRequestDetailed логирует детальную информацию о webhook запросе для истории
+func LogWebhookRequestDetailed(integrationID uint, method, url string, requestHeaders, requestBody, responseHeaders, responseBody string, statusCode int, responseTime int64, errorMessage, outputName string) {
+	Log.WithFields(logrus.Fields{
+		"type":             "webhook_detailed",
+		"integration_id":   integrationID,
+		"method":           method,
+		"url":              url,
+		"status_code":      statusCode,
+		"response_time":    responseTime,
+		"request_size":     len(requestBody),
+		"response_size":    len(responseBody),
+		"output_name":      outputName,
+		"has_error":        errorMessage != "",
+	}).Info("Webhook request detailed log")
+}
+
 // LogWebhookResponse логирует ответ на webhook запрос
 func LogWebhookResponse(integrationID uint, targetURL string, statusCode int, responseTime int64, error string) {
 	fields := logrus.Fields{
