@@ -143,6 +143,9 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 		authorized.DELETE("/api/webhook-test/:token", controllers.DeleteWebhookTest)
 		authorized.POST("/api/webhook-test/:token/use-as-sample/:request_id", controllers.UseRequestAsSample)
 		
+		// HTTP Proxy (для избежания CORS)
+		authorized.POST("/api/proxy/http", controllers.ProxyHTTPRequest)
+		
 		// Metrics Dashboard (защищённый)
 		authorized.GET("/metrics/dashboard", controllers.NewMetricsController(healthService).Dashboard)
 	}

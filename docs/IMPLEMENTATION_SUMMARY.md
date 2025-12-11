@@ -169,16 +169,16 @@ dmintegroff/
 ## 📚 Документация
 
 ### Для пользователей
-- **[USE_AS_SAMPLE_GUIDE.md](docs/USE_AS_SAMPLE_GUIDE.md)** - подробное руководство
+- **[USE_AS_SAMPLE_GUIDE.md](USE_AS_SAMPLE_GUIDE.md)** - подробное руководство
 - **[QUICK_TEST_ROADMAP_ITEM_1.md](QUICK_TEST_ROADMAP_ITEM_1.md)** - быстрый тест
 
 ### Для разработчиков
-- **[ROADMAP_ITEM_1_SUMMARY.md](docs/ROADMAP_ITEM_1_SUMMARY.md)** - техническая сводка
-- **[test_use_as_sample.md](docs/testing/test_use_as_sample.md)** - тестовые сценарии
+- **[ROADMAP_ITEM_1_SUMMARY.md](ROADMAP_ITEM_1_SUMMARY.md)** - техническая сводка
+- **[test_use_as_sample.md](testing/test_use_as_sample.md)** - тестовые сценарии
 
 ### Общая
-- **[ROADMAP.md](docs/ROADMAP.md)** - обновлённый роадмап
-- **[CHANGELOG.md](docs/CHANGELOG.md)** - история изменений
+- **[ROADMAP.md](ROADMAP.md)** - обновлённый роадмап
+- **[CHANGELOG.md](CHANGELOG.md)** - история изменений
 
 ---
 

@@ -138,6 +138,6 @@ netstat -an | grep 8080
 
 ## 📚 Подробная документация
 
-- [Настройка прокси](docs/PROXY_SETUP.md)
-- [Тестовые вебхуки](docs/WEBHOOK_TEST.md)
-- [Демо режим](docs/DEMO_MODE.md)
+- [Настройка прокси](PROXY_SETUP.md)
+- [Тестовые вебхуки](WEBHOOK_TEST.md)
+- [Демо режим](DEMO_MODE.md)

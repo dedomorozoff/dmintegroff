@@ -451,6 +451,30 @@ body {
     stroke-width: 2;
 }
 
+.btn-icon {
+    background: transparent;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    padding: 0.2rem;
+    color: var(--muted-foreground);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+    background: var(--secondary);
+    color: var(--foreground);
+}
+
+.btn-icon i {
+    width: 18px;
+    height: 18px;
+    transition: transform 0.2s ease-in-out;
+}
+
 /* Forms */
 .form-group {
     margin-bottom: 1.5rem;

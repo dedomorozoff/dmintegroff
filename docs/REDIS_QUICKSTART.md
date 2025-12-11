@@ -78,9 +78,9 @@ redis-cli ping
 
 ## 📚 Подробная документация
 
-- [Полная настройка Redis](docs/REDIS_SETUP.md)
-- [Установка и конфигурация](docs/REDIS_INSTALL.md)
-- [Управление вебхуками](docs/WEBHOOK_TEST_MANAGEMENT.md)
+- [Полная настройка Redis](REDIS_SETUP.md)
+- [Установка и конфигурация](REDIS_INSTALL.md)
+- [Управление вебхуками](WEBHOOK_TEST_MANAGEMENT.md)
 
 ## ❓ Проблемы?
 
