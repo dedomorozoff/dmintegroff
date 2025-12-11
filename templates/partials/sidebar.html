@@ -45,4 +45,30 @@
         </div>
     </div>
 </aside>
+
+<!-- Global AI Assistant Script -->
+<script>
+    // Глобальная функция для открытия AI ассистента (обновлена для нового чата)
+    window.openAIAssistant = function(context = null) {
+        // Проверяем есть ли AI виджет на странице
+        const aiWidget = document.getElementById('aiChatWidget');
+        if (!aiWidget) {
+            // Если AI виджета нет, показываем сообщение
+            alert('AI Ассистент доступен на страницах с интеграциями');
+            return;
+        }
+
+        // Если есть AI ассистент, используем его
+        if (window.aiAssistant) {
+            if (context) {
+                window.aiAssistant.setIntegrationContext(context);
+            }
+            window.aiAssistant.openChat();
+        } else {
+            // Если AI ассистент не загружен, показываем уведомление
+            alert('AI Ассистент загружается... Попробуйте через несколько секунд.');
+        }
+    };
+</script>
+
 {{ end }}

@@ -25,6 +25,7 @@
                         Экспорт в Git
                     </button>
                     {{ end }}
+
                     <a href="/integrations/create" class="btn btn-success">
                         <i data-lucide="plus"></i>
                         Создать интеграцию
@@ -588,6 +589,25 @@
     </script>
     
     {{ template "pages/integrations_export_import.html" . }}
+
+    <!-- AI Assistant Chat Widget -->
+    {{ template "partials/ai_chat.html" . }}
+
+    <!-- AI Assistant Script -->
+    <script src="/static/js/ai-assistant.js"></script>
+    <script>
+        // Инициализируем AI ассистент для страницы интеграций
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.aiAssistant) {
+                window.aiAssistant.setIntegrationContext({
+                    source: 'integrations_list',
+                    total_integrations: {{ len .integrations }}
+                });
+            }
+        });
+
+        // AI уже инициализирован глобально в ai-assistant.js
+    </script>
 </body>
 </html>
 {{ end }}

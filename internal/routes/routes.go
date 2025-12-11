@@ -15,6 +15,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+
+
 func SetupRouter(healthService *services.HealthService) *gin.Engine {
 	r := gin.Default()
 
@@ -159,6 +161,14 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 		// HTTP Proxy (для избежания CORS)
 		authorized.POST("/api/proxy/http", controllers.ProxyHTTPRequest)
 		
+		// AI Assistant endpoints
+		authorized.POST("/api/ai/chat", controllers.AIChat)
+		authorized.POST("/api/ai/analyze-data", controllers.AIAnalyzeData)
+		authorized.POST("/api/ai/generate-mapping", controllers.AIGenerateMapping)
+		authorized.POST("/api/ai/apply-mapping/:id", controllers.AIApplyMapping)
+		authorized.GET("/api/ai/status", controllers.AIGetStatus)
+		authorized.GET("/api/ai/suggestions", controllers.AIGetQuickSuggestions)
+		
 		// Metrics Dashboard (защищённый)
 		authorized.GET("/metrics/dashboard", controllers.NewMetricsController(healthService).Dashboard)
 	}
@@ -182,6 +192,8 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 		webhookGroup.Any("/test", controllers.TestEndpoint) // Test webhook endpoint
 		webhookGroup.Any("/test/:token", controllers.HandleWebhookTest) // Test webhook with token
 	}
+
+
 
 	// Error pages - должны быть в конце
 	r.NoRoute(controllers.NotFoundPage)
