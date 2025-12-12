@@ -95,6 +95,9 @@ type MappingGenerationRequest struct {
 
 // AIConfig конфигурация AI
 type AIConfig struct {
+	// Глобальные настройки
+	Enabled bool `env:"AI_ENABLED" envDefault:"true"` // глобальное включение/выключение AI
+	
 	// OpenRouter настройки
 	OpenRouterAPIKey string  `env:"OPENROUTER_API_KEY"`
 	OpenRouterModel  string  `env:"OPENROUTER_MODEL" envDefault:"anthropic/claude-3.5-sonnet"`
@@ -149,6 +152,9 @@ type APITemplate struct {
 
 // IsConfigured проверяет, настроен ли AI
 func (c *AIConfig) IsConfigured() bool {
+	if !c.Enabled {
+		return false
+	}
 	if c.LocalLLMEnabled && c.LocalLLMURL != "" {
 		return true
 	}
@@ -157,6 +163,9 @@ func (c *AIConfig) IsConfigured() bool {
 
 // GetCurrentProvider возвращает текущего провайдера AI
 func (c *AIConfig) GetCurrentProvider() string {
+	if !c.Enabled {
+		return "Disabled (AI_ENABLED=false)"
+	}
 	if c.LocalLLMEnabled && c.LocalLLMURL != "" {
 		return "Local LLM"
 	}

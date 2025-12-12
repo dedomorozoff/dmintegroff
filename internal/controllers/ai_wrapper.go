@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"dmintegroff/internal/config"
+	"dmintegroff/internal/database"
 	"sync"
 
 	"github.com/gin-gonic/gin"
@@ -10,16 +11,37 @@ import (
 // Глобальный AI контроллер (singleton)
 var (
 	aiController *AIController
-	aiOnce       sync.Once
+	aiMutex      sync.RWMutex
 )
 
-// getAIController возвращает singleton AI контроллера
+// getAIController возвращает AI контроллер с актуальной конфигурацией
 func getAIController() *AIController {
-	aiOnce.Do(func() {
-		aiConfig := config.LoadAIConfig()
+	aiMutex.RLock()
+	if aiController != nil {
+		defer aiMutex.RUnlock()
+		return aiController
+	}
+	aiMutex.RUnlock()
+
+	aiMutex.Lock()
+	defer aiMutex.Unlock()
+	
+	// Двойная проверка после получения блокировки записи
+	if aiController == nil {
+		aiConfig := config.LoadAIConfig(database.DB)
 		aiController = NewAIController(aiConfig)
-	})
+	}
+	
 	return aiController
+}
+
+// reloadAIController перезагружает AI контроллер с новой конфигурацией
+func reloadAIController() {
+	aiMutex.Lock()
+	defer aiMutex.Unlock()
+	
+	aiConfig := config.LoadAIConfig(database.DB)
+	aiController = NewAIController(aiConfig)
 }
 
 // AIChat обрабатывает запросы к AI чату
@@ -50,4 +72,9 @@ func AIGetStatus(c *gin.Context) {
 // AIGetQuickSuggestions возвращает быстрые предложения
 func AIGetQuickSuggestions(c *gin.Context) {
 	getAIController().GetQuickSuggestions(c)
+}
+
+// AIGetModels возвращает список доступных AI моделей
+func AIGetModels(c *gin.Context) {
+	getAIController().GetModels(c)
 }

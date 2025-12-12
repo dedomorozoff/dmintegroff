@@ -151,6 +151,10 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 		authorized.GET("/settings", controllers.SettingsPage)
 		authorized.POST("/settings/change-password", controllers.ChangePassword)
 		
+		// AI Settings (admin only)
+		authorized.GET("/api/settings/ai", controllers.GetAISettings)
+		authorized.POST("/api/settings/ai", controllers.SaveAISettings)
+		
 		// Webhook Test
 		authorized.POST("/api/webhook-test/create", controllers.CreateWebhookTest)
 		authorized.GET("/webhook-test/:token", controllers.WebhookTestPage)
@@ -168,6 +172,7 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 		authorized.POST("/api/ai/apply-mapping/:id", controllers.AIApplyMapping)
 		authorized.GET("/api/ai/status", controllers.AIGetStatus)
 		authorized.GET("/api/ai/suggestions", controllers.AIGetQuickSuggestions)
+		authorized.GET("/api/ai/models", controllers.AIGetModels)
 		
 		// Metrics Dashboard (защищённый)
 		authorized.GET("/metrics/dashboard", controllers.NewMetricsController(healthService).Dashboard)

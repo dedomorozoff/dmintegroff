@@ -79,6 +79,208 @@
             </div>
         </div>
 
+        <!-- AI Settings (Admin Only) -->
+        {{ if eq .role "admin" }}
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-header">
+                <h2 class="card-title">Настройки AI Ассистента</h2>
+            </div>
+            <div style="padding: 1.5rem;">
+                <div id="ai-settings-loading" style="text-align: center; padding: 2rem;">
+                    <i data-lucide="loader-2" style="animation: spin 1s linear infinite;"></i>
+                    <p style="margin-top: 0.5rem; color: var(--text-secondary);">Загрузка настроек AI...</p>
+                </div>
+                
+                <div id="ai-settings-content" style="display: none;">
+                    <!-- AI Status -->
+                    <div id="ai-status" style="margin-bottom: 1.5rem; padding: 1rem; border-radius: 8px; border: 1px solid var(--border);">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <div id="ai-status-icon" style="width: 12px; height: 12px; border-radius: 50%;"></div>
+                            <strong id="ai-status-text">Проверка статуса...</strong>
+                        </div>
+                        <p id="ai-status-details" style="margin: 0; color: var(--text-secondary); font-size: 0.875rem;"></p>
+                        <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border); font-size: 0.875rem; color: var(--text-secondary);">
+                            <strong>Глобальный переключатель:</strong> AI можно включить/выключить через переменную <code>AI_ENABLED</code> в .env файле
+                        </div>
+                    </div>
+
+                    <!-- AI Settings Form -->
+                    <form id="ai-settings-form">
+                        <!-- API Keys Section -->
+                        <div style="margin-bottom: 2rem;">
+                            <h3 style="font-size: 1rem; font-weight: 600; color: var(--foreground); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <i data-lucide="key" style="width: 16px; height: 16px;"></i>
+                                API Ключи
+                            </h3>
+                            <div class="ai-form-group">
+                                <label for="openrouter_api_key" class="ai-form-label">
+                                    <span>OpenRouter API Key</span>
+                                    <span class="ai-form-badge ai-form-badge-primary">Обязательно</span>
+                                </label>
+                                <div style="position: relative;">
+                                    <input type="password" id="openrouter_api_key" name="openrouter_api_key" class="ai-form-input" 
+                                           placeholder="sk-or-v1-...">
+                                    <div id="api-key-status" class="ai-key-status" style="display: none;">
+                                        <i data-lucide="check-circle" style="width: 16px; height: 16px; color: var(--success);"></i>
+                                    </div>
+                                </div>
+                                <small class="ai-form-help" id="api-key-help">
+                                    <a href="https://openrouter.ai/keys" target="_blank" style="color: var(--primary);">Получить ключ OpenRouter</a> - 
+                                    доступ к Claude, GPT-4, Llama и другим моделям.<br>
+                                    <strong>После добавления ключа нажмите "Обновить модели"</strong> для загрузки списка.
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Models Section -->
+                        <div style="margin-bottom: 2rem;">
+                            <h3 style="font-size: 1rem; font-weight: 600; color: var(--foreground); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <i data-lucide="brain" style="width: 16px; height: 16px;"></i>
+                                Модели AI
+                            </h3>
+                            <div class="ai-form-group">
+                                <label for="openrouter_model" class="ai-form-label">
+                                    <span>AI Модель</span>
+                                    <button type="button" id="model-search-btn" class="ai-model-search-btn" title="Поиск моделей">
+                                        <i data-lucide="search" style="width: 14px; height: 14px;"></i>
+                                    </button>
+                                </label>
+                                <select id="openrouter_model" name="openrouter_model" class="ai-form-select">
+                                    <option value="">Выберите модель...</option>
+                                </select>
+                                <small class="ai-form-help">
+                                    Рекомендуется Claude 3.5 Sonnet для программирования. 
+                                    <strong>Нажмите кнопку поиска</strong> для выбора из всех доступных моделей.
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Parameters Section -->
+                        <div style="margin-bottom: 2rem;">
+                            <h3 style="font-size: 1rem; font-weight: 600; color: var(--foreground); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <i data-lucide="settings" style="width: 16px; height: 16px;"></i>
+                                Параметры
+                            </h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem;">
+                                <div class="ai-form-group">
+                                    <label for="max_tokens" class="ai-form-label">Макс. токенов</label>
+                                    <input type="number" id="max_tokens" name="max_tokens" class="ai-form-input" 
+                                           min="100" max="8000" value="4000">
+                                    <small class="ai-form-help">100-8000 токенов</small>
+                                </div>
+
+                                <div class="ai-form-group">
+                                    <label for="temperature" class="ai-form-label">Температура</label>
+                                    <input type="number" id="temperature" name="temperature" class="ai-form-input" 
+                                           min="0" max="2" step="0.1" value="0.3">
+                                    <small class="ai-form-help">0-2 (креативность)</small>
+                                </div>
+
+                                <div class="ai-form-group">
+                                    <label for="request_timeout" class="ai-form-label">Таймаут (сек)</label>
+                                    <input type="number" id="request_timeout" name="request_timeout" class="ai-form-input" 
+                                           min="5" max="120" value="30">
+                                    <small class="ai-form-help">5-120 секунд</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div style="display: flex; gap: 1rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+                            <button type="submit" class="btn btn-primary">
+                                <i data-lucide="save"></i>
+                                Сохранить настройки
+                            </button>
+                            <button type="button" id="test-ai-btn" class="btn btn-secondary">
+                                <i data-lucide="zap"></i>
+                                Тестировать AI
+                            </button>
+                            <button type="button" id="refresh-models-btn" class="btn btn-secondary">
+                                <i data-lucide="refresh-cw"></i>
+                                Обновить модели
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div id="ai-settings-error" style="display: none; text-align: center; padding: 2rem;">
+                    <i data-lucide="alert-circle" style="color: var(--danger); margin-bottom: 0.5rem;"></i>
+                    <p style="color: var(--danger); margin: 0;">Ошибка загрузки настроек AI</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Test Results Modal -->
+        <div id="ai-test-modal" class="ai-modal" style="display: none;">
+            <div class="ai-modal-overlay" onclick="closeAITest()"></div>
+            <div class="ai-modal-content">
+                <div class="ai-modal-header">
+                    <h3>Результат тестирования AI</h3>
+                    <button type="button" onclick="closeAITest()" class="ai-modal-close">
+                        <i data-lucide="x"></i>
+                    </button>
+                </div>
+                
+                <div class="ai-modal-body">
+                    <div id="ai-test-content">
+                        <!-- Контент будет добавлен динамически -->
+                    </div>
+                </div>
+                
+                <div class="ai-modal-footer">
+                    <button type="button" onclick="closeAITest()" class="btn btn-secondary">Закрыть</button>
+                    <button type="button" onclick="testAI()" class="btn btn-primary">Тестировать еще раз</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Model Search Modal -->
+        <div id="model-search-modal" class="ai-modal" style="display: none;">
+            <div class="ai-modal-overlay" onclick="closeModelSearch()"></div>
+            <div class="ai-modal-content">
+                <div class="ai-modal-header">
+                    <h3>Поиск AI моделей</h3>
+                    <button type="button" onclick="closeModelSearch()" class="ai-modal-close">
+                        <i data-lucide="x"></i>
+                    </button>
+                </div>
+                
+                <div class="ai-modal-body">
+                    <!-- Search and Filters -->
+                    <div class="ai-search-controls">
+                        <div class="ai-search-input-group">
+                            <i data-lucide="search" class="ai-search-icon"></i>
+                            <input type="text" id="model-search-input" placeholder="Поиск по названию модели..." class="ai-search-input">
+                        </div>
+                        
+                        <div class="ai-filter-buttons">
+                            <button type="button" class="ai-filter-btn active" data-filter="all">Все</button>
+                            <button type="button" class="ai-filter-btn" data-filter="free">Бесплатные</button>
+                            <button type="button" class="ai-filter-btn" data-filter="popular">Популярные</button>
+                            <button type="button" class="ai-filter-btn" data-filter="anthropic">Anthropic</button>
+                            <button type="button" class="ai-filter-btn" data-filter="openai">OpenAI</button>
+                            <button type="button" class="ai-filter-btn" data-filter="google">Google</button>
+                            <button type="button" class="ai-filter-btn" data-filter="meta">Meta</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Models List -->
+                    <div id="models-list" class="ai-models-list">
+                        <div class="ai-models-loading">
+                            <i data-lucide="loader-2" style="animation: spin 1s linear infinite;"></i>
+                            <p>Загрузка моделей...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="ai-modal-footer">
+                    <button type="button" onclick="closeModelSearch()" class="btn btn-secondary">Отмена</button>
+                    <button type="button" id="select-model-btn" class="btn btn-primary" disabled>Выбрать модель</button>
+                </div>
+            </div>
+        </div>
+        {{ end }}
+
         <!-- Change Password Form -->
         <div class="card">
             <div class="card-header">
@@ -124,7 +326,7 @@
 {{ template "partials/scripts.html" . }}
 <script>
     // Проверка совпадения паролей
-    document.querySelector('form').addEventListener('submit', function(e) {
+    document.querySelector('form[action="/settings/change-password"]').addEventListener('submit', function(e) {
         const newPassword = document.getElementById('new_password').value;
         const confirmPassword = document.getElementById('confirm_password').value;
         
@@ -134,5 +336,1284 @@
             return false;
         }
     });
+
+    // AI Settings JavaScript (только для админов)
+    {{ if eq .role "admin" }}
+    document.addEventListener('DOMContentLoaded', function() {
+        loadAIModels().then(() => {
+            loadAISettings();
+        });
+        
+        // Обработчики событий
+        document.getElementById('ai-settings-form').addEventListener('submit', saveAISettings);
+        document.getElementById('test-ai-btn').addEventListener('click', testAI);
+        document.getElementById('refresh-models-btn').addEventListener('click', loadAIModels);
+        document.getElementById('model-search-btn').addEventListener('click', openModelSearch);
+        
+        // Обработчики для модального окна поиска
+        document.getElementById('model-search-input').addEventListener('input', filterModels);
+        document.getElementById('select-model-btn').addEventListener('click', selectModel);
+        
+        // Обработчики фильтров
+        document.querySelectorAll('.ai-filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.ai-filter-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                filterModels();
+            });
+        });
+    });
+
+    async function loadAISettings() {
+        try {
+            // Загружаем статус AI
+            const statusResponse = await fetch('/api/ai/status');
+            const status = await statusResponse.json();
+            updateAIStatus(status);
+            
+            // Загружаем текущие настройки
+            const settingsResponse = await fetch('/api/settings/ai');
+            if (settingsResponse.ok) {
+                const settings = await settingsResponse.json();
+                populateAIForm(settings);
+            }
+            
+            showAIContent();
+        } catch (error) {
+            console.error('Error loading AI settings:', error);
+            showAIError();
+        }
+    }
+
+    async function loadAIModels() {
+        const refreshBtn = document.getElementById('refresh-models-btn');
+        const originalText = refreshBtn.innerHTML;
+        refreshBtn.innerHTML = '<i data-lucide="loader-2" style="animation: spin 1s linear infinite;"></i> Загрузка...';
+        refreshBtn.disabled = true;
+
+        try {
+            const response = await fetch('/api/ai/models');
+            const data = await response.json();
+            
+            console.log('Загруженные данные моделей:', data); // Отладка
+            
+            const select = document.getElementById('openrouter_model');
+            const currentSelectedModel = select.value; // Сохраняем текущую выбранную модель
+            select.innerHTML = '<option value="">Выберите модель...</option>';
+            
+            // Добавляем рекомендуемые модели
+            if (data.recommended) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = 'Рекомендуемые';
+                data.recommended.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.id;
+                    option.textContent = `${model.name} - ${model.description}`;
+                    optgroup.appendChild(option);
+                });
+                select.appendChild(optgroup);
+            }
+            
+            // Добавляем популярные модели в select для быстрого доступа
+            if (data.openrouter_popular && data.openrouter_popular.length > 0) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = 'Популярные модели';
+                
+                data.openrouter_popular.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.id;
+                    
+                    let displayName = model.name || model.id.split('/').pop();
+                    if (model.is_free) {
+                        displayName += ' (Бесплатно)';
+                    } else if (model.pricing && model.pricing.prompt) {
+                        const price = (model.pricing.prompt * 1000000).toFixed(2);
+                        displayName += ` ($${price}/1M)`;
+                    }
+                    
+                    option.textContent = displayName;
+                    optgroup.appendChild(option);
+                });
+                
+                select.appendChild(optgroup);
+            } else if (data.recommended && data.recommended.length > 0) {
+                // Fallback на рекомендуемые модели если OpenRouter недоступен
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = 'Рекомендуемые модели (статические)';
+                
+                data.recommended.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.id;
+                    option.textContent = model.name + ' - ' + model.description;
+                    optgroup.appendChild(option);
+                });
+                
+                select.appendChild(optgroup);
+            } else {
+                // Если нет моделей вообще
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'Добавьте OpenRouter API ключ для загрузки моделей';
+                option.disabled = true;
+                select.appendChild(option);
+            }
+            
+            // Сохраняем все модели для поиска
+            window.allModels = data.openrouter_all || [];
+            
+            // Восстанавливаем выбранную модель если она была
+            if (currentSelectedModel) {
+                // Проверяем, есть ли модель в новом списке
+                let modelFound = false;
+                for (let option of select.options) {
+                    if (option.value === currentSelectedModel) {
+                        modelFound = true;
+                        break;
+                    }
+                }
+                
+                // Если модель не найдена, добавляем её как сохраненную
+                if (!modelFound && currentSelectedModel !== '') {
+                    const option = document.createElement('option');
+                    option.value = currentSelectedModel;
+                    option.textContent = `${currentSelectedModel} (Сохраненная модель)`;
+                    
+                    // Безопасно добавляем опцию - всегда добавляем в конец для избежания ошибок DOM
+                    select.appendChild(option);
+                }
+                
+                // Устанавливаем выбранное значение
+                select.value = currentSelectedModel;
+            }
+            
+            // Показываем информацию о доступности OpenRouter
+            if (!data.openrouter_available) {
+                console.warn('OpenRouter недоступен:', data.openrouter_error);
+                
+                // Обновляем help text с информацией об ошибке
+                const helpText = document.querySelector('#openrouter_model').parentNode.querySelector('.ai-form-help');
+                if (helpText && data.openrouter_error) {
+                    helpText.innerHTML = `
+                        <span style="color: var(--warning);">⚠️ ${data.openrouter_error}</span><br>
+                        Рекомендуется Claude 3.5 Sonnet для программирования. 
+                        <strong>Нажмите кнопку поиска</strong> для выбора из всех доступных моделей.
+                    `;
+                }
+            }
+            
+            lucide.createIcons(); // Обновляем иконки
+        } catch (error) {
+            console.error('Error loading models:', error);
+            
+            // Показываем ошибку пользователю
+            const select = document.getElementById('openrouter_model');
+            select.innerHTML = '<option value="">Ошибка загрузки моделей - проверьте API ключ</option>';
+            
+            showAlert('error', 'Ошибка загрузки моделей. Проверьте OpenRouter API ключ и подключение к интернету.');
+        } finally {
+            refreshBtn.innerHTML = originalText;
+            refreshBtn.disabled = false;
+            lucide.createIcons();
+        }
+    }
+
+    function updateAIStatus(status) {
+        const statusIcon = document.getElementById('ai-status-icon');
+        const statusText = document.getElementById('ai-status-text');
+        const statusDetails = document.getElementById('ai-status-details');
+        
+        if (!status.enabled) {
+            statusIcon.style.background = '#6c757d'; // серый цвет для отключенного состояния
+            statusText.textContent = 'AI отключен';
+            statusDetails.textContent = 'AI функциональность отключена в настройках сервера (AI_ENABLED=false)';
+        } else if (status.configured && status.available) {
+            statusIcon.style.background = '#2ed573';
+            statusText.textContent = 'AI настроен и доступен';
+            statusDetails.textContent = `Провайдер: ${status.provider}`;
+        } else if (status.configured && !status.available) {
+            statusIcon.style.background = '#ffa502';
+            statusText.textContent = 'AI настроен, но недоступен';
+            statusDetails.textContent = status.error || 'Проверьте подключение к интернету';
+        } else {
+            statusIcon.style.background = '#ff4757';
+            statusText.textContent = 'AI не настроен';
+            statusDetails.textContent = 'Добавьте API ключ для OpenRouter или OpenAI';
+        }
+    }
+
+    function showAIContent() {
+        document.getElementById('ai-settings-loading').style.display = 'none';
+        document.getElementById('ai-settings-content').style.display = 'block';
+        document.getElementById('ai-settings-error').style.display = 'none';
+    }
+
+    function showAIError() {
+        document.getElementById('ai-settings-loading').style.display = 'none';
+        document.getElementById('ai-settings-content').style.display = 'none';
+        document.getElementById('ai-settings-error').style.display = 'block';
+    }
+
+    async function saveAISettings(e) {
+        e.preventDefault();
+        
+        const form = e.target;
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        submitBtn.innerHTML = '<i data-lucide="loader-2" style="animation: spin 1s linear infinite;"></i> Сохранение...';
+        submitBtn.disabled = true;
+        
+        try {
+            const formData = new FormData(form);
+            const apiKeyInput = document.getElementById('openrouter_api_key');
+            const apiKeyValue = formData.get('openrouter_api_key');
+            const selectedModel = formData.get('openrouter_model');
+            
+            console.log('Сохраняем настройки:', {
+                api_key: apiKeyValue ? 'есть' : 'нет',
+                model: selectedModel,
+                max_tokens: formData.get('max_tokens'),
+                temperature: formData.get('temperature'),
+                timeout: formData.get('request_timeout')
+            });
+            
+            // Если поле API ключа пустое, но у нас есть сохраненный ключ, не отправляем пустое значение
+            let finalApiKey = apiKeyValue;
+            if (!apiKeyValue && apiKeyInput.getAttribute('data-has-saved-key') === 'true') {
+                finalApiKey = null; // null означает "не изменять существующий ключ"
+            }
+            
+            const data = {
+                openrouter_api_key: finalApiKey,
+                openrouter_model: selectedModel,
+                openai_api_key: '', // Пока не используем
+                openai_model: 'gpt-4o', // Значение по умолчанию
+                max_tokens: parseInt(formData.get('max_tokens')),
+                temperature: parseFloat(formData.get('temperature')),
+                request_timeout: parseInt(formData.get('request_timeout'))
+            };
+            
+            const response = await fetch('/api/settings/ai', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                // Показываем успешное сообщение
+                showAlert('success', result.message);
+                // Обновляем статус AI
+                setTimeout(loadAISettings, 1000);
+            } else {
+                showAlert('error', result.error || 'Ошибка сохранения настроек');
+            }
+        } catch (error) {
+            console.error('Error saving AI settings:', error);
+            showAlert('error', 'Ошибка подключения к серверу');
+        } finally {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+            lucide.createIcons();
+        }
+    }
+
+    async function testAI() {
+        const testBtn = document.getElementById('test-ai-btn');
+        const originalText = testBtn.innerHTML;
+        
+        testBtn.innerHTML = '<i data-lucide="loader-2" style="animation: spin 1s linear infinite;"></i> Тестирование...';
+        testBtn.disabled = true;
+        
+        const startTime = Date.now();
+        
+        try {
+            // Получаем текущие настройки для отображения
+            const currentModel = document.getElementById('openrouter_model').value || 'Не выбрана';
+            const maxTokens = document.getElementById('max_tokens').value;
+            const temperature = document.getElementById('temperature').value;
+            const timeout = document.getElementById('request_timeout').value;
+            
+            const response = await fetch('/api/ai/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: 'Привет! Это тестовое сообщение для проверки работы AI. Ответь кратко, что ты работаешь корректно.',
+                    history: [],
+                    context: null,
+                    sample_data: {}
+                })
+            });
+            
+            const endTime = Date.now();
+            const responseTime = endTime - startTime;
+            const result = await response.json();
+            
+            // Показываем результаты в модальном окне
+            showAITestResults({
+                success: response.ok,
+                model: currentModel,
+                maxTokens: maxTokens,
+                temperature: temperature,
+                timeout: timeout,
+                responseTime: responseTime,
+                response: result.response || null,
+                error: result.error || null,
+                details: result.details || null,
+                httpStatus: response.status
+            });
+            
+        } catch (error) {
+            console.error('Error testing AI:', error);
+            const endTime = Date.now();
+            const responseTime = endTime - startTime;
+            
+            showAITestResults({
+                success: false,
+                model: document.getElementById('openrouter_model').value || 'Не выбрана',
+                maxTokens: document.getElementById('max_tokens').value,
+                temperature: document.getElementById('temperature').value,
+                timeout: document.getElementById('request_timeout').value,
+                responseTime: responseTime,
+                response: null,
+                error: error.message || 'Ошибка подключения к серверу',
+                details: null,
+                httpStatus: 0
+            });
+        } finally {
+            testBtn.innerHTML = originalText;
+            testBtn.disabled = false;
+            lucide.createIcons();
+        }
+    }
+
+    function populateAIForm(settings) {
+        // Заполняем форму текущими настройками
+        const apiKeyInput = document.getElementById('openrouter_api_key');
+        const apiKeyStatus = document.getElementById('api-key-status');
+        const apiKeyHelp = document.getElementById('api-key-help');
+        
+        if (settings.openrouter_api_key && settings.openrouter_api_key !== '') {
+            // Если ключ замаскирован (содержит ...), показываем как placeholder
+            if (settings.openrouter_api_key.includes('...')) {
+                apiKeyInput.placeholder = `Сохранен: ${settings.openrouter_api_key}`;
+                apiKeyInput.setAttribute('data-has-saved-key', 'true');
+                
+                // Показываем индикатор сохраненного ключа
+                apiKeyStatus.style.display = 'flex';
+                apiKeyHelp.innerHTML = `
+                    <span style="color: var(--success);">✓ API ключ сохранен</span><br>
+                    Оставьте поле пустым для сохранения текущего ключа или введите новый для замены.
+                `;
+            } else {
+                // Если ключ не замаскирован, показываем как value
+                apiKeyInput.value = settings.openrouter_api_key;
+            }
+        }
+        
+        // Устанавливаем модель
+        const modelSelect = document.getElementById('openrouter_model');
+        if (settings.openrouter_model) {
+            // Проверяем, есть ли модель в списке опций
+            let modelFound = false;
+            for (let option of modelSelect.options) {
+                if (option.value === settings.openrouter_model) {
+                    modelFound = true;
+                    break;
+                }
+            }
+            
+            // Если модель не найдена в списке, добавляем её
+            if (!modelFound && settings.openrouter_model !== '') {
+                const option = document.createElement('option');
+                option.value = settings.openrouter_model;
+                option.textContent = `${settings.openrouter_model} (Сохраненная модель)`;
+                option.selected = true;
+                
+                // Безопасно добавляем опцию - всегда добавляем в конец для избежания ошибок DOM
+                modelSelect.appendChild(option);
+            }
+            
+            // Устанавливаем выбранное значение
+            modelSelect.value = settings.openrouter_model;
+        }
+        
+        document.getElementById('max_tokens').value = settings.max_tokens || 4000;
+        document.getElementById('temperature').value = settings.temperature || 0.3;
+        document.getElementById('request_timeout').value = settings.request_timeout || 30;
+    }
+
+    function showAlert(type, message) {
+        // Удаляем существующие алерты
+        const existingAlerts = document.querySelectorAll('.alert');
+        existingAlerts.forEach(alert => alert.remove());
+        
+        // Создаем новый алерт
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type === 'success' ? 'success' : 'danger'}`;
+        alert.style.marginBottom = '1.5rem';
+        alert.innerHTML = `
+            <i data-lucide="${type === 'success' ? 'check-circle-2' : 'alert-circle'}"></i>
+            <span>${message}</span>
+        `;
+        
+        // Вставляем перед первой карточкой
+        const firstCard = document.querySelector('.card');
+        firstCard.parentNode.insertBefore(alert, firstCard);
+        
+        // Обновляем иконки
+        lucide.createIcons();
+        
+        // Автоматически скрываем через 5 секунд
+        setTimeout(() => {
+            alert.remove();
+        }, 5000);
+    }
+
+    // Функции для тестирования AI
+    function showAITestResults(testData) {
+        const modal = document.getElementById('ai-test-modal');
+        const content = document.getElementById('ai-test-content');
+        
+        const statusIcon = testData.success ? 
+            '<i data-lucide="check-circle" style="color: var(--success); width: 24px; height: 24px;"></i>' :
+            '<i data-lucide="x-circle" style="color: var(--destructive); width: 24px; height: 24px;"></i>';
+        
+        const statusText = testData.success ? 'Тест прошел успешно' : 'Тест не прошел';
+        const statusColor = testData.success ? 'var(--success)' : 'var(--destructive)';
+        
+        content.innerHTML = `
+            <div class="ai-test-header" style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; padding: 1rem; background: var(--muted); border-radius: var(--radius);">
+                ${statusIcon}
+                <div>
+                    <h4 style="margin: 0; color: ${statusColor};">${statusText}</h4>
+                    <p style="margin: 0; color: var(--muted-foreground); font-size: 0.875rem;">
+                        Время ответа: ${testData.responseTime}мс | HTTP: ${testData.httpStatus}
+                    </p>
+                </div>
+            </div>
+            
+            <div class="ai-test-details">
+                <div class="ai-test-section">
+                    <h5 style="margin-bottom: 0.5rem; color: var(--foreground);">Настройки тестирования</h5>
+                    <div class="ai-test-grid">
+                        <div class="ai-test-item">
+                            <span class="ai-test-label">Модель:</span>
+                            <span class="ai-test-value">${testData.model}</span>
+                        </div>
+                        <div class="ai-test-item">
+                            <span class="ai-test-label">Макс. токенов:</span>
+                            <span class="ai-test-value">${testData.maxTokens}</span>
+                        </div>
+                        <div class="ai-test-item">
+                            <span class="ai-test-label">Температура:</span>
+                            <span class="ai-test-value">${testData.temperature}</span>
+                        </div>
+                        <div class="ai-test-item">
+                            <span class="ai-test-label">Таймаут:</span>
+                            <span class="ai-test-value">${testData.timeout}с</span>
+                        </div>
+                    </div>
+                </div>
+                
+                ${testData.success && testData.response ? `
+                    <div class="ai-test-section">
+                        <h5 style="margin-bottom: 0.5rem; color: var(--foreground);">Ответ AI</h5>
+                        <div class="ai-test-response">
+                            ${testData.response}
+                        </div>
+                    </div>
+                ` : ''}
+                
+                ${!testData.success && testData.error ? `
+                    <div class="ai-test-section">
+                        <h5 style="margin-bottom: 0.5rem; color: var(--destructive);">Ошибка</h5>
+                        <div class="ai-test-error">
+                            ${testData.error}
+                        </div>
+                        ${testData.details ? `<div class="ai-test-error-details">${testData.details}</div>` : ''}
+                    </div>
+                ` : ''}
+                
+                <div class="ai-test-section">
+                    <h5 style="margin-bottom: 0.5rem; color: var(--foreground);">Диагностика</h5>
+                    <div class="ai-test-diagnostics">
+                        ${getDiagnosticInfo(testData)}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        lucide.createIcons();
+    }
+    
+    function closeAITest() {
+        document.getElementById('ai-test-modal').style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+    
+    function getDiagnosticInfo(testData) {
+        const diagnostics = [];
+        
+        if (testData.responseTime > 10000) {
+            diagnostics.push('<span style="color: var(--warning);">⚠️ Медленный ответ (>10с) - попробуйте уменьшить количество токенов</span>');
+        } else if (testData.responseTime < 1000) {
+            diagnostics.push('<span style="color: var(--success);">✓ Быстрый ответ (<1с)</span>');
+        }
+        
+        if (testData.model === 'Не выбрана') {
+            diagnostics.push('<span style="color: var(--destructive);">❌ Модель не выбрана - выберите модель из списка</span>');
+        }
+        
+        if (testData.httpStatus === 401) {
+            diagnostics.push('<span style="color: var(--destructive);">❌ Неверный API ключ - проверьте ключ OpenRouter</span>');
+        } else if (testData.httpStatus === 429) {
+            diagnostics.push('<span style="color: var(--warning);">⚠️ Превышен лимит запросов - попробуйте позже</span>');
+        } else if (testData.httpStatus === 500) {
+            diagnostics.push('<span style="color: var(--destructive);">❌ Ошибка сервера - попробуйте другую модель</span>');
+        }
+        
+        if (testData.success) {
+            diagnostics.push('<span style="color: var(--success);">✓ AI настроен корректно и готов к использованию</span>');
+        }
+        
+        return diagnostics.length > 0 ? diagnostics.join('<br>') : 'Нет дополнительной диагностической информации';
+    }
+
+    // Функции для поиска моделей
+    let selectedModelId = null;
+
+    function openModelSearch() {
+        document.getElementById('model-search-modal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        loadModelsInModal();
+    }
+
+    function closeModelSearch() {
+        document.getElementById('model-search-modal').style.display = 'none';
+        document.body.style.overflow = 'auto';
+        selectedModelId = null;
+        
+        // Сбрасываем кнопку выбора
+        const selectBtn = document.getElementById('select-model-btn');
+        selectBtn.disabled = true;
+        selectBtn.innerHTML = 'Выбрать модель';
+        
+        // Убираем выделение
+        document.querySelectorAll('.ai-model-item').forEach(item => {
+            item.classList.remove('selected');
+        });
+    }
+
+    function loadModelsInModal() {
+        const modelsList = document.getElementById('models-list');
+        
+        if (!window.allModels || window.allModels.length === 0) {
+            modelsList.innerHTML = `
+                <div class="ai-models-empty">
+                    <i data-lucide="alert-circle" style="width: 48px; height: 48px; margin-bottom: 1rem; color: var(--muted-foreground);"></i>
+                    <h4>Модели не загружены</h4>
+                    <p>Для загрузки моделей необходимо:</p>
+                    <ol style="text-align: left; margin: 1rem 0;">
+                        <li>Добавить OpenRouter API ключ</li>
+                        <li>Нажать "Обновить модели"</li>
+                        <li>Убедиться что AI_ENABLED=true</li>
+                    </ol>
+                    <button onclick="closeModelSearch(); loadAIModels();" class="btn btn-primary" style="margin-top: 1rem;">
+                        Обновить модели
+                    </button>
+                </div>
+            `;
+            lucide.createIcons();
+            return;
+        }
+
+        renderModels(window.allModels);
+    }
+
+    function renderModels(models) {
+        const modelsList = document.getElementById('models-list');
+        
+        if (models.length === 0) {
+            modelsList.innerHTML = '<div class="ai-models-empty">Модели не найдены по заданным критериям</div>';
+            return;
+        }
+
+        const modelsHTML = models.map(model => {
+            // Безопасная обработка цены
+            let price = 'Цена не указана';
+            if (model.pricing) {
+                if (model.is_free || (model.pricing.prompt === 0 && model.pricing.completion === 0)) {
+                    price = 'Бесплатно';
+                } else if (model.pricing.prompt > 0) {
+                    price = `$${(model.pricing.prompt * 1000000).toFixed(3)}/1M токенов`;
+                }
+            }
+            
+            const contextLength = model.context_length && model.context_length > 0 ? 
+                `${(model.context_length / 1000).toFixed(0)}K контекст` : 
+                'Контекст не указан';
+
+            // Экранируем ID для безопасности
+            const escapedId = model.id.replace(/'/g, "\\'");
+
+            return `
+                <div class="ai-model-item" data-model-id="${model.id}" onclick="selectModelInModal('${escapedId}')">
+                    <div class="ai-model-header">
+                        <div class="ai-model-name">${model.name || model.id.split('/').pop()}</div>
+                        <div class="ai-model-badges">
+                            <span class="ai-model-provider">${model.provider || 'Unknown'}</span>
+                            ${model.is_free ? '<span class="ai-model-free">Бесплатно</span>' : ''}
+                        </div>
+                    </div>
+                    <div class="ai-model-details">
+                        <div class="ai-model-id">${model.id}</div>
+                        <div class="ai-model-meta">
+                            <span>${price}</span>
+                            <span>${contextLength}</span>
+                        </div>
+                    </div>
+                    ${model.description ? `<div class="ai-model-description">${model.description}</div>` : ''}
+                </div>
+            `;
+        }).join('');
+
+        modelsList.innerHTML = modelsHTML;
+    }
+
+    function selectModelInModal(modelId) {
+        console.log('Выбрана модель:', modelId); // Отладка
+        
+        // Убираем выделение с предыдущей модели
+        document.querySelectorAll('.ai-model-item').forEach(item => {
+            item.classList.remove('selected');
+        });
+        
+        // Выделяем выбранную модель
+        const selectedItem = document.querySelector(`[data-model-id="${modelId}"]`);
+        if (selectedItem) {
+            selectedItem.classList.add('selected');
+            selectedModelId = modelId;
+            document.getElementById('select-model-btn').disabled = false;
+            
+            // Обновляем текст кнопки с названием модели
+            const model = window.allModels.find(m => m.id === modelId);
+            const modelName = model ? (model.name || model.id.split('/').pop()) : modelId;
+            document.getElementById('select-model-btn').innerHTML = `Выбрать: ${modelName}`;
+        } else {
+            console.warn('Модель не найдена в DOM:', modelId);
+        }
+    }
+
+    function selectModel() {
+        if (selectedModelId) {
+            const select = document.getElementById('openrouter_model');
+            
+            // Проверяем, есть ли уже такая опция в select
+            let optionExists = false;
+            for (let option of select.options) {
+                if (option.value === selectedModelId) {
+                    optionExists = true;
+                    break;
+                }
+            }
+            
+            // Если опции нет, добавляем её
+            if (!optionExists) {
+                const selectedModel = window.allModels.find(model => model.id === selectedModelId);
+                if (selectedModel) {
+                    const option = document.createElement('option');
+                    option.value = selectedModel.id;
+                    
+                    let displayName = selectedModel.name || selectedModel.id.split('/').pop();
+                    if (selectedModel.is_free) {
+                        displayName += ' (Бесплатно)';
+                    } else if (selectedModel.pricing && selectedModel.pricing.prompt) {
+                        const price = (selectedModel.pricing.prompt * 1000000).toFixed(2);
+                        displayName += ` ($${price}/1M)`;
+                    }
+                    
+                    option.textContent = displayName;
+                    option.selected = true;
+                    
+                    // Безопасно добавляем опцию - всегда добавляем в конец для избежания ошибок DOM
+                    select.appendChild(option);
+                }
+            }
+            
+            // Устанавливаем выбранное значение
+            select.value = selectedModelId;
+            
+            // Показываем уведомление
+            showAlert('success', `Выбрана модель: ${selectedModelId}`);
+            
+            closeModelSearch();
+        }
+    }
+
+    function filterModels() {
+        if (!window.allModels) return;
+
+        const searchTerm = document.getElementById('model-search-input').value.toLowerCase();
+        const activeFilter = document.querySelector('.ai-filter-btn.active').dataset.filter;
+        
+        let filteredModels = window.allModels;
+
+        // Фильтр по категории
+        if (activeFilter !== 'all') {
+            if (activeFilter === 'free') {
+                filteredModels = filteredModels.filter(model => model.is_free);
+            } else if (activeFilter === 'popular') {
+                const popularIds = [
+                    'anthropic/claude-3.5-sonnet',
+                    'anthropic/claude-3-haiku',
+                    'openai/gpt-4o',
+                    'openai/gpt-4o-mini',
+                    'meta-llama/llama-3.1-70b-instruct',
+                    'google/gemini-pro-1.5'
+                ];
+                filteredModels = filteredModels.filter(model => popularIds.includes(model.id));
+            } else {
+                filteredModels = filteredModels.filter(model => 
+                    model.provider.toLowerCase() === activeFilter
+                );
+            }
+        }
+
+        // Поиск по тексту
+        if (searchTerm) {
+            filteredModels = filteredModels.filter(model => 
+                model.id.toLowerCase().includes(searchTerm) ||
+                (model.name && model.name.toLowerCase().includes(searchTerm)) ||
+                (model.description && model.description.toLowerCase().includes(searchTerm))
+            );
+        }
+
+        renderModels(filteredModels);
+    }
+    {{ end }}
 </script>
+
+<style>
+/* AI Settings Form Styles */
+.ai-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.ai-form-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--foreground);
+    margin-bottom: 0.25rem;
+}
+
+.ai-form-badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.375rem;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.ai-form-badge-primary {
+    background: color-mix(in srgb, var(--primary) 20%, transparent);
+    color: var(--primary);
+}
+
+.ai-form-badge-secondary {
+    background: color-mix(in srgb, var(--muted-foreground) 20%, transparent);
+    color: var(--muted-foreground);
+}
+
+.ai-form-input,
+.ai-form-select {
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--foreground);
+    font-size: 0.875rem;
+    transition: all 0.15s ease;
+}
+
+.ai-form-input:focus,
+.ai-form-select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.ai-form-input::placeholder {
+    color: var(--muted-foreground);
+}
+
+.ai-form-select {
+    cursor: pointer;
+}
+
+.ai-form-select option {
+    background: var(--card);
+    color: var(--foreground);
+}
+
+.ai-form-help {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    line-height: 1.4;
+}
+
+.ai-form-help a {
+    color: var(--primary);
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.ai-form-help a:hover {
+    color: color-mix(in srgb, var(--primary) 80%, white);
+    text-decoration: underline;
+}
+
+/* Model Search Button */
+.ai-model-search-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted-foreground);
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ai-model-search-btn:hover {
+    background: var(--muted);
+    color: var(--foreground);
+    border-color: var(--primary);
+}
+
+/* API Key Status Indicator */
+.ai-key-status {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+/* Modal Styles */
+.ai-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.ai-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+.ai-modal-content {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    width: 100%;
+    max-width: 800px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.ai-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.ai-modal-header h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--foreground);
+    margin: 0;
+}
+
+.ai-modal-close {
+    background: transparent;
+    border: none;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    transition: all 0.15s ease;
+}
+
+.ai-modal-close:hover {
+    background: var(--muted);
+    color: var(--foreground);
+}
+
+.ai-modal-body {
+    flex: 1;
+    padding: 1.5rem;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.ai-modal-footer {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    padding: 1.5rem;
+    border-top: 1px solid var(--border);
+}
+
+/* Search Controls */
+.ai-search-controls {
+    margin-bottom: 1.5rem;
+}
+
+.ai-search-input-group {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.ai-search-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    color: var(--muted-foreground);
+}
+
+.ai-search-input {
+    width: 100%;
+    padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--foreground);
+    font-size: 0.875rem;
+}
+
+.ai-search-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.ai-filter-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.ai-filter-btn {
+    padding: 0.5rem 1rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted-foreground);
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: all 0.15s ease;
+}
+
+.ai-filter-btn:hover {
+    background: var(--muted);
+    color: var(--foreground);
+}
+
+.ai-filter-btn.active {
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border-color: var(--primary);
+}
+
+/* Models List */
+.ai-models-list {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--input);
+}
+
+.ai-models-loading,
+.ai-models-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    color: var(--muted-foreground);
+    text-align: center;
+}
+
+.ai-model-item {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.ai-model-item:hover {
+    background: var(--muted);
+}
+
+.ai-model-item.selected {
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
+    border-color: var(--primary);
+}
+
+.ai-model-item:last-child {
+    border-bottom: none;
+}
+
+.ai-model-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.ai-model-name {
+    font-weight: 600;
+    color: var(--foreground);
+    font-size: 0.875rem;
+}
+
+.ai-model-badges {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.ai-model-provider {
+    font-size: 0.75rem;
+    padding: 0.125rem 0.5rem;
+    background: var(--secondary);
+    color: var(--secondary-foreground);
+    border-radius: 0.25rem;
+}
+
+.ai-model-free {
+    font-size: 0.75rem;
+    padding: 0.125rem 0.5rem;
+    background: var(--success);
+    color: var(--success-foreground);
+    border-radius: 0.25rem;
+    font-weight: 500;
+}
+
+.ai-model-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.ai-model-id {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+}
+
+.ai-model-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+}
+
+.ai-model-description {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    line-height: 1.4;
+}
+
+/* AI Test Results Styles */
+.ai-test-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: var(--muted);
+    border-radius: var(--radius);
+}
+
+.ai-test-details {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.ai-test-section {
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+}
+
+.ai-test-section h5 {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.ai-test-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.ai-test-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: var(--muted);
+    border-radius: 0.25rem;
+}
+
+.ai-test-label {
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+    font-weight: 500;
+}
+
+.ai-test-value {
+    font-size: 0.875rem;
+    color: var(--foreground);
+    font-weight: 600;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.ai-test-response {
+    padding: 1rem;
+    background: var(--muted);
+    border-radius: var(--radius);
+    border-left: 4px solid var(--success);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--foreground);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.ai-test-error {
+    padding: 1rem;
+    background: color-mix(in srgb, var(--destructive) 10%, transparent);
+    border-radius: var(--radius);
+    border-left: 4px solid var(--destructive);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--destructive);
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.ai-test-error-details {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid color-mix(in srgb, var(--destructive) 20%, transparent);
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+}
+
+.ai-test-diagnostics {
+    font-size: 0.875rem;
+    line-height: 1.6;
+}
+
+.ai-test-diagnostics span {
+    display: block;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    background: var(--muted);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .ai-form-group {
+        grid-column: 1 / -1;
+    }
+    
+    div[style*="grid-template-columns: 1fr 1fr"],
+    div[style*="grid-template-columns: 1fr 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .ai-modal-content {
+        margin: 0.5rem;
+        max-height: 90vh;
+    }
+    
+    .ai-filter-buttons {
+        justify-content: center;
+    }
+    
+    .ai-model-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .ai-model-details {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+    
+    .ai-test-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .ai-test-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.5rem;
+    }
+}
+</style>
+
+<!-- AI Assistant -->
+{{ template "partials/ai_chat.html" . }}
 {{ end }}

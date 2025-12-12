@@ -13,6 +13,9 @@ class AIAssistant {
         this.initializeElements();
         this.bindEvents();
         this.checkAIStatus();
+        
+        // Инициализируем иконки Lucide
+        this.initializeIcons();
     }
 
     initializeElements() {
@@ -41,6 +44,16 @@ class AIAssistant {
                 this.closeChat();
             }
         });
+    }
+
+    initializeIcons() {
+        // Инициализируем иконки Lucide для AI виджета
+        if (typeof lucide !== 'undefined') {
+            // Небольшая задержка чтобы DOM успел обновиться
+            setTimeout(() => {
+                lucide.createIcons();
+            }, 100);
+        }
     }
 
     async checkAIStatus() {
@@ -159,6 +172,11 @@ class AIAssistant {
         
         this.messages.appendChild(messageDiv);
         this.scrollToBottom();
+        
+        // Обновляем иконки после добавления сообщения
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
     }
 
     formatMessage(content) {
@@ -189,6 +207,11 @@ class AIAssistant {
         
         this.messages.appendChild(typingDiv);
         this.scrollToBottom();
+        
+        // Обновляем иконки после добавления индикатора печати
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
     }
 
     hideTyping() {
@@ -264,6 +287,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Проверяем есть ли AI виджет на странице
     if (document.getElementById('aiChatWidget')) {
         window.aiAssistant = new AIAssistant();
+        
+        // Инициализируем иконки Lucide для AI виджета
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
     }
 });
 

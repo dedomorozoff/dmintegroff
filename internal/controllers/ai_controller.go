@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -43,10 +44,18 @@ func (c *AIController) Chat(ctx *gin.Context) {
 
 	// Проверяем, настроен ли AI
 	if !c.client.IsConfigured() {
-		ctx.JSON(http.StatusServiceUnavailable, gin.H{
-			"error": "AI не настроен",
-			"details": "Необходимо настроить OPENROUTER_API_KEY или OPENAI_API_KEY",
-		})
+		provider := c.client.GetCurrentProvider()
+		if provider == "Disabled (AI_ENABLED=false)" {
+			ctx.JSON(http.StatusServiceUnavailable, gin.H{
+				"error": "AI отключен",
+				"details": "AI функциональность отключена в настройках сервера (AI_ENABLED=false)",
+			})
+		} else {
+			ctx.JSON(http.StatusServiceUnavailable, gin.H{
+				"error": "AI не настроен",
+				"details": "Необходимо настроить OPENROUTER_API_KEY или OPENAI_API_KEY в разделе Настройки",
+			})
+		}
 		return
 	}
 
@@ -244,6 +253,7 @@ func (c *AIController) GetStatus(ctx *gin.Context) {
 		"configured": c.client.IsConfigured(),
 		"provider":   c.client.GetCurrentProvider(),
 		"models":     c.client.GetAvailableModels(),
+		"enabled":    c.client.Config.Enabled, // добавляем информацию о глобальном переключателе
 	}
 
 	// Проверяем доступность AI
@@ -262,7 +272,12 @@ func (c *AIController) GetStatus(ctx *gin.Context) {
 		}
 	} else {
 		status["available"] = false
-		status["error"] = "AI не настроен"
+		provider := c.client.GetCurrentProvider()
+		if provider == "Disabled (AI_ENABLED=false)" {
+			status["error"] = "AI отключен в настройках сервера (AI_ENABLED=false)"
+		} else {
+			status["error"] = "AI не настроен - добавьте API ключи в разделе Настройки"
+		}
 	}
 
 	ctx.JSON(http.StatusOK, status)
@@ -277,6 +292,105 @@ func (c *AIController) GetQuickSuggestions(ctx *gin.Context) {
 		"suggestions": suggestions,
 		"popular_apis": popularAPIs,
 	})
+}
+
+// GetModels возвращает список доступных AI моделей
+func (c *AIController) GetModels(ctx *gin.Context) {
+	// Создаем контекст с таймаутом
+	requestCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	result := gin.H{
+		"recommended": c.client.GetRecommendedModels(),
+		"static":      c.client.GetAvailableModels(),
+	}
+
+	// Пробуем получить актуальный список от OpenRouter (даже если AI не полностью настроен)
+	// Для получения списка моделей достаточно иметь API ключ
+	if c.client.Config.OpenRouterAPIKey != "" && c.client.Config.Enabled {
+		if models, err := c.client.GetOpenRouterModels(requestCtx); err == nil {
+			// Обрабатываем все модели и добавляем метаданные
+			processedModels := make([]map[string]interface{}, 0)
+			freeModels := make([]map[string]interface{}, 0)
+			popularModels := make([]map[string]interface{}, 0)
+			
+			// Популярные модели для быстрого доступа
+			popularIDs := map[string]bool{
+				"anthropic/claude-3.5-sonnet":        true,
+				"anthropic/claude-3-haiku":           true,
+				"openai/gpt-4o":                      true,
+				"openai/gpt-4o-mini":                 true,
+				"meta-llama/llama-3.1-70b-instruct":  true,
+				"meta-llama/llama-3.1-8b-instruct":   true,
+				"google/gemini-pro-1.5":              true,
+				"mistralai/mistral-7b-instruct":      true,
+			}
+
+			for _, model := range models {
+				// Определяем провайдера из ID модели
+				provider := "Other"
+				if strings.Contains(model.ID, "anthropic/") {
+					provider = "Anthropic"
+				} else if strings.Contains(model.ID, "openai/") {
+					provider = "OpenAI"
+				} else if strings.Contains(model.ID, "google/") {
+					provider = "Google"
+				} else if strings.Contains(model.ID, "meta-llama/") {
+					provider = "Meta"
+				} else if strings.Contains(model.ID, "mistralai/") {
+					provider = "Mistral"
+				} else if strings.Contains(model.ID, "microsoft/") {
+					provider = "Microsoft"
+				} else if strings.Contains(model.ID, "cohere/") {
+					provider = "Cohere"
+				}
+
+				// Проверяем, бесплатная ли модель
+				isFree := model.IsFree()
+
+				// Создаем обработанную модель
+				processedModel := map[string]interface{}{
+					"id":          model.ID,
+					"name":        model.Name,
+					"description": model.Description,
+					"provider":    provider,
+					"is_free":     isFree,
+					"context_length": model.ContextLength,
+				}
+
+				// Добавляем информацию о цене
+				if model.Pricing != nil {
+					processedModel["pricing"] = map[string]interface{}{
+						"prompt":     model.GetPromptPrice(),
+						"completion": model.GetCompletionPrice(),
+					}
+				}
+
+				processedModels = append(processedModels, processedModel)
+
+				// Добавляем в соответствующие категории
+				if isFree {
+					freeModels = append(freeModels, processedModel)
+				}
+				if popularIDs[model.ID] {
+					popularModels = append(popularModels, processedModel)
+				}
+			}
+
+			result["openrouter_all"] = processedModels
+			result["openrouter_free"] = freeModels
+			result["openrouter_popular"] = popularModels
+			result["openrouter_available"] = true
+		} else {
+			result["openrouter_available"] = false
+			result["openrouter_error"] = err.Error()
+		}
+	} else {
+		result["openrouter_available"] = false
+		result["openrouter_error"] = "OpenRouter API key not configured"
+	}
+
+	ctx.JSON(http.StatusOK, result)
 }
 
 // createSuggestions создает предложения на основе запроса

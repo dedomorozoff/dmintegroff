@@ -7,19 +7,20 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 )
 
 // Client клиент для работы с AI (OpenAI API)
 type Client struct {
-	config     *AIConfig
+	Config     *AIConfig // публичное поле для доступа к конфигурации
 	httpClient *http.Client
 }
 
 // NewClient создает новый AI клиент
 func NewClient(config *AIConfig) *Client {
 	return &Client{
-		config: config,
+		Config: config,
 		httpClient: &http.Client{
 			Timeout: time.Duration(config.RequestTimeout) * time.Second,
 		},
@@ -71,12 +72,17 @@ type openAIResponse struct {
 
 // Chat отправляет запрос в чат с AI
 func (c *Client) Chat(ctx context.Context, messages []ChatMessage, jsonMode bool) (string, error) {
-	if c.config.LocalLLMEnabled {
+	// Проверяем глобальный переключатель AI
+	if !c.Config.Enabled {
+		return "", fmt.Errorf("AI functionality is disabled (AI_ENABLED=false)")
+	}
+	
+	if c.Config.LocalLLMEnabled {
 		return c.chatLocal(ctx, messages)
 	}
 	
 	// Пробуем OpenRouter сначала
-	if c.config.OpenRouterAPIKey != "" {
+	if c.Config.OpenRouterAPIKey != "" {
 		response, err := c.chatOpenRouter(ctx, messages, jsonMode)
 		if err == nil {
 			return response, nil
@@ -86,7 +92,7 @@ func (c *Client) Chat(ctx context.Context, messages []ChatMessage, jsonMode bool
 	}
 	
 	// Fallback на OpenAI
-	if c.config.OpenAIAPIKey != "" {
+	if c.Config.OpenAIAPIKey != "" {
 		return c.chatOpenAI(ctx, messages, jsonMode)
 	}
 	
@@ -106,14 +112,14 @@ func (c *Client) chatOpenRouter(ctx context.Context, messages []ChatMessage, jso
 
 	// Создаем запрос
 	request := openAIRequest{
-		Model:       c.config.OpenRouterModel,
+		Model:       c.Config.OpenRouterModel,
 		Messages:    openAIMessages,
-		MaxTokens:   c.config.MaxTokens,
-		Temperature: c.config.Temperature,
+		MaxTokens:   c.Config.MaxTokens,
+		Temperature: c.Config.Temperature,
 	}
 
 	// Включаем JSON режим если нужно (не все модели поддерживают)
-	if jsonMode && c.supportsJSONMode(c.config.OpenRouterModel) {
+	if jsonMode && c.supportsJSONMode(c.Config.OpenRouterModel) {
 		request.ResponseFormat = &responseFormat{Type: "json_object"}
 	}
 
@@ -124,7 +130,7 @@ func (c *Client) chatOpenRouter(ctx context.Context, messages []ChatMessage, jso
 	}
 
 	// Создаем HTTP запрос
-	apiURL := c.config.OpenRouterURL + "/chat/completions"
+	apiURL := c.Config.OpenRouterURL + "/chat/completions"
 	req, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewBuffer(requestBody))
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
@@ -132,7 +138,7 @@ func (c *Client) chatOpenRouter(ctx context.Context, messages []ChatMessage, jso
 
 	// Устанавливаем заголовки для OpenRouter
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+c.config.OpenRouterAPIKey)
+	req.Header.Set("Authorization", "Bearer "+c.Config.OpenRouterAPIKey)
 	req.Header.Set("HTTP-Referer", "https://dmintegroff.com") // Для статистики OpenRouter
 	req.Header.Set("X-Title", "dmIntegroff AI Assistant")
 
@@ -181,10 +187,10 @@ func (c *Client) chatOpenAI(ctx context.Context, messages []ChatMessage, jsonMod
 
 	// Создаем запрос
 	request := openAIRequest{
-		Model:       c.config.OpenAIModel,
+		Model:       c.Config.OpenAIModel,
 		Messages:    openAIMessages,
-		MaxTokens:   c.config.MaxTokens,
-		Temperature: c.config.Temperature,
+		MaxTokens:   c.Config.MaxTokens,
+		Temperature: c.Config.Temperature,
 	}
 
 	// Включаем JSON режим если нужно
@@ -206,7 +212,7 @@ func (c *Client) chatOpenAI(ctx context.Context, messages []ChatMessage, jsonMod
 
 	// Устанавливаем заголовки
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+c.config.OpenAIAPIKey)
+	req.Header.Set("Authorization", "Bearer "+c.Config.OpenAIAPIKey)
 
 	// Отправляем запрос
 	resp, err := c.httpClient.Do(req)
@@ -362,7 +368,75 @@ func (c *Client) supportsJSONMode(model string) bool {
 	return false
 }
 
-// GetAvailableModels возвращает список рекомендуемых моделей
+// ModelInfo информация о модели
+type ModelInfo struct {
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	Pricing     *struct {
+		Prompt     interface{} `json:"prompt"`     // может быть строкой или числом
+		Completion interface{} `json:"completion"` // может быть строкой или числом
+	} `json:"pricing,omitempty"`
+	ContextLength int      `json:"context_length"`
+	Architecture  *struct {
+		Modality    string `json:"modality"`
+		Tokenizer   string `json:"tokenizer"`
+		InstructType string `json:"instruct_type"`
+	} `json:"architecture,omitempty"`
+	TopProvider *struct {
+		MaxCompletionTokens int `json:"max_completion_tokens"`
+	} `json:"top_provider,omitempty"`
+}
+
+// GetPromptPrice возвращает цену за prompt токены как float64
+func (m *ModelInfo) GetPromptPrice() float64 {
+	if m.Pricing == nil || m.Pricing.Prompt == nil {
+		return 0
+	}
+	
+	switch v := m.Pricing.Prompt.(type) {
+	case float64:
+		return v
+	case string:
+		if price, err := strconv.ParseFloat(v, 64); err == nil {
+			return price
+		}
+	case int:
+		return float64(v)
+	}
+	return 0
+}
+
+// GetCompletionPrice возвращает цену за completion токены как float64
+func (m *ModelInfo) GetCompletionPrice() float64 {
+	if m.Pricing == nil || m.Pricing.Completion == nil {
+		return 0
+	}
+	
+	switch v := m.Pricing.Completion.(type) {
+	case float64:
+		return v
+	case string:
+		if price, err := strconv.ParseFloat(v, 64); err == nil {
+			return price
+		}
+	case int:
+		return float64(v)
+	}
+	return 0
+}
+
+// IsFree проверяет, является ли модель бесплатной
+func (m *ModelInfo) IsFree() bool {
+	return m.GetPromptPrice() == 0 && m.GetCompletionPrice() == 0
+}
+
+// OpenRouterModelsResponse ответ от OpenRouter API с моделями
+type OpenRouterModelsResponse struct {
+	Data []ModelInfo `json:"data"`
+}
+
+// GetAvailableModels возвращает список рекомендуемых моделей (статический fallback)
 func (c *Client) GetAvailableModels() []string {
 	return []string{
 		"anthropic/claude-3.5-sonnet",     // Лучший для сложных задач
@@ -374,26 +448,91 @@ func (c *Client) GetAvailableModels() []string {
 	}
 }
 
+// GetOpenRouterModels получает список доступных моделей от OpenRouter API
+func (c *Client) GetOpenRouterModels(ctx context.Context) ([]ModelInfo, error) {
+	if !c.Config.Enabled {
+		return nil, fmt.Errorf("AI functionality is disabled (AI_ENABLED=false)")
+	}
+	if c.Config.OpenRouterAPIKey == "" {
+		return nil, fmt.Errorf("OpenRouter API key not configured")
+	}
+
+	// Создаем HTTP запрос
+	apiURL := c.Config.OpenRouterURL + "/models"
+	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Устанавливаем заголовки
+	req.Header.Set("Authorization", "Bearer "+c.Config.OpenRouterAPIKey)
+	req.Header.Set("HTTP-Referer", "https://dmintegroff.com")
+	req.Header.Set("X-Title", "dmIntegroff AI Assistant")
+
+	// Отправляем запрос
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Читаем ответ
+	responseBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	// Парсим ответ
+	var modelsResp OpenRouterModelsResponse
+	if err := json.Unmarshal(responseBody, &modelsResp); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	return modelsResp.Data, nil
+}
+
+// GetRecommendedModels возвращает рекомендуемые модели с описаниями
+func (c *Client) GetRecommendedModels() []ModelInfo {
+	return []ModelInfo{
+		{
+			ID:          "anthropic/claude-3.5-sonnet",
+			Name:        "Claude 3.5 Sonnet",
+			Description: "Лучший для сложных задач программирования и анализа",
+		},
+		{
+			ID:          "openai/gpt-4o",
+			Name:        "GPT-4o",
+			Description: "Быстрый и качественный, отлично для чата",
+		},
+		{
+			ID:          "openai/gpt-4o-mini",
+			Name:        "GPT-4o Mini",
+			Description: "Дешевый и быстрый, хорош для простых задач",
+		},
+		{
+			ID:          "meta-llama/llama-3.1-70b-instruct",
+			Name:        "Llama 3.1 70B",
+			Description: "Открытая модель, хорошее качество",
+		},
+		{
+			ID:          "google/gemini-pro-1.5",
+			Name:        "Gemini Pro 1.5",
+			Description: "Отлично для анализа данных и больших контекстов",
+		},
+		{
+			ID:          "anthropic/claude-3-haiku",
+			Name:        "Claude 3 Haiku",
+			Description: "Самый быстрый, подходит для простых задач",
+		},
+	}
+}
+
 // IsConfigured проверяет, настроен ли AI клиент
 func (c *Client) IsConfigured() bool {
-	if c.config.LocalLLMEnabled {
-		return c.config.LocalLLMURL != ""
-	}
-	
-	// Проверяем OpenRouter или OpenAI
-	return c.config.OpenRouterAPIKey != "" || c.config.OpenAIAPIKey != ""
+	return c.Config.IsConfigured()
 }
 
 // GetCurrentProvider возвращает текущего провайдера AI
 func (c *Client) GetCurrentProvider() string {
-	if c.config.LocalLLMEnabled && c.config.LocalLLMURL != "" {
-		return "Local LLM"
-	}
-	if c.config.OpenRouterAPIKey != "" {
-		return fmt.Sprintf("OpenRouter (%s)", c.config.OpenRouterModel)
-	}
-	if c.config.OpenAIAPIKey != "" {
-		return fmt.Sprintf("OpenAI (%s)", c.config.OpenAIModel)
-	}
-	return "Not configured"
+	return c.Config.GetCurrentProvider()
 }
