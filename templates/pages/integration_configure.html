@@ -116,7 +116,12 @@
 
     <div class="card">
         <div class="card-header">
-            <h2 class="card-title"><i data-lucide="shuffle"></i> Настройка трансформации данных</h2>
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="card-title mb-0"><i data-lucide="shuffle"></i> Настройка трансформации данных</h2>
+                <button type="button" class="btn btn-primary" onclick="openAIAssistant({id: {{ .integration.ID }}, name: '{{ .integration.Name }}', target_url: '{{ .integration.TargetAPI }}'})">
+                    <i data-lucide="bot"></i> AI Помощник
+                </button>
+            </div>
         </div>
 
         <!-- Переключатель режима -->
@@ -504,6 +509,8 @@
     }
 </style>
 
+{{ template "partials/ai_chat.html" . }}
+<script src="/static/js/ai-assistant.js"></script>
 <script src="/static/js/common.js"></script>
 <script src="/static/js/json-highlight.js"></script>
 <script>
@@ -1626,5 +1633,30 @@ Email: {{`{{user.email}}`}}
         }
     });
 </script>
+
+<!-- AI Assistant Modal -->
+{{ template "partials/ai_chat.html" . }}
+
+<!-- AI Assistant Script -->
+<script src="/static/js/ai-assistant.js"></script>
+<script>
+    // Передаем данные интеграции в AI ассистент
+    window.samplePayload = {{ .payloadJSON }};
+    
+    // Инициализируем AI ассистент с контекстом интеграции
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.aiAssistant) {
+            window.aiAssistant.setIntegrationContext({
+                id: {{ .integration.ID }},
+                name: '{{ .integration.Name }}',
+                target_url: '{{ .integration.TargetAPI }}',
+                mode: '{{ .integration.Mode }}'
+            });
+        }
+    });
+</script>
+
+<!-- AI Chat Widget -->
+{{ template "partials/ai_chat.html" . }}
 
 {{ end }}

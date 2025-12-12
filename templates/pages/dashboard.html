@@ -108,6 +108,8 @@
                     </div>
                 </div>
             </div>
+
+
         </div>
 
         <!-- Quick Actions -->
@@ -149,6 +151,14 @@
                     </div>
                     <span class="quick-action-desc">История запросов и ответов</span>
                 </a>
+                <button onclick="openAIAssistant()" class="btn btn-primary quick-action-btn ai-quick-action" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+                    <div class="quick-action-header">
+                        <i data-lucide="bot"></i>
+                        <span>🤖 AI Помощник</span>
+                        <span class="quick-action-arrow"><i data-lucide="arrow-right"></i></span>
+                    </div>
+                    <span class="quick-action-desc">Создавайте интеграции с помощью искусственного интеллекта</span>
+                </button>
             </div>
         </div>
 
@@ -867,6 +877,33 @@
         from { transform: rotate(0deg); }
         to { transform: rotate(360deg); }
     }
+
+    /* AI Quick Action Animation */
+    .ai-quick-action {
+        transition: all 0.3s ease;
+    }
+
+    .ai-quick-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    }
 </style>
+
+<!-- AI Assistant Modal -->
+{{ template "partials/ai_chat.html" . }}
+
+<script>
+    // Инициализируем AI ассистент для дашборда
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.aiAssistant) {
+            // Устанавливаем контекст дашборда
+            window.aiAssistant.setIntegrationContext({
+                source: 'dashboard',
+                total_integrations: {{ if .total_integrations }}{{ .total_integrations }}{{ else }}0{{ end }},
+                active_integrations: {{ if .active_integrations }}{{ .active_integrations }}{{ else }}0{{ end }}
+            });
+        }
+    });
+</script>
 
 {{ end }}
