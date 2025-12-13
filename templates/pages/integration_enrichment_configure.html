@@ -197,11 +197,27 @@ query GetUserDetails($userId: ID!) {
         </div>
     </main>
 
+    <!-- AI Chat Widget -->
+    {{ template "partials/ai_chat.html" . }}
+
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="/static/js/ai-assistant.js"></script>
     <script>
         lucide.createIcons();
 
         const integrationId = {{ .integration.ID }};
+
+        // Инициализируем AI ассистент для настройки обогащения
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.aiAssistant) {
+                window.aiAssistant.setIntegrationContext({
+                    source: 'enrichment_configure',
+                    integration_id: integrationId,
+                    integration_name: '{{ .integration.Name }}',
+                    feature: 'enrichment'
+                });
+            }
+        });
 
         function toggleEnrichmentFields() {
             const enabled = document.getElementById('enrichment_enabled').checked;

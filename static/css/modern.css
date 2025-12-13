@@ -494,7 +494,7 @@ input[type="email"],
 textarea,
 select {
     width: 100%;
-    /* padding: 0.5rem 0.75rem; */
+    padding: 0.5rem 0.75rem;
     background: var(--input);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -1536,4 +1536,334 @@ body:has(.login-container) {
     background: color-mix(in srgb, var(--primary) 15%, transparent);
     border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
     color: var(--primary);
+}
+
+/* ===================================
+   Enhanced Modal Styles
+   =================================== */
+
+/* Универсальные стили для модальных окон */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 1rem;
+    box-sizing: border-box;
+}
+
+.modal-content {
+    background: var(--card);
+    border-radius: var(--radius);
+    width: 100%;
+    max-width: 800px;
+    max-height: 95vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+
+.modal-content.large {
+    max-width: 1200px;
+}
+
+.modal-content.small {
+    max-width: 500px;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+    flex-shrink: 0;
+}
+
+.modal-header h2,
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.modal-close {
+    background: transparent;
+    border: none;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: var(--radius);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-close:hover {
+    background: var(--muted);
+    color: var(--foreground);
+}
+
+.modal-close i {
+    width: 20px;
+    height: 20px;
+}
+
+.modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+    background: var(--background);
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1.5rem;
+    border-top: 1px solid var(--border);
+    background: var(--card);
+    flex-shrink: 0;
+}
+
+/* Стили для контента модалки */
+.modal-body pre {
+    background: var(--muted);
+    padding: 1rem;
+    border-radius: var(--radius);
+    overflow-x: auto;
+    margin: 1rem 0;
+    border: 1px solid var(--border);
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+
+.modal-body code {
+    background: var(--muted);
+    padding: 0.25rem 0.5rem;
+    border-radius: calc(var(--radius) * 0.5);
+    font-size: 0.875rem;
+    border: 1px solid var(--border);
+}
+
+.modal-body pre code {
+    background: transparent;
+    padding: 0;
+    border: none;
+}
+
+/* Результаты тестирования AI */
+.ai-test-result {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    margin: 1rem 0;
+}
+
+.ai-test-result.success {
+    border-color: var(--success);
+    background: color-mix(in srgb, var(--success) 5%, var(--card));
+}
+
+.ai-test-result.error {
+    border-color: var(--destructive);
+    background: color-mix(in srgb, var(--destructive) 5%, var(--card));
+}
+
+.ai-test-result.warning {
+    border-color: var(--warning);
+    background: color-mix(in srgb, var(--warning) 5%, var(--card));
+}
+
+.ai-test-result-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+}
+
+.ai-test-result-content {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--foreground);
+    max-height: 400px;
+    overflow-y: auto;
+    word-wrap: break-word;
+}
+
+.ai-test-result-content pre {
+    margin: 0.5rem 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Скроллбар для модального окна */
+.modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+    background: var(--muted);
+    border-radius: 4px;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+}
+
+/* Анимации для модалки */
+.modal {
+    animation: modal-fade-in 0.2s ease-out;
+}
+
+.modal-content {
+    animation: modal-slide-in 0.3s ease-out;
+}
+
+@keyframes modal-fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes modal-slide-in {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .modal {
+        padding: 0.5rem;
+        align-items: flex-start;
+        padding-top: 2rem;
+    }
+    
+    .modal-content {
+        max-height: calc(100vh - 4rem);
+        width: 100%;
+        max-width: none;
+    }
+    
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+        padding: 1rem;
+    }
+    
+    .modal-header h2,
+    .modal-header h3 {
+        font-size: 1.125rem;
+    }
+    
+    .ai-test-result-content pre {
+        font-size: 0.75rem;
+        max-height: 200px;
+    }
+}
+
+@media (max-width: 480px) {
+    .modal {
+        padding: 0.25rem;
+        padding-top: 1rem;
+    }
+    
+    .modal-content {
+        max-height: calc(100vh - 2rem);
+    }
+    
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+        padding: 0.75rem;
+    }
+    
+    .modal-footer {
+        flex-direction: column;
+    }
+    
+    .modal-footer .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Специальные стили для длинного контента */
+.modal-body.scrollable {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.modal-content.full-height {
+    height: 95vh;
+}
+
+.modal-content.full-height .modal-body {
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* Стили для JSON и кода в модалке */
+.modal-body .json-content {
+    background: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    font-family: 'Courier New', monospace;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.modal-body .response-section {
+    margin: 1.5rem 0;
+}
+
+.modal-body .response-section h4 {
+    color: var(--foreground);
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.modal-body .response-section .section-content {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    max-height: 300px;
+    overflow-y: auto;
+    word-wrap: break-word;
 }

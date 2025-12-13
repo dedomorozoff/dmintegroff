@@ -64,9 +64,9 @@ type openAIResponse struct {
 		TotalTokens      int `json:"total_tokens"`
 	} `json:"usage"`
 	Error *struct {
-		Message string `json:"message"`
-		Type    string `json:"type"`
-		Code    string `json:"code"`
+		Message string      `json:"message"`
+		Type    string      `json:"type"`
+		Code    interface{} `json:"code"` // может быть строкой или числом
 	} `json:"error,omitempty"`
 }
 
@@ -81,22 +81,12 @@ func (c *Client) Chat(ctx context.Context, messages []ChatMessage, jsonMode bool
 		return c.chatLocal(ctx, messages)
 	}
 	
-	// Пробуем OpenRouter сначала
+	// Используем только OpenRouter
 	if c.Config.OpenRouterAPIKey != "" {
-		response, err := c.chatOpenRouter(ctx, messages, jsonMode)
-		if err == nil {
-			return response, nil
-		}
-		// Логируем ошибку OpenRouter, но продолжаем с fallback
-		fmt.Printf("OpenRouter failed, falling back to OpenAI: %v\n", err)
+		return c.chatOpenRouter(ctx, messages, jsonMode)
 	}
 	
-	// Fallback на OpenAI
-	if c.Config.OpenAIAPIKey != "" {
-		return c.chatOpenAI(ctx, messages, jsonMode)
-	}
-	
-	return "", fmt.Errorf("no AI provider configured")
+	return "", fmt.Errorf("OpenRouter API key not configured")
 }
 
 // chatOpenRouter отправляет запрос в OpenRouter API

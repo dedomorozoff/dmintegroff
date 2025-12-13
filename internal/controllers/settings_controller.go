@@ -3,6 +3,7 @@ package controllers
 import (
 	"dmintegroff/internal/database"
 	"dmintegroff/internal/models"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-contrib/sessions"
@@ -137,11 +138,26 @@ func ChangePassword(c *gin.Context) {
 
 // SaveAISettings сохраняет настройки AI
 func SaveAISettings(c *gin.Context) {
+	fmt.Printf("SaveAISettings: Начало обработки запроса от IP: %s\n", c.ClientIP())
+	
 	session := sessions.Default(c)
+	userID := session.Get("user_id")
 	role := session.Get("role")
+
+	fmt.Printf("SaveAISettings: UserID: %v, Роль пользователя: %v\n", userID, role)
+	
+	// Проверяем, что пользователь авторизован
+	if userID == nil {
+		fmt.Printf("SaveAISettings: Пользователь не авторизован\n")
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Необходимо войти в систему",
+		})
+		return
+	}
 
 	// Проверяем права администратора
 	if role != "admin" {
+		fmt.Printf("SaveAISettings: Недостаточно прав\n")
 		c.JSON(http.StatusForbidden, gin.H{
 			"error": "Недостаточно прав для изменения настроек AI",
 		})
@@ -166,6 +182,11 @@ func SaveAISettings(c *gin.Context) {
 		})
 		return
 	}
+
+	// Отладочная информация
+	fmt.Printf("SaveAISettings received: OpenRouterKey=%v, Model=%s\n", 
+		req.OpenRouterAPIKey != nil, req.OpenRouterModel)
+	fmt.Printf("SaveAISettings: Начинаем валидацию\n")
 
 	// Валидация
 	if req.MaxTokens < 100 || req.MaxTokens > 8000 {
@@ -234,8 +255,10 @@ func SaveAISettings(c *gin.Context) {
 	}
 
 	// Перезагружаем AI контроллер с новыми настройками
+	fmt.Printf("SaveAISettings: Перезагружаем AI контроллер\n")
 	reloadAIController()
 
+	fmt.Printf("SaveAISettings: Отправляем успешный ответ\n")
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "Настройки AI успешно сохранены и применены!",

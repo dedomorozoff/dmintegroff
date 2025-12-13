@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 
@@ -9,17 +10,22 @@ import (
 	"gorm.io/gorm"
 )
 
-// LoadAIConfig загружает конфигурацию AI из базы данных или переменных окружения (fallback)
+// LoadAIConfig загружает конфигурацию AI из базы данных
 func LoadAIConfig(db *gorm.DB) *ai.AIConfig {
 	// Проверяем глобальный переключатель AI
 	aiEnabled := getEnvBoolOrDefault("AI_ENABLED", true)
 	
-	var config *ai.AIConfig
+	// Если AI отключен глобально, возвращаем отключенную конфигурацию
+	if !aiEnabled {
+		return &ai.AIConfig{
+			Enabled: false,
+		}
+	}
 	
-	// Пробуем загрузить из базы данных
-	if db != nil && aiEnabled {
+	// Загружаем из базы данных
+	if db != nil {
 		if dbSettings, err := models.GetActiveAISettings(db); err == nil {
-			config = &ai.AIConfig{
+			config := &ai.AIConfig{
 				OpenRouterAPIKey: dbSettings.OpenRouterAPIKey,
 				OpenRouterModel:  dbSettings.OpenRouterModel,
 				OpenRouterURL:    dbSettings.OpenRouterURL,
@@ -36,37 +42,33 @@ func LoadAIConfig(db *gorm.DB) *ai.AIConfig {
 				
 				Enabled: aiEnabled,
 			}
+			
+			fmt.Printf("AI Config loaded from DB: OpenRouter=%v, OpenAI=%v, Model=%s\n", 
+				dbSettings.OpenRouterAPIKey != "", 
+				dbSettings.OpenAIAPIKey != "", 
+				dbSettings.OpenRouterModel)
+			
+			return config
+		} else {
+			fmt.Printf("Failed to load AI config from DB: %v\n", err)
 		}
 	}
 	
-	// Fallback на переменные окружения (для обратной совместимости)
-	if config == nil {
-		config = &ai.AIConfig{
-			OpenRouterAPIKey: os.Getenv("OPENROUTER_API_KEY"),
-			OpenRouterModel:  getEnvOrDefault("OPENROUTER_MODEL", "anthropic/claude-3.5-sonnet"),
-			OpenRouterURL:    getEnvOrDefault("OPENROUTER_URL", "https://openrouter.ai/api/v1"),
-			
-			MaxTokens:       getEnvIntOrDefault("AI_MAX_TOKENS", 4000),
-			Temperature:     getEnvFloatOrDefault("AI_TEMPERATURE", 0.3),
-			RequestTimeout:  getEnvIntOrDefault("AI_REQUEST_TIMEOUT", 30),
-			
-			LocalLLMEnabled: getEnvBoolOrDefault("LOCAL_LLM_ENABLED", false),
-			LocalLLMURL:     getEnvOrDefault("LOCAL_LLM_URL", "http://localhost:11434"),
-			
-			OpenAIAPIKey:    os.Getenv("OPENAI_API_KEY"),
-			OpenAIModel:     getEnvOrDefault("OPENAI_MODEL", "gpt-4-1106-preview"),
-			
-			Enabled: aiEnabled,
-		}
+	// Если не удалось загрузить из БД, возвращаем пустую конфигурацию
+	fmt.Printf("AI Config: No settings found in DB, AI not configured\n")
+	return &ai.AIConfig{
+		Enabled: aiEnabled,
+		OpenRouterModel: "anthropic/claude-3.5-sonnet",
+		OpenRouterURL: "https://openrouter.ai/api/v1",
+		OpenAIModel: "gpt-4-1106-preview",
+		MaxTokens: 4000,
+		Temperature: 0.3,
+		RequestTimeout: 30,
+		LocalLLMURL: "http://localhost:11434",
 	}
-	
-	return config
 }
 
-// LoadAIConfigFromEnv загружает конфигурацию AI только из переменных окружения (для совместимости)
-func LoadAIConfigFromEnv() *ai.AIConfig {
-	return LoadAIConfig(nil)
-}
+
 
 // getEnvOrDefault возвращает значение переменной окружения или значение по умолчанию
 func getEnvOrDefault(key, defaultValue string) string {

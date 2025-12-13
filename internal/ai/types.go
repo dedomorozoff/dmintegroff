@@ -158,7 +158,7 @@ func (c *AIConfig) IsConfigured() bool {
 	if c.LocalLLMEnabled && c.LocalLLMURL != "" {
 		return true
 	}
-	return c.OpenRouterAPIKey != "" || c.OpenAIAPIKey != ""
+	return c.OpenRouterAPIKey != ""
 }
 
 // GetCurrentProvider возвращает текущего провайдера AI
@@ -171,9 +171,6 @@ func (c *AIConfig) GetCurrentProvider() string {
 	}
 	if c.OpenRouterAPIKey != "" {
 		return fmt.Sprintf("OpenRouter (%s)", c.OpenRouterModel)
-	}
-	if c.OpenAIAPIKey != "" {
-		return fmt.Sprintf("OpenAI (%s)", c.OpenAIModel)
 	}
 	return "Not configured"
 }

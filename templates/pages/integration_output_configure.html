@@ -123,6 +123,25 @@
         </div>
     </div>
 
+    <!-- AI Chat Widget -->
+    {{ template "partials/ai_chat.html" . }}
+
+    <script src="/static/js/ai-assistant.js"></script>
+    <script>
+        // Инициализируем AI ассистент для настройки маппинга выхода
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.aiAssistant) {
+                window.aiAssistant.setIntegrationContext({
+                    source: 'output_configure',
+                    integration_id: {{ .integration.ID }},
+                    integration_name: '{{ .integration.Name }}',
+                    output_id: {{ .output.ID }},
+                    output_name: '{{ .output.Name }}'
+                });
+            }
+        });
+    </script>
+
     <script>
     function toggleMappingType() {
         const mappingType = document.querySelector('input[name="mapping_type"]:checked').value;

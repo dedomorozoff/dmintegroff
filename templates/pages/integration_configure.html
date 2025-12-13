@@ -509,8 +509,21 @@
     }
 </style>
 
-{{ template "partials/ai_chat.html" . }}
 <script src="/static/js/ai-assistant.js"></script>
+<script>
+    // Инициализируем AI ассистент для страницы настройки интеграции
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.aiAssistant) {
+            window.aiAssistant.setIntegrationContext({
+                source: 'integration_configure',
+                integration_id: {{ .integration.ID }},
+                integration_name: '{{ .integration.Name }}',
+                target_api: '{{ .integration.TargetAPI }}',
+                has_sample_payload: {{ if .integration.SamplePayload }}true{{ else }}false{{ end }}
+            });
+        }
+    });
+</script>
 <script src="/static/js/common.js"></script>
 <script src="/static/js/json-highlight.js"></script>
 <script>
@@ -1634,11 +1647,10 @@ Email: {{`{{user.email}}`}}
     });
 </script>
 
-<!-- AI Assistant Modal -->
+<!-- AI Chat Widget -->
 {{ template "partials/ai_chat.html" . }}
 
 <!-- AI Assistant Script -->
-<script src="/static/js/ai-assistant.js"></script>
 <script>
     // Передаем данные интеграции в AI ассистент
     window.samplePayload = {{ .payloadJSON }};
@@ -1655,8 +1667,5 @@ Email: {{`{{user.email}}`}}
         }
     });
 </script>
-
-<!-- AI Chat Widget -->
-{{ template "partials/ai_chat.html" . }}
 
 {{ end }}

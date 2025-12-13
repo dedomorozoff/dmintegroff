@@ -521,6 +521,20 @@
 
     <!-- AI Assistant -->
     {{ template "partials/ai_chat.html" . }}
+
+    <!-- AI Assistant Script -->
+    <script src="/static/js/ai-assistant.js"></script>
+    <script>
+        // Инициализируем AI ассистент для страницы создания интеграции
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.aiAssistant) {
+                window.aiAssistant.setIntegrationContext({
+                    source: 'integration_create',
+                    projects_count: {{ len .projects }}
+                });
+            }
+        });
+    </script>
 </body>
 </html>
 {{ end }}

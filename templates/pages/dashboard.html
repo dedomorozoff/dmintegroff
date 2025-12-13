@@ -81,19 +81,7 @@
                 </div>
             </div>
 
-            <div class="stat-card" id="processed-stats-card" style="cursor: pointer;" onclick="showStatsModal()">
-                <div class="stat-card-header">
-                    <div>
-                        <p class="stat-card-title">Обработано</p>
-                        <p class="stat-card-value">{{ if .total_requests }}{{ .total_requests }}{{ else }}0{{ end }}</p>
-                        <p class="stat-card-change">Всего запросов</p>
-                    </div>
-                    <div class="stat-card-icon"
-                        style="background: color-mix(in srgb, var(--primary) 10%, transparent); opacity: 0.7;">
-                        <i data-lucide="activity" style="color: var(--primary);"></i>
-                    </div>
-                </div>
-            </div>
+
 
             <div class="stat-card">
                 <div class="stat-card-header">
@@ -359,23 +347,7 @@
         </div>
     </main>
 
-    <!-- Stats Modal -->
-    <div id="statsModal" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 900px;">
-            <div class="modal-header">
-                <h2>Статистика запросов за 30 дней</h2>
-                <button class="modal-close" onclick="closeStatsModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div id="statsLoading" style="text-align: center; padding: 2rem;">
-                    <p>Загрузка данных...</p>
-                </div>
-                <div id="statsChartContainer" style="display: none; background: #2a2d3a; padding: 1.5rem; border-radius: 8px;">
-                    <canvas id="statsChart"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
+
 
     <style>
         .page-header {
@@ -415,218 +387,11 @@
             color: var(--primary);
         }
 
-        #processed-stats-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            transition: all 0.2s ease;
-        }
 
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-
-        .modal-content {
-            background: var(--card-bg);
-            border-radius: 12px;
-            width: 90%;
-            max-width: 900px;
-            max-height: 90vh;
-            overflow: auto;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1.5rem;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .modal-header h2 {
-            margin: 0;
-            font-size: 1.5rem;
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 2rem;
-            cursor: pointer;
-            color: var(--text-secondary);
-            line-height: 1;
-            padding: 0;
-            width: 32px;
-            height: 32px;
-        }
-
-        .modal-close:hover {
-            color: var(--text-primary);
-        }
-
-        .modal-body {
-            padding: 1.5rem;
-        }
     </style>
 
 {{ template "partials/scripts.html" . }}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-    let statsChart = null;
-
-    // Показать модальное окно со статистикой
-    function showStatsModal() {
-        const modal = document.getElementById('statsModal');
-        modal.style.display = 'flex';
-        loadStats();
-    }
-
-    // Закрыть модальное окно
-    function closeStatsModal() {
-        const modal = document.getElementById('statsModal');
-        modal.style.display = 'none';
-    }
-
-    // Закрытие по клику вне модального окна
-    window.onclick = function(event) {
-        const modal = document.getElementById('statsModal');
-        if (event.target === modal) {
-            closeStatsModal();
-        }
-    }
-
-    // Загрузка статистики
-    function loadStats() {
-        const loading = document.getElementById('statsLoading');
-        const chartContainer = document.getElementById('statsChartContainer');
-        const canvas = document.getElementById('statsChart');
-        
-        loading.style.display = 'block';
-        chartContainer.style.display = 'none';
-
-        fetch('/api/stats')
-            .then(response => response.json())
-            .then(data => {
-                console.log('Stats data:', data);
-                loading.style.display = 'none';
-                chartContainer.style.display = 'block';
-                
-                // Проверяем, есть ли данные
-                if (!data.stats || data.stats.length === 0) {
-                    chartContainer.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 2rem;">Нет данных за последние 30 дней</p>';
-                    return;
-                }
-                
-                // Подготовка данных для графика
-                const labels = data.stats.map(s => {
-                    const date = new Date(s.date);
-                    return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
-                });
-                const counts = data.stats.map(s => s.count);
-
-                // Уничтожаем предыдущий график, если он существует
-                if (statsChart) {
-                    statsChart.destroy();
-                }
-
-                // Создаем новый график
-                const ctx = canvas.getContext('2d');
-                
-                // Получаем CSS переменные для темной темы
-                const styles = getComputedStyle(document.documentElement);
-                const textColor = styles.getPropertyValue('--foreground').trim() || '#ffffff';
-                const gridColor = styles.getPropertyValue('--border').trim() || 'rgba(255, 255, 255, 0.1)';
-                
-                statsChart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Количество запросов',
-                            data: counts,
-                            borderColor: 'rgb(139, 142, 255)',
-                            backgroundColor: 'rgba(139, 142, 255, 0.3)',
-                            borderWidth: 4,
-                            tension: 0.3,
-                            fill: true,
-                            pointRadius: 6,
-                            pointHoverRadius: 8,
-                            pointBackgroundColor: 'rgb(139, 142, 255)',
-                            pointBorderColor: 'rgb(255, 255, 255)',
-                            pointBorderWidth: 3,
-                            pointHoverBackgroundColor: 'rgb(99, 102, 241)',
-                            pointHoverBorderColor: 'rgb(255, 255, 255)',
-                            pointHoverBorderWidth: 3
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'top',
-                                labels: {
-                                    color: '#e0e0e0',
-                                    font: {
-                                        size: 14
-                                    }
-                                }
-                            },
-                            tooltip: {
-                                mode: 'index',
-                                intersect: false,
-                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                                titleColor: '#fff',
-                                bodyColor: '#fff',
-                                borderColor: 'rgb(99, 102, 241)',
-                                borderWidth: 1
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                ticks: {
-                                    stepSize: 1,
-                                    color: '#e0e0e0',
-                                    font: {
-                                        size: 13
-                                    }
-                                },
-                                grid: {
-                                    color: 'rgba(255, 255, 255, 0.15)',
-                                    lineWidth: 1
-                                }
-                            },
-                            x: {
-                                ticks: {
-                                    color: '#e0e0e0',
-                                    font: {
-                                        size: 13
-                                    }
-                                },
-                                grid: {
-                                    color: 'rgba(255, 255, 255, 0.08)',
-                                    lineWidth: 1
-                                }
-                            }
-                        }
-                    }
-                });
-            })
-            .catch(error => {
-                console.error('Ошибка загрузки статистики:', error);
-                loading.innerHTML = '<p style="color: var(--destructive);">Ошибка загрузки данных</p>';
-            });
-    }
 
     // Автоматическое обновление активности каждые 30 секунд
     function updateActivity() {

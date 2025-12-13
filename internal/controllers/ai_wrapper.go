@@ -40,6 +40,10 @@ func reloadAIController() {
 	aiMutex.Lock()
 	defer aiMutex.Unlock()
 	
+	// Принудительно сбрасываем контроллер
+	aiController = nil
+	
+	// Загружаем новую конфигурацию и создаем новый контроллер
 	aiConfig := config.LoadAIConfig(database.DB)
 	aiController = NewAIController(aiConfig)
 }
@@ -66,7 +70,13 @@ func AIApplyMapping(c *gin.Context) {
 
 // AIGetStatus возвращает статус AI сервиса
 func AIGetStatus(c *gin.Context) {
-	getAIController().GetStatus(c)
+	// Для статуса всегда используем свежую конфигурацию
+	aiMutex.Lock()
+	aiConfig := config.LoadAIConfig(database.DB)
+	tempController := NewAIController(aiConfig)
+	aiMutex.Unlock()
+	
+	tempController.GetStatus(c)
 }
 
 // AIGetQuickSuggestions возвращает быстрые предложения
