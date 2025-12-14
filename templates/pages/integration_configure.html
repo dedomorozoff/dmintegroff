@@ -19,9 +19,6 @@
 
 <!-- Main Content -->
 <main class="main-content">
-    <!-- Breadcrumbs -->
-    {{ template "partials/breadcrumbs.html" . }}
-
     <div class="page-header">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
             <div>
@@ -116,12 +113,7 @@
 
     <div class="card">
         <div class="card-header">
-            <div class="d-flex justify-content-between align-items-center">
-                <h2 class="card-title mb-0"><i data-lucide="shuffle"></i> Настройка трансформации данных</h2>
-                <button type="button" class="btn btn-primary" onclick="openAIAssistant({id: {{ .integration.ID }}, name: '{{ .integration.Name }}', target_url: '{{ .integration.TargetAPI }}'})">
-                    <i data-lucide="bot"></i> AI Помощник
-                </button>
-            </div>
+            <h2 class="card-title"><i data-lucide="shuffle"></i> Настройка трансформации данных</h2>
         </div>
 
         <!-- Переключатель режима -->
@@ -509,21 +501,6 @@
     }
 </style>
 
-<script src="/static/js/ai-assistant.js"></script>
-<script>
-    // Инициализируем AI ассистент для страницы настройки интеграции
-    document.addEventListener('DOMContentLoaded', function() {
-        if (window.aiAssistant) {
-            window.aiAssistant.setIntegrationContext({
-                source: 'integration_configure',
-                integration_id: {{ .integration.ID }},
-                integration_name: '{{ .integration.Name }}',
-                target_api: '{{ .integration.TargetAPI }}',
-                has_sample_payload: {{ if .integration.SamplePayload }}true{{ else }}false{{ end }}
-            });
-        }
-    });
-</script>
 <script src="/static/js/common.js"></script>
 <script src="/static/js/json-highlight.js"></script>
 <script>
@@ -541,7 +518,7 @@
             btn.innerHTML = '<i data-lucide="check" style="width: 18px; height: 18px;"></i>';
             if (window.lucide) window.lucide.createIcons();
 
-            showNotification('URL скопирован!', 'success');
+            window.showNotification('URL скопирован!', 'success');
 
             setTimeout(() => {
                 btn.innerHTML = originalHtml;
@@ -549,7 +526,7 @@
             }, 2000);
         }).catch(err => {
             console.error('Failed to copy:', err);
-            showNotification('Ошибка копирования', 'error');
+            window.showNotification('Ошибка копирования', 'error');
         });
     }
 
@@ -582,13 +559,12 @@
                     if (textarea.dataset.highlighterInitialized !== 'true') {
                         console.log('Initializing samplePayloadTextarea highlighter (delayed)');
                         new JSONHighlighter('samplePayloadTextarea', 'samplePayloadTextarea_preview');
-                        textarea.dataset.highlighterInitialized = 'true';
                     } else {
                         console.log('samplePayloadTextarea already initialized');
                         // Просто обновляем подсветку
                         const preview = document.getElementById('samplePayloadTextarea_preview');
                         if (preview && typeof highlightJSON !== 'undefined') {
-                            preview.innerHTML = highlightJSON(textarea.value || '');
+                            preview.innerHTML = highlightJSON(textarea.value);
                         }
                     }
                 }
@@ -597,26 +573,17 @@
                 updatePayloadEditor();
                 
                 // Фокусируемся на textarea для удобства
-                if (textarea) {
-                    textarea.focus();
-                }
+                textarea.focus();
             }, 150);
         }
     }
 
     // Обновление редактора образца в зависимости от формата
     function updatePayloadEditor() {
-        const formatSelect = document.getElementById('samplePayloadFormat');
+        const format = document.getElementById('samplePayloadFormat').value;
         const textarea = document.getElementById('samplePayloadTextarea');
         const formatBtn = document.getElementById('formatPayloadBtn');
-        
-        if (!formatSelect || !textarea) {
-            console.warn('updatePayloadEditor: required elements not found');
-            return;
-        }
-        
-        const format = formatSelect.value;
-        
+
         const placeholders = {
             json: '{\n  "user": "John Doe",\n  "email": "john@example.com",\n  "age": 30\n}',
             xml: '<?xml version="1.0" encoding="UTF-8"?>\n<root>\n  <user>John Doe</user>\n  <email>john@example.com</email>\n  <age>30</age>\n</root>',
@@ -624,8 +591,10 @@
             text: 'Любой текст\nМожет быть многострочным\nИли одной строкой'
         };
         
-        // Всегда обновляем placeholder
-        textarea.placeholder = placeholders[format] || placeholders.json;
+        // Обновляем placeholder только если поле пустое
+        if (!textarea.value.trim()) {
+            textarea.placeholder = placeholders[format] || placeholders.json;
+        }
         
         // Показываем/скрываем кнопку форматирования (только для JSON)
         if (formatBtn) {
@@ -847,15 +816,15 @@
             }
 
             // Показываем уведомление
-            showNotification(`Скопировано: ${fieldPlaceholder}`, 'success');
+            window.showNotification(`Скопировано: ${fieldPlaceholder}`, 'success');
         }).catch(err => {
             console.error('Failed to copy with ClipboardItem, trying writeText:', err);
             // Fallback на старый метод
             navigator.clipboard.writeText(fieldPlaceholder).then(() => {
-                showNotification(`Скопировано: ${fieldPlaceholder}`, 'success');
+                window.showNotification(`Скопировано: ${fieldPlaceholder}`, 'success');
             }).catch(err2 => {
                 console.error('Failed to copy:', err2);
-                showNotification('Ошибка копирования', 'error');
+                window.showNotification('Ошибка копирования', 'error');
             });
         });
     }
@@ -897,16 +866,12 @@
         const textarea = document.getElementById('samplePayloadTextarea');
         const validationDiv = document.getElementById('payloadValidation');
 
-        if (!textarea) {
-            console.warn('formatPayload: textarea not found');
-            return;
-        }
+        if (!textarea) return;
 
         const text = textarea.value.trim();
         if (!text) {
             if (validationDiv) {
-                validationDiv.innerHTML = '<div style="padding: 1rem; background: #f59e0b; color: white; border-radius: 8px;">⚠️ Нечего форматировать. Вставьте JSON данные.</div>';
-                setTimeout(() => { validationDiv.innerHTML = ''; }, 3000);
+                validationDiv.innerHTML = '<div style="padding: 1rem; background: #ef4444; color: white; border-radius: 8px;">❌ Нечего форматировать</div>';
             }
             return;
         }
@@ -929,18 +894,7 @@
             }
         } catch (e) {
             if (validationDiv) {
-                // Улучшенное сообщение об ошибке для JSON
-                let errorMsg = e.message;
-                const match = errorMsg.match(/position (\d+)/);
-                if (match) {
-                    const pos = parseInt(match[1]);
-                    const lines = text.substring(0, pos).split('\n');
-                    const line = lines.length;
-                    const col = lines[lines.length - 1].length + 1;
-                    errorMsg = `${errorMsg} (строка ${line}, символ ${col})`;
-                }
-                validationDiv.innerHTML = `<div style="padding: 1rem; background: #ef4444; color: white; border-radius: 8px;">❌ Ошибка JSON: ${errorMsg}</div>`;
-                setTimeout(() => { validationDiv.innerHTML = ''; }, 5000);
+                validationDiv.innerHTML = `<div style="padding: 1rem; background: #ef4444; color: white; border-radius: 8px;">❌ Ошибка: ${e.message}</div>`;
             }
         }
     }
@@ -949,19 +903,13 @@
     function validatePayload() {
         const textarea = document.getElementById('samplePayloadTextarea');
         const validationDiv = document.getElementById('payloadValidation');
-        const formatSelect = document.getElementById('samplePayloadFormat');
+        const format = document.getElementById('samplePayloadFormat').value;
 
-        if (!textarea || !validationDiv || !formatSelect) {
-            console.warn('validatePayload: required elements not found');
-            return false;
-        }
+        if (!textarea || !validationDiv) return;
 
         const text = textarea.value.trim();
-        const format = formatSelect.value;
-
         if (!text) {
             validationDiv.innerHTML = '<div style="padding: 1rem; background: #f59e0b; color: white; border-radius: 8px;">⚠️ Данные пустые. Вставьте данные для проверки.</div>';
-            setTimeout(() => { validationDiv.innerHTML = ''; }, 3000);
             return false;
         }
 
@@ -969,19 +917,19 @@
             if (format === 'json') {
                 // Валидация JSON
                 const parsed = JSON.parse(text);
-                const objectCount = typeof parsed === 'object' && parsed !== null ? Object.keys(parsed).length : 0;
+                const objectCount = typeof parsed === 'object' ? Object.keys(parsed).length : 0;
                 validationDiv.innerHTML = `<div style="padding: 1rem; background: #10b981; color: white; border-radius: 8px;">✅ JSON валиден! ${objectCount > 0 ? `Найдено полей: ${objectCount}` : ''}</div>`;
             } else if (format === 'xml') {
                 // Валидация XML
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(text, 'text/xml');
                 if (xmlDoc.getElementsByTagName('parsererror').length > 0) {
-                    throw new Error('Неверная структура XML');
+                    throw new Error('Invalid XML structure');
                 }
                 validationDiv.innerHTML = '<div style="padding: 1rem; background: #10b981; color: white; border-radius: 8px;">✅ XML валиден!</div>';
             } else if (format === 'form') {
                 // Валидация form-data
-                const pairs = text.split('&').filter(pair => pair.trim());
+                const pairs = text.split('&');
                 let validPairs = 0;
                 for (const pair of pairs) {
                     if (pair.includes('=')) validPairs++;
@@ -1072,7 +1020,6 @@
         const hintsContent = document.getElementById('hintsContent');
         const formatBtn = document.querySelector('button[onclick="formatTemplate()"]');
         
-        // Обновляем placeholder и подсказки
         const templates = {
             json: {
                 placeholder: `Пример JSON шаблона:
@@ -1208,13 +1155,13 @@ Email: {{`{{user.email}}`}}
             const template = document.getElementById('outputTemplate').value.trim();
 
             if (!template) {
-                showNotification('❌ Шаблон не может быть пустым', 'error');
+                window.showNotification('❌ Шаблон не может быть пустым', 'error');
                 return;
             }
 
             // Валидируем шаблон перед отправкой
             if (!validateTemplate()) {
-                showNotification('❌ Исправьте ошибки в шаблоне', 'error');
+                window.showNotification('❌ Исправьте ошибки в шаблоне', 'error');
                 return;
             }
 
@@ -1276,7 +1223,7 @@ Email: {{`{{user.email}}`}}
                     }
 
                     // Показываем уведомление
-                    showNotification('Получены новые данные! Обновление страницы...', 'success');
+                    window.showNotification('Получены новые данные! Обновление страницы...', 'success');
 
                     // Обновляем страницу через небольшую задержку
                     setTimeout(() => {
@@ -1295,39 +1242,6 @@ Email: {{`{{user.email}}`}}
                 // Не показываем ошибку пользователю, чтобы не мешать
             });
     }
-
-    // Функция для показа уведомления
-    function showNotification(message, type) {
-        // Удаляем предыдущее уведомление, если есть
-        const existing = document.getElementById('updateNotification');
-        if (existing) {
-            existing.remove();
-        }
-
-        const notification = document.createElement('div');
-        notification.id = 'updateNotification';
-        notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: ${type === 'success' ? '#10b981' : '#ef4444'};
-                color: white;
-                padding: 1rem 1.5rem;
-                border-radius: 8px;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                z-index: 10000;
-                animation: slideIn 0.3s ease-out;
-            `;
-        notification.textContent = message;
-        document.body.appendChild(notification);
-
-        // Удаляем уведомление через 3 секунды
-        setTimeout(() => {
-            notification.style.animation = 'slideOut 0.3s ease-out';
-            setTimeout(() => notification.remove(), 300);
-        }, 3000);
-    }
-
 
     // Запускаем проверку обновлений, если интеграция в режиме прослушивания и нет данных
     if (currentMode === 'listening' && !hasPayload) {
@@ -1483,16 +1397,19 @@ Email: {{`{{user.email}}`}}
                 console.warn('outputTemplate not found');
             }
 
-            // Настраиваем samplePayloadTextarea (но не инициализируем подсветку - он скрыт)
+            // НЕ инициализируем samplePayloadTextarea здесь - он скрыт
+            // Инициализация происходит в toggleEditPayload()
+
+            // Добавляем обработчик paste для samplePayloadTextarea
             const samplePayloadTextarea = document.getElementById('samplePayloadTextarea');
             if (samplePayloadTextarea) {
-                // Отключаем автозаполнение и проверку орфографии
+                // Отключаем автозаполнение
                 samplePayloadTextarea.setAttribute('autocomplete', 'off');
                 samplePayloadTextarea.setAttribute('autocorrect', 'off');
                 samplePayloadTextarea.setAttribute('autocapitalize', 'off');
                 samplePayloadTextarea.setAttribute('spellcheck', 'false');
                 
-                // Простой и надежный обработчик вставки
+                // Простой обработчик вставки
                 samplePayloadTextarea.addEventListener('paste', (e) => {
                     e.preventDefault();
                     const text = (e.clipboardData || window.clipboardData).getData('text/plain');
@@ -1500,21 +1417,10 @@ Email: {{`{{user.email}}`}}
                     const end = samplePayloadTextarea.selectionEnd;
                     const currentValue = samplePayloadTextarea.value;
 
-                    // Вставляем только чистый текст
-                    const newValue = currentValue.substring(0, start) + text + currentValue.substring(end);
-                    samplePayloadTextarea.value = newValue;
-                    
-                    // Восстанавливаем позицию курсора
-                    const newPosition = start + text.length;
-                    samplePayloadTextarea.selectionStart = newPosition;
-                    samplePayloadTextarea.selectionEnd = newPosition;
-                    
-                    // Обновляем подсветку
+                    samplePayloadTextarea.value = currentValue.substring(0, start) + text + currentValue.substring(end);
+                    samplePayloadTextarea.selectionStart = samplePayloadTextarea.selectionEnd = start + text.length;
                     samplePayloadTextarea.dispatchEvent(new Event('input'));
                 });
-                
-                // Устанавливаем начальный placeholder
-                updatePayloadEditor();
             }
         } else {
             console.error('JSONHighlighter class not found!');
@@ -1643,27 +1549,6 @@ Email: {{`{{user.email}}`}}
         const modal = document.getElementById('testMappingModal');
         if (modal && event.target === modal) {
             closeTestModal();
-        }
-    });
-</script>
-
-<!-- AI Chat Widget -->
-{{ template "partials/ai_chat.html" . }}
-
-<!-- AI Assistant Script -->
-<script>
-    // Передаем данные интеграции в AI ассистент
-    window.samplePayload = {{ .payloadJSON }};
-    
-    // Инициализируем AI ассистент с контекстом интеграции
-    document.addEventListener('DOMContentLoaded', function() {
-        if (window.aiAssistant) {
-            window.aiAssistant.setIntegrationContext({
-                id: {{ .integration.ID }},
-                name: '{{ .integration.Name }}',
-                target_url: '{{ .integration.TargetAPI }}',
-                mode: '{{ .integration.Mode }}'
-            });
         }
     });
 </script>

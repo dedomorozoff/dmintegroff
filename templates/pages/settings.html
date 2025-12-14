@@ -6,7 +6,6 @@
 <main class="main-content">
     <div class="page-header">
         <h1>Настройки</h1>
-        <p>Управление профилем пользователя</p>
     </div>
 
     <div class="page-header-mobile">
@@ -33,32 +32,6 @@
         <span>{{ .error }}</span>
     </div>
     {{ end }}
-
-    <!-- User Info Card -->
-    <div class="card" style="margin-bottom: 1.5rem;">
-        <div class="card-header">
-            <h2 class="card-title">Информация о пользователе</h2>
-        </div>
-        <div style="padding: 1.5rem;">
-            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-                <div
-                    style="width: 64px; height: 64px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 600; color: var(--primary-foreground); text-transform: uppercase;">
-                    {{ if .username }}{{ slice .username 0 1 }}{{ else }}U{{ end }}
-                </div>
-                <div>
-                    <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.25rem;">{{ .username }}</h3>
-                    <p style="color: var(--text-secondary); margin: 0;">
-                        <span
-                            style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0.75rem; background: var(--secondary); border-radius: 4px; font-size: 0.875rem;">
-                            <i data-lucide="shield" style="width: 14px; height: 14px;"></i>
-                            {{ if eq .role "admin" }}Администратор{{ else }}Специалист{{ end }}
-                        </span>
-                    </p>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- System Monitoring -->
     <div class="card" style="margin-bottom: 1.5rem;">
         <div class="card-header">
@@ -66,9 +39,9 @@
         </div>
         <div style="padding: 1.5rem;">
             <div
-                style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--secondary); border-radius: 8px;">
+                    style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--secondary); border-radius: 8px;">
                 <div
-                    style="width: 48px; height: 48px; border-radius: 8px; background: var(--primary); display: flex; align-items: center; justify-content: center;">
+                        style="width: 48px; height: 48px; border-radius: 8px; background: var(--primary); display: flex; align-items: center; justify-content: center;">
                     <i data-lucide="activity" style="width: 24px; height: 24px; color: var(--primary-foreground);"></i>
                 </div>
                 <div style="flex: 1;">
@@ -100,16 +73,17 @@
             <div id="ai-settings-content" style="display: none;">
                 <!-- AI Status -->
                 <div id="ai-status"
-                    style="margin-bottom: 1.5rem; padding: 1rem; border-radius: 8px; border: 1px solid var(--border);">
+                     style="margin-bottom: 1.5rem; padding: 1rem; border-radius: 8px; border: 1px solid var(--border);">
                     <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
                         <div id="ai-status-icon" style="width: 12px; height: 12px; border-radius: 50%;"></div>
                         <strong id="ai-status-text">Проверка статуса...</strong>
                     </div>
                     <p id="ai-status-details" style="margin: 0; color: var(--text-secondary); font-size: 0.875rem;"></p>
                     <div
-                        style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border); font-size: 0.875rem; color: var(--text-secondary);">
+                            style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border); font-size: 0.875rem; color: var(--text-secondary);">
                         <strong>Глобальный переключатель:</strong> AI можно включить/выключить через переменную
-                        <code>AI_ENABLED</code> в .env файле
+                        <code>AI_ENABLED</code> в .env файле<br>
+                        <strong>🆓 Бесплатные модели:</strong> Приложение использует только бесплатные модели - никаких трат!
                     </div>
                 </div>
 
@@ -118,7 +92,7 @@
                     <!-- API Keys Section -->
                     <div style="margin-bottom: 2rem;">
                         <h3
-                            style="font-size: 1rem; font-weight: 600; color: var(--foreground); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                                style="font-size: 1rem; font-weight: 600; color: var(--foreground); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
                             <i data-lucide="key" style="width: 16px; height: 16px;"></i>
                             API Ключи
                         </h3>
@@ -129,17 +103,17 @@
                             </label>
                             <div style="position: relative;">
                                 <input type="password" id="openrouter_api_key" name="openrouter_api_key"
-                                    class="ai-form-input" placeholder="sk-or-v1-...">
+                                       class="ai-form-input" placeholder="sk-or-v1-...">
                                 <div id="api-key-status" class="ai-key-status" style="display: none;">
                                     <i data-lucide="check-circle"
-                                        style="width: 16px; height: 16px; color: var(--success);"></i>
+                                       style="width: 16px; height: 16px; color: var(--success);"></i>
                                 </div>
                             </div>
                             <small class="ai-form-help" id="api-key-help">
                                 <a href="https://openrouter.ai/keys" target="_blank"
-                                    style="color: var(--primary);">Получить ключ OpenRouter</a> -
-                                доступ к Claude, GPT-4, Llama и другим моделям.<br>
-                                <strong>После добавления ключа нажмите "Обновить модели"</strong> для загрузки списка.
+                                   style="color: var(--primary);">Получить ключ OpenRouter</a> -
+                                доступ к бесплатным AI моделям (Llama, Gemma, Phi-3 и др.).<br>
+                                <strong>🆓 Приложение использует только бесплатные модели</strong> - никаких трат на кредиты!
                             </small>
                         </div>
                     </div>
@@ -147,15 +121,15 @@
                     <!-- Models Section -->
                     <div style="margin-bottom: 2rem;">
                         <h3
-                            style="font-size: 1rem; font-weight: 600; color: var(--foreground); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                                style="font-size: 1rem; font-weight: 600; color: var(--foreground); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
                             <i data-lucide="brain" style="width: 16px; height: 16px;"></i>
-                            Модели AI
+                            🆓 Бесплатные AI модели
                         </h3>
                         <div class="ai-form-group">
                             <label for="openrouter_model" class="ai-form-label">
                                 <span>AI Модель</span>
                                 <button type="button" id="model-search-btn" class="ai-model-search-btn"
-                                    title="Поиск моделей">
+                                        title="Поиск моделей">
                                     <i data-lucide="search" style="width: 14px; height: 14px;"></i>
                                 </button>
                             </label>
@@ -163,8 +137,8 @@
                                 <option value="">Выберите модель...</option>
                             </select>
                             <small class="ai-form-help">
-                                Рекомендуется Claude 3.5 Sonnet для программирования.
-                                <strong>Нажмите кнопку поиска</strong> для выбора из всех доступных моделей.
+                                🆓 Доступны только бесплатные модели. Рекомендуется Llama 3.1 8B для программирования.
+                                <strong>Нажмите кнопку поиска</strong> для выбора из всех бесплатных моделей.
                             </small>
                         </div>
                     </div>
@@ -172,7 +146,7 @@
                     <!-- Parameters Section -->
                     <div style="margin-bottom: 2rem;">
                         <h3
-                            style="font-size: 1rem; font-weight: 600; color: var(--foreground); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                                style="font-size: 1rem; font-weight: 600; color: var(--foreground); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
                             <i data-lucide="settings" style="width: 16px; height: 16px;"></i>
                             Параметры
                         </h3>
@@ -180,21 +154,21 @@
                             <div class="ai-form-group">
                                 <label for="max_tokens" class="ai-form-label">Макс. токенов</label>
                                 <input type="number" id="max_tokens" name="max_tokens" class="ai-form-input" min="100"
-                                    max="8000" value="4000">
-                                <small class="ai-form-help">100-8000 токенов</small>
+                                       max="8000" value="4000">
+                                <small class="ai-form-help">100-8000 токенов. Для бесплатных моделей рекомендуется 1000-2000 токенов</small>
                             </div>
 
                             <div class="ai-form-group">
                                 <label for="temperature" class="ai-form-label">Температура</label>
                                 <input type="number" id="temperature" name="temperature" class="ai-form-input" min="0"
-                                    max="2" step="0.1" value="0.3">
+                                       max="2" step="0.1" value="0.3">
                                 <small class="ai-form-help">0-2 (креативность)</small>
                             </div>
 
                             <div class="ai-form-group">
                                 <label for="request_timeout" class="ai-form-label">Таймаут (сек)</label>
                                 <input type="number" id="request_timeout" name="request_timeout" class="ai-form-input"
-                                    min="5" max="120" value="30">
+                                       min="5" max="120" value="30">
                                 <small class="ai-form-help">5-120 секунд</small>
                             </div>
                         </div>
@@ -254,7 +228,7 @@
         <div class="ai-modal-overlay" onclick="closeModelSearch()"></div>
         <div class="ai-modal-content">
             <div class="ai-modal-header">
-                <h3>Поиск AI моделей</h3>
+                <h3>🆓 Поиск бесплатных AI моделей</h3>
                 <button type="button" onclick="closeModelSearch()" class="ai-modal-close">
                     <i data-lucide="x"></i>
                 </button>
@@ -266,7 +240,7 @@
                     <div class="ai-search-input-group">
                         <i data-lucide="search" class="ai-search-icon"></i>
                         <input type="text" id="model-search-input" placeholder="Поиск по названию модели..."
-                            class="ai-search-input">
+                               class="ai-search-input">
                     </div>
 
                     <div class="ai-filter-buttons">
@@ -307,7 +281,7 @@
             <div class="form-group">
                 <label for="current_password">Текущий пароль</label>
                 <input type="password" id="current_password" name="current_password" class="form-control"
-                    placeholder="Введите текущий пароль" required>
+                       placeholder="Введите текущий пароль" required>
                 <small style="color: var(--text-secondary); font-size: 0.875rem;">Для подтверждения введите ваш текущий
                     пароль</small>
             </div>
@@ -315,14 +289,14 @@
             <div class="form-group">
                 <label for="new_password">Новый пароль</label>
                 <input type="password" id="new_password" name="new_password" class="form-control"
-                    placeholder="Введите новый пароль" required minlength="6">
+                       placeholder="Введите новый пароль" required minlength="6">
                 <small style="color: var(--text-secondary); font-size: 0.875rem;">Минимум 6 символов</small>
             </div>
 
             <div class="form-group">
                 <label for="confirm_password">Подтверждение пароля</label>
                 <input type="password" id="confirm_password" name="confirm_password" class="form-control"
-                    placeholder="Повторите новый пароль" required minlength="6">
+                       placeholder="Повторите новый пароль" required minlength="6">
                 <small style="color: var(--text-secondary); font-size: 0.875rem;">Введите новый пароль еще раз</small>
             </div>
 
@@ -355,7 +329,7 @@
     });
 
     // AI Settings JavaScript (только для админов)
-    { { if eq.role "admin" } }
+    {{ if eq .role "admin" }}
     console.log('AI Settings: Пользователь является админом, инициализируем AI настройки');
     document.addEventListener('DOMContentLoaded', function () {
         console.log('AI Settings: DOMContentLoaded выполнен');
@@ -367,7 +341,14 @@
         });
 
         // Обработчики событий
-        document.getElementById('ai-settings-form').addEventListener('.ai-settings-submit', saveAISettings);
+        console.log('🔧 Добавляем обработчик события submit для формы');
+        const form = document.getElementById('ai-settings-form');
+        if (form) {
+            form.addEventListener('submit', saveAISettings);
+            console.log('✅ Обработчик submit добавлен к форме');
+        } else {
+            console.error('❌ Форма ai-settings-form не найдена!');
+        }
         document.getElementById('test-ai-btn').addEventListener('click', testAI);
         document.getElementById('refresh-models-btn').addEventListener('click', loadAIModels);
         document.getElementById('model-search-btn').addEventListener('click', openModelSearch);
@@ -393,13 +374,29 @@
             const status = await statusResponse.json();
             updateAIStatus(status);
 
-            // Загружаем текущие настройки
-            const settingsResponse = await fetch('/api/settings/ai');
-            if (settingsResponse.ok) {
-                const settings = await settingsResponse.json();
-                populateAIForm(settings);
+            // Загружаем текущие настройки ВСЕГДА, даже если AI недоступен
+            // Это позволяет пользователю видеть и редактировать настройки для исправления проблем
+            try {
+                console.log('Загружаем настройки AI...');
+                const settingsResponse = await fetch('/api/settings/ai');
+                console.log('Ответ сервера на /api/settings/ai:', settingsResponse.status);
+                
+                if (settingsResponse.ok) {
+                    const settings = await settingsResponse.json();
+                    console.log('Полученные настройки:', settings);
+                    populateAIForm(settings);
+                } else {
+                    console.warn('Не удалось загрузить настройки AI:', settingsResponse.status);
+                    const errorText = await settingsResponse.text();
+                    console.warn('Ошибка сервера:', errorText);
+                }
+            } catch (settingsError) {
+                console.warn('Ошибка загрузки настроек AI:', settingsError);
+                // Не блокируем показ формы, даже если настройки не загрузились
             }
 
+            // Показываем контент настроек независимо от статуса AI
+            // Это позволяет пользователю исправить проблемы с настройками
             showAIContent();
         } catch (error) {
             console.error('Error loading AI settings:', error);
@@ -517,8 +514,8 @@
                 if (helpText && data.openrouter_error) {
                     helpText.innerHTML = `
                         <span style="color: var(--warning);">⚠️ ${data.openrouter_error}</span><br>
-                        Рекомендуется Claude 3.5 Sonnet для программирования. 
-                        <strong>Нажмите кнопку поиска</strong> для выбора из всех доступных моделей.
+                        🆓 Доступны только бесплатные модели. Рекомендуется Llama 3.1 8B для программирования. 
+                        <strong>Нажмите кнопку поиска</strong> для выбора из всех бесплатных моделей.
                     `;
                 }
             }
@@ -555,7 +552,21 @@
         } else if (status.configured && !status.available) {
             statusIcon.style.background = '#ffa502';
             statusText.textContent = 'AI настроен, но недоступен';
-            statusDetails.textContent = status.error || 'Проверьте подключение к интернету';
+            
+            // Специальная обработка ошибки с кредитами OpenRouter
+            if (status.error && status.error.includes('more credits')) {
+                statusDetails.innerHTML = `
+                    <span style="color: var(--warning);">⚠️ Недостаточно кредитов OpenRouter</span><br>
+                    <small>Пополните баланс на <a href="https://openrouter.ai/settings/credits" target="_blank" style="color: var(--primary);">openrouter.ai/settings/credits</a> или уменьшите max_tokens</small>
+                `;
+            } else if (status.error && status.error.includes('max_tokens')) {
+                statusDetails.innerHTML = `
+                    <span style="color: var(--warning);">⚠️ Слишком много токенов в запросе</span><br>
+                    <small>Уменьшите значение "Макс. токенов" в настройках ниже</small>
+                `;
+            } else {
+                statusDetails.textContent = status.error || 'Проверьте подключение к интернету';
+            }
         } else {
             statusIcon.style.background = '#ff4757';
             statusText.textContent = 'AI не настроен';
@@ -582,6 +593,7 @@
         const submitBtn = document.getElementById('ai-settings-submit-btn');
         const originalText = '<i data-lucide="save"></i> Сохранить настройки';
 
+        console.log('saveAISettings: НАЧАЛО ФУНКЦИИ СОХРАНЕНИЯ');
         console.log('saveAISettings: Найдена форма и кнопка:', form, submitBtn);
 
         if (!form || !submitBtn) {
@@ -605,7 +617,6 @@
             if (!apiKeyValue && hasSavedKey) {
                 finalApiKey = null; // null означает "не изменять существующий ключ"
             }
-
 
 
             const data = {
@@ -701,8 +712,9 @@
             }
 
             if (response.ok) {
-                console.log('Успешное сохранение, показываем сообщение');
-                console.log('result.message:', result.message);
+                console.log('✅ УСПЕШНОЕ СОХРАНЕНИЕ! Статус:', response.status);
+                console.log('✅ result.message:', result.message);
+                console.log('✅ Полный результат:', result);
 
                 try {
                     console.log('Вызываем showAlert...');
@@ -752,7 +764,9 @@
                 // НЕ обновляем настройки автоматически - это мешает восстановлению кнопки
                 console.log('Настройки сохранены, кнопка должна остаться в нормальном состоянии');
             } else {
-                console.log('Ошибка сохранения:', result.error);
+                console.log('❌ ОШИБКА СОХРАНЕНИЯ! Статус:', response.status);
+                console.log('❌ result.error:', result.error);
+                console.log('❌ Полный результат:', result);
                 try {
                     showAlert('error', result.error || 'Ошибка сохранения настроек');
                 } catch (alertError) {
@@ -901,6 +915,8 @@
     }
 
     function populateAIForm(settings) {
+        console.log('populateAIForm вызвана с настройками:', settings);
+        
         // Заполняем форму текущими настройками
         const apiKeyInput = document.getElementById('openrouter_api_key');
         const apiKeyStatus = document.getElementById('api-key-status');
@@ -1127,10 +1143,10 @@
             modelsList.innerHTML = `
                 <div class="ai-models-empty">
                     <i data-lucide="alert-circle" style="width: 48px; height: 48px; margin-bottom: 1rem; color: var(--muted-foreground);"></i>
-                    <h4>Модели не загружены</h4>
-                    <p>Для загрузки моделей необходимо:</p>
+                    <h4>🆓 Бесплатные модели не загружены</h4>
+                    <p>Для загрузки бесплатных моделей необходимо:</p>
                     <ol style="text-align: left; margin: 1rem 0;">
-                        <li>Добавить OpenRouter API ключ</li>
+                        <li>Добавить OpenRouter API ключ (бесплатный)</li>
                         <li>Нажать "Обновить модели"</li>
                         <li>Убедиться что AI_ENABLED=true</li>
                     </ol>
@@ -1306,11 +1322,12 @@
 
         renderModels(filteredModels);
     }
-    { { end } }
-    { { if ne.role "admin" } }
+
+    {{ end }}
+    {{ if ne .role "admin" }}
     console.log('AI Settings: Пользователь НЕ является админом, роль:', '{{ .role }}');
     console.log('AI Settings: AI настройки недоступны для данной роли');
-    { { end } }
+    {{ end }}
 </script>
 
 <style>

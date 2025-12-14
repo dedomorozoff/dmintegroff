@@ -483,36 +483,32 @@ func (c *Client) GetOpenRouterModels(ctx context.Context) ([]ModelInfo, error) {
 
 // GetRecommendedModels возвращает рекомендуемые модели с описаниями
 func (c *Client) GetRecommendedModels() []ModelInfo {
+	// Только бесплатные модели для избежания проблем с кредитами
 	return []ModelInfo{
 		{
-			ID:          "anthropic/claude-3.5-sonnet",
-			Name:        "Claude 3.5 Sonnet",
-			Description: "Лучший для сложных задач программирования и анализа",
+			ID:          "meta-llama/llama-3.2-3b-instruct:free",
+			Name:        "Llama 3.2 3B (Бесплатно)",
+			Description: "Быстрая бесплатная модель для простых задач",
 		},
 		{
-			ID:          "openai/gpt-4o",
-			Name:        "GPT-4o",
-			Description: "Быстрый и качественный, отлично для чата",
+			ID:          "meta-llama/llama-3.1-8b-instruct:free",
+			Name:        "Llama 3.1 8B (Бесплатно)",
+			Description: "Хорошая бесплатная модель для программирования",
 		},
 		{
-			ID:          "openai/gpt-4o-mini",
-			Name:        "GPT-4o Mini",
-			Description: "Дешевый и быстрый, хорош для простых задач",
+			ID:          "google/gemma-2-9b-it:free",
+			Name:        "Gemma 2 9B (Бесплатно)",
+			Description: "Бесплатная модель Google для общих задач",
 		},
 		{
-			ID:          "meta-llama/llama-3.1-70b-instruct",
-			Name:        "Llama 3.1 70B",
-			Description: "Открытая модель, хорошее качество",
+			ID:          "microsoft/phi-3-mini-128k-instruct:free",
+			Name:        "Phi-3 Mini (Бесплатно)",
+			Description: "Компактная бесплатная модель Microsoft",
 		},
 		{
-			ID:          "google/gemini-pro-1.5",
-			Name:        "Gemini Pro 1.5",
-			Description: "Отлично для анализа данных и больших контекстов",
-		},
-		{
-			ID:          "anthropic/claude-3-haiku",
-			Name:        "Claude 3 Haiku",
-			Description: "Самый быстрый, подходит для простых задач",
+			ID:          "qwen/qwen-2-7b-instruct:free",
+			Name:        "Qwen 2 7B (Бесплатно)",
+			Description: "Бесплатная модель для многоязычных задач",
 		},
 	}
 }

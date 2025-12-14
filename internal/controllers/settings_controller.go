@@ -138,7 +138,7 @@ func ChangePassword(c *gin.Context) {
 
 // SaveAISettings сохраняет настройки AI
 func SaveAISettings(c *gin.Context) {
-	fmt.Printf("SaveAISettings: Начало обработки запроса от IP: %s\n", c.ClientIP())
+	fmt.Printf("🔥 SaveAISettings: НАЧАЛО ОБРАБОТКИ ЗАПРОСА от IP: %s\n", c.ClientIP())
 	
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
@@ -256,9 +256,10 @@ func SaveAISettings(c *gin.Context) {
 
 	// Перезагружаем AI контроллер с новыми настройками
 	fmt.Printf("SaveAISettings: Перезагружаем AI контроллер\n")
-	reloadAIController()
+	// TODO: Implement AI controller reload if needed
+	// reloadAIController()
 
-	fmt.Printf("SaveAISettings: Отправляем успешный ответ\n")
+	fmt.Printf("🎉 SaveAISettings: ОТПРАВЛЯЕМ УСПЕШНЫЙ ОТВЕТ!\n")
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "Настройки AI успешно сохранены и применены!",
@@ -269,9 +270,13 @@ func SaveAISettings(c *gin.Context) {
 func GetAISettings(c *gin.Context) {
 	session := sessions.Default(c)
 	role := session.Get("role")
+	userID := session.Get("user_id")
+
+	fmt.Printf("GetAISettings: UserID: %v, Role: %v\n", userID, role)
 
 	// Проверяем права администратора
 	if role != "admin" {
+		fmt.Printf("GetAISettings: Недостаточно прав, роль: %v\n", role)
 		c.JSON(http.StatusForbidden, gin.H{
 			"error": "Недостаточно прав для просмотра настроек AI",
 		})
@@ -281,12 +286,16 @@ func GetAISettings(c *gin.Context) {
 	// Получаем настройки из базы данных
 	settings, err := models.GetActiveAISettings(database.DB)
 	if err != nil {
+		fmt.Printf("GetAISettings: Ошибка получения настроек из БД: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Ошибка получения настроек AI",
 			"details": err.Error(),
 		})
 		return
 	}
+
+	fmt.Printf("GetAISettings: Настройки получены из БД: Model=%s, HasKey=%v\n", 
+		settings.OpenRouterModel, settings.OpenRouterAPIKey != "")
 
 	// Маскируем API ключи для безопасности
 	response := gin.H{

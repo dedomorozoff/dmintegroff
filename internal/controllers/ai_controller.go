@@ -314,16 +314,15 @@ func (c *AIController) GetModels(ctx *gin.Context) {
 			freeModels := make([]map[string]interface{}, 0)
 			popularModels := make([]map[string]interface{}, 0)
 			
-			// Популярные модели для быстрого доступа
+			// Популярные БЕСПЛАТНЫЕ модели для быстрого доступа
 			popularIDs := map[string]bool{
-				"anthropic/claude-3.5-sonnet":        true,
-				"anthropic/claude-3-haiku":           true,
-				"openai/gpt-4o":                      true,
-				"openai/gpt-4o-mini":                 true,
-				"meta-llama/llama-3.1-70b-instruct":  true,
-				"meta-llama/llama-3.1-8b-instruct":   true,
-				"google/gemini-pro-1.5":              true,
-				"mistralai/mistral-7b-instruct":      true,
+				"meta-llama/llama-3.2-3b-instruct:free":     true,
+				"meta-llama/llama-3.1-8b-instruct:free":     true,
+				"google/gemma-2-9b-it:free":                 true,
+				"microsoft/phi-3-mini-128k-instruct:free":   true,
+				"qwen/qwen-2-7b-instruct:free":              true,
+				"mistralai/mistral-7b-instruct:free":        true,
+				"huggingfaceh4/zephyr-7b-beta:free":         true,
 			}
 
 			for _, model := range models {
@@ -377,9 +376,10 @@ func (c *AIController) GetModels(ctx *gin.Context) {
 				}
 			}
 
-			result["openrouter_all"] = processedModels
+			// Показываем только бесплатные модели для избежания проблем с кредитами
+			result["openrouter_all"] = freeModels
 			result["openrouter_free"] = freeModels
-			result["openrouter_popular"] = popularModels
+			result["openrouter_popular"] = freeModels // Только бесплатные популярные модели
 			result["openrouter_available"] = true
 		} else {
 			result["openrouter_available"] = false
