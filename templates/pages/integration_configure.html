@@ -20,15 +20,33 @@
 <!-- Main Content -->
 <main class="main-content">
     <div class="page-header">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
-            <div>
-                <h1>Настройка маппинга полей</h1>
-                <p><strong>Интеграция:</strong> {{ .integration.Name }}</p>
-            </div>
-            <a href="/integrations/{{ .integration.ID }}/edit" class="btn btn-secondary" style="white-space: nowrap;">
-                <i data-lucide="settings"></i> Настройки интеграции
-            </a>
+        <div>
+            <h1>Настройка маппинга полей</h1>
+            <p><strong>Интеграция:</strong> {{ .integration.Name }}</p>
         </div>
+        <a href="/integrations/{{ .integration.ID }}/edit" class="btn btn-secondary hide-on-mobile" style="white-space: nowrap;">
+            <i data-lucide="settings"></i> Настройки интеграции
+        </a>
+    </div>
+    
+    <!-- Mobile Header -->
+    <div class="page-header-mobile">
+        <div class="mobile-header-actions">
+            <a href="/integrations/{{ .integration.ID }}/edit" class="btn btn-secondary" aria-label="Настройки интеграции">
+                <i data-lucide="settings"></i>
+            </a>
+            <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Меню">
+                <i data-lucide="menu"></i>
+            </button>
+        </div>
+        <a href="/dashboard">
+            <img src="/static/img/logo.png" alt="dmIntegroff" class="page-header-logo">
+        </a>
+        <h1 class="page-header-title">Настройка маппинга</h1>
+    </div>
+    
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
 
         <div class="url-container"
             style="margin-top: 1rem; background: #2d3748; padding: 0.75rem 1rem; border-radius: 6px; display: flex; align-items: center; gap: 1rem; border: 1px solid #4a5568;">
@@ -59,10 +77,14 @@
     </div>
 
     <div class="card">
-        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-            <h2 class="card-title"><i data-lucide="download"></i> Полученные данные (образец)</h2>
+        <div class="card-header">
+            <h2 class="card-title">
+                <i data-lucide="download"></i> 
+                Полученные данные (образец)
+            </h2>
             <button type="button" class="btn btn-secondary" onclick="toggleEditPayload()" id="editPayloadBtn">
-                <i data-lucide="edit"></i> Редактировать
+                <i data-lucide="edit"></i> 
+                <span class="hide-on-mobile">Редактировать</span>
             </button>
         </div>
         <div id="payloadView">
@@ -148,20 +170,20 @@
                     Система автоматически разбирает вложенные объекты и массивы.
                 </p>
 
-                <div class="table-container">
-                    <table>
+                <div class="table-container mapping-table-container">
+                    <table class="mapping-table">
                         <thead>
                             <tr>
                                 <th>Поле из источника (путь)</th>
-                                <th>Тип</th>
-                                <th>Значение</th>
+                                <th class="hide-on-mobile">Тип</th>
+                                <th class="hide-on-mobile">Значение</th>
                                 <th>Новое имя для Target API</th>
                                 <th style="text-align: center;">
-                                    <label
-                                        style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin: 0; cursor: pointer;">
+                                    <label class="checkbox-label">
                                         <input type="checkbox" id="toggleAllIgnore"
-                                            onclick="toggleAllIgnoreCheckboxes()" style="width: auto; cursor: pointer;">
-                                        <span>Игнорировать</span>
+                                            onclick="toggleAllIgnoreCheckboxes()" class="checkbox-input">
+                                        <span class="hide-on-mobile">Игнорировать</span>
+                                        <span class="show-on-mobile">Игн.</span>
                                     </label>
                                 </th>
                             </tr>
@@ -169,15 +191,25 @@
                         <tbody>
                             {{ if .fields }}
                             {{ range $field := .fields }}
-                            <tr>
-                                <td><code style="color: #61afef;">{{ $field.Path }}</code></td>
-                                <td><span style="color: #c678dd; font-size: 0.9em;">{{ $field.Type }}</span></td>
-                                <td>
-                                    <span style="color: #98c379; font-size: 0.85em;">
+                            <tr class="mapping-row">
+                                <td class="field-path">
+                                    <code class="field-code">{{ $field.Path }}</code>
+                                    <div class="mobile-field-info show-on-mobile">
+                                        <span class="field-type">{{ $field.Type }}</span>
+                                        <span class="field-value">
+                                            {{ if eq $field.Type "string" }}"{{ $field.Value }}"{{ else }}{{ $field.Value }}{{ end }}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="hide-on-mobile">
+                                    <span class="field-type">{{ $field.Type }}</span>
+                                </td>
+                                <td class="hide-on-mobile">
+                                    <span class="field-value">
                                         {{ if eq $field.Type "string" }}"{{ $field.Value }}"{{ else }}{{ $field.Value }}{{ end }}
                                     </span>
                                 </td>
-                                <td>
+                                <td class="field-mapping">
                                     {{ $currentValue := $field.Path }}
                                     {{ if $.currentMapping }}
                                     {{ range $target, $source := $.currentMapping }}
@@ -188,12 +220,11 @@
                                     {{ end }}
                                     <input type="text" name="field_{{ $field.Path }}" data-path="{{ $field.Path }}"
                                         value="{{ $currentValue }}" placeholder="Новое имя или оставьте как есть"
-                                        style="width: 100%;">
+                                        class="form-control">
                                 </td>
-                                <td style="text-align: center;">
+                                <td class="field-ignore">
                                     <input type="checkbox" name="ignore_{{ $field.Path }}" data-path="{{ $field.Path }}"
-                                        class="ignore-checkbox" onchange="updateMasterCheckbox()"
-                                        style="width: auto; cursor: pointer;">
+                                        class="ignore-checkbox checkbox-input" onchange="updateMasterCheckbox()">
                                 </td>
                             </tr>
                             {{ end }}
@@ -222,7 +253,7 @@
             <!-- Секция для кастомного шаблона -->
             <div id="templateSection" style="display: none;">
                 <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-                    <h3 style="margin: 0;"><i data-lucide="file-text"></i> Кастомный шаблон</h3>
+                    <h3 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;"><i data-lucide="file-text"></i> К
                     <select name="template_type" id="templateType" onchange="updateTemplateEditor()" 
                             style="padding: 0.5rem; border-radius: 6px; background: #1a1f2e; color: #abb2bf; border: 1px solid #4a5568;">
                         <option value="json" {{ if or (not .integration.TemplateType) (eq .integration.TemplateType "json") }}selected{{ end }}>JSON</option>
@@ -1036,7 +1067,7 @@
                     <li><strong>Числа и булевы:</strong> без кавычек <code style="color: #61afef;">{{`{{count}}`}}</code></li>
                     <li><strong>Вложенные поля:</strong> через точку <code style="color: #61afef;">{{`{{user.address.city}}`}}</code></li>
                     <li><strong>Элемент массива:</strong> по индексу <code style="color: #61afef;">{{`{{items[0].name}}`}}</code></li>
-                    <li><strong>🆕 Весь массив:</strong> wildcard <code style="color: #61afef; background: rgba(97, 175, 239, 0.15); padding: 2px 4px; border-radius: 3px;">{{`{{items.*}}`}}</code> - копирует массив целиком</li>
+                    <li><strong>Весь массив:</strong> wildcard <code style="color: #61afef; background: rgba(97, 175, 239, 0.15); padding: 2px 4px; border-radius: 3px;">{{`{{items.*}}`}}</code> - копирует массив целиком</li>
                     <li><strong>Статические значения:</strong> можно комбинировать с плейсхолдерами</li>
                     <li><strong>Копирование полей:</strong> кликните 📋 в списке "Доступные поля"</li>
                     <li><strong>Форматирование:</strong> используйте кнопку "Автоотступы"</li>
@@ -1551,6 +1582,336 @@ Email: {{`{{user.email}}`}}
             closeTestModal();
         }
     });
+
+    // Mobile Sidebar Toggle
+    function toggleMobileSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.querySelector('.sidebar-overlay');
+        sidebar.classList.toggle('mobile-open');
+        overlay.classList.toggle('active');
+    }
+    
+    function closeMobileSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.querySelector('.sidebar-overlay');
+        sidebar.classList.remove('mobile-open');
+        overlay.classList.remove('active');
+    }
+    
+    // Закрытие sidebar при клике на ссылку
+    document.querySelectorAll('.sidebar a').forEach(link => {
+        link.addEventListener('click', closeMobileSidebar);
+    });
 </script>
 
+<style>
+    /* Улучшенные стили для страницы настройки маппинга */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+    }
+
+    .page-header > div {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .card-title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-title i {
+        color: var(--primary);
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    /* Улучшенные стили для таблицы маппинга */
+    .mapping-table-container {
+        overflow-x: auto;
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+    }
+
+    .mapping-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--card);
+    }
+
+    .mapping-table th,
+    .mapping-table td {
+        padding: 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+    }
+
+    .mapping-table th {
+        background: var(--muted);
+        font-weight: 600;
+        color: var(--foreground);
+        font-size: 0.875rem;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+
+    .mapping-row:hover {
+        background: var(--muted);
+    }
+
+    .field-code {
+        color: var(--primary);
+        font-family: 'Courier New', monospace;
+        font-size: 0.875rem;
+        background: var(--muted);
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        display: inline-block;
+    }
+
+    .field-type {
+        color: var(--accent);
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    .field-value {
+        color: var(--success);
+        font-size: 0.8rem;
+        font-family: 'Courier New', monospace;
+    }
+
+    .mobile-field-info {
+        margin-top: 0.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .checkbox-label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        margin: 0;
+        cursor: pointer;
+    }
+
+    .checkbox-input {
+        width: auto !important;
+        cursor: pointer;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--input);
+        color: var(--foreground);
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(var(--primary), 0.1);
+    }
+
+    /* Адаптивность */
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .card-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .mapping-table th,
+        .mapping-table td {
+            padding: 0.5rem;
+        }
+
+        .field-path {
+            min-width: 150px;
+        }
+
+        .field-mapping {
+            min-width: 120px;
+        }
+
+        .field-ignore {
+            width: 60px;
+            text-align: center;
+        }
+
+        /* Скрываем колонки на мобильных */
+        .hide-on-mobile {
+            display: none !important;
+        }
+
+        .show-on-mobile {
+            display: block !important;
+        }
+    }
+
+    @media (min-width: 769px) {
+        .show-on-mobile {
+            display: none !important;
+        }
+    }
+
+    /* Улучшенные стили для форм */
+    .filter-form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: end;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        min-width: 150px;
+    }
+
+    .form-group label {
+        font-weight: 500;
+        color: var(--foreground);
+        font-size: 0.875rem;
+    }
+
+    /* Улучшенные стили для кнопок */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--card);
+        color: var(--foreground);
+        text-decoration: none;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+    }
+
+    .btn:hover {
+        background: var(--muted);
+        border-color: var(--primary);
+    }
+
+    .btn-primary {
+        background: var(--primary);
+        color: var(--primary-foreground);
+        border-color: var(--primary);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary);
+        opacity: 0.9;
+    }
+
+    .btn-success {
+        background: var(--success);
+        color: var(--success-foreground);
+        border-color: var(--success);
+    }
+
+    .btn-success:hover {
+        background: var(--success);
+        opacity: 0.9;
+    }
+
+    .btn-secondary {
+        background: var(--secondary);
+        color: var(--secondary-foreground);
+        border-color: var(--secondary);
+    }
+
+    .btn-secondary:hover {
+        background: var(--muted);
+    }
+
+    /* Стили для URL контейнера */
+    .url-container {
+        margin-top: 1rem;
+        background: var(--muted);
+        padding: 0.75rem 1rem;
+        border-radius: var(--radius);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        border: 1px solid var(--border);
+    }
+
+    .url-container code {
+        color: var(--primary);
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        word-break: break-all;
+    }
+
+    /* Стили для предупреждений */
+    .warning-box {
+        background: var(--warning);
+        color: var(--warning-foreground);
+        padding: 0.75rem 1rem;
+        border-radius: var(--radius);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        border-left: 4px solid var(--warning);
+    }
+
+    /* Мобильная адаптивность для кнопок */
+    @media (max-width: 480px) {
+        .btn {
+            padding: 0.75rem;
+            justify-content: center;
+        }
+
+        .hide-on-mobile {
+            display: none !important;
+        }
+
+        .url-container {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.5rem;
+        }
+
+        .filter-form {
+            flex-direction: column;
+        }
+
+        .form-group {
+            min-width: auto;
+        }
+    }
+</style>
+
+{{ template "partials/scripts.html" . }}
 {{ end }}

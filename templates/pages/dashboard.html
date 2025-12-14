@@ -536,45 +536,48 @@
                         <i data-lucide="shield-check" style="color: var(--success);"></i>
                         <span>Rate Limiter</span>
                     </div>
-                    <div class="mini-stat-value">${data.rate_limiter.enabled ? 'Активен' : 'Отключен'}</div>
-                    ${data.rate_limiter.enabled ? `
+                    <div class="mini-stat-value">${data.rate_limiter?.enabled ? 'Активен' : 'Отключен'}</div>
+                    ${data.rate_limiter?.enabled ? `
                         <div class="mini-stat-details">
                             <small>${data.rate_limiter.rate} req/min, burst: ${data.rate_limiter.burst}</small>
-                            <small>Активных IP: ${data.rate_limiter.active_visitors}</small>
+                            <small>Активных IP: ${data.rate_limiter.active_visitors || 0}</small>
                         </div>
                     ` : ''}
                 </div>
                 
                 <div class="mini-stat-card">
                     <div class="mini-stat-header">
-                        <i data-lucide="activity" style="color: var(--primary);"></i>
-                        <span>Запросы (24ч)</span>
+                        <i data-lucide="zap" style="color: var(--warning);"></i>
+                        <span>Производительность</span>
                     </div>
-                    <div class="mini-stat-value">${data.requests_last_24h}</div>
+                    <div class="mini-stat-value">${data.success_rate || 0}%</div>
                     <div class="mini-stat-details">
-                        <small>Успешность: ${data.success_rate}%</small>
+                        <small>Успешность запросов</small>
+                        <small>Среднее время: ${data.avg_response_time || 0}мс</small>
                     </div>
                 </div>
                 
                 <div class="mini-stat-card">
                     <div class="mini-stat-header">
-                        <i data-lucide="alert-triangle" style="color: var(--danger);"></i>
-                        <span>Ошибки (24ч)</span>
+                        <i data-lucide="server" style="color: var(--info);"></i>
+                        <span>Система</span>
                     </div>
-                    <div class="mini-stat-value">${data.errors_last_24h}</div>
+                    <div class="mini-stat-value">${data.uptime || 'N/A'}</div>
                     <div class="mini-stat-details">
-                        <small>${data.errors_last_24h > 0 ? 'Требует внимания' : 'Всё в порядке'}</small>
+                        <small>Время работы</small>
+                        <small>Версия: ${data.version || '1.0.0'}</small>
                     </div>
                 </div>
                 
                 <div class="mini-stat-card">
                     <div class="mini-stat-header">
-                        <i data-lucide="database" style="color: var(--info);"></i>
-                        <span>Всего интеграций</span>
+                        <i data-lucide="hard-drive" style="color: var(--primary);"></i>
+                        <span>База данных</span>
                     </div>
-                    <div class="mini-stat-value">${data.total_integrations}</div>
+                    <div class="mini-stat-value">${data.db_connections || 0}</div>
                     <div class="mini-stat-details">
-                        <small>Активных: ${data.active_integrations}</small>
+                        <small>Активных соединений</small>
+                        <small>Размер БД: ${data.db_size || 'N/A'}</small>
                     </div>
                 </div>
             </div>
