@@ -250,7 +250,7 @@
         
         function copyToClipboard(text) {
             navigator.clipboard.writeText(text).then(() => {
-                alert('Скопировано: ' + text);
+                window.showNotification('Скопировано: ' + text, 'success');
             });
         }
 

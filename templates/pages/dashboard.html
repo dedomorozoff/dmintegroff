@@ -103,50 +103,51 @@
         <!-- Quick Actions -->
         <div class="card">
             <div class="card-header">
-                <h2 class="card-title">Быстрые действия</h2>
+                <h2 class="card-title">Создать интеграцию</h2>
+                <p class="card-subtitle">Выберите способ создания новой интеграции</p>
             </div>
 
             <div class="quick-actions-grid">
-                <a href="/projects/create" class="btn btn-success quick-action-btn">
+                <button onclick="openAIAssistant()" class="btn btn-primary quick-action-btn ai-quick-action" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+                    <div class="quick-action-header">
+                        <i data-lucide="bot"></i>
+                        <span>С помощью AI</span>
+                        <span class="quick-action-arrow"><i data-lucide="arrow-right"></i></span>
+                    </div>
+                    <span class="quick-action-desc">Создайте интеграцию с помощью искусственного интеллекта</span>
+                </button>
+                <a href="/integrations/create" class="btn btn-success quick-action-btn">
                     <div class="quick-action-header">
                         <i data-lucide="plus"></i>
-                        <span>Создать проект</span>
+                        <span>Создать вручную</span>
                         <span class="quick-action-arrow"><i data-lucide="arrow-right"></i></span>
                     </div>
-                    <span class="quick-action-desc">Новый проект для группировки интеграций</span>
-                </a>
-                <a href="/projects" class="btn btn-secondary quick-action-btn">
-                    <div class="quick-action-header">
-                        <i data-lucide="folder-kanban"></i>
-                        <span>Все проекты</span>
-                        <span class="quick-action-arrow"><i data-lucide="arrow-right"></i></span>
-                    </div>
-                    <span class="quick-action-desc">Управление существующими проектами</span>
+                    <span class="quick-action-desc">Создайте интеграцию самостоятельно пошагово</span>
                 </a>
                 <a href="/integrations" class="btn btn-secondary quick-action-btn">
                     <div class="quick-action-header">
                         <i data-lucide="webhook"></i>
-                        <span>Интеграции</span>
+                        <span>Все интеграции</span>
                         <span class="quick-action-arrow"><i data-lucide="arrow-right"></i></span>
                     </div>
-                    <span class="quick-action-desc">Просмотр всех интеграций</span>
+                    <span class="quick-action-desc">Просмотр и управление существующими интеграциями</span>
                 </a>
-                <a href="/logs" class="btn btn-secondary quick-action-btn">
+                <a href="/projects" class="btn btn-secondary quick-action-btn">
+                    <div class="quick-action-header">
+                        <i data-lucide="folder-kanban"></i>
+                        <span>Проекты</span>
+                        <span class="quick-action-arrow"><i data-lucide="arrow-right"></i></span>
+                    </div>
+                    <span class="quick-action-desc">Управление проектами и группировка интеграций</span>
+                </a>
+                <a href="/logs/requests" class="btn btn-secondary quick-action-btn">
                     <div class="quick-action-header">
                         <i data-lucide="file-text"></i>
-                        <span>Просмотр логов</span>
+                        <span>История запросов</span>
                         <span class="quick-action-arrow"><i data-lucide="arrow-right"></i></span>
                     </div>
-                    <span class="quick-action-desc">История запросов и ответов</span>
+                    <span class="quick-action-desc">Просмотр логов запросов и ответов</span>
                 </a>
-                <button onclick="openAIAssistant()" class="btn btn-primary quick-action-btn ai-quick-action" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
-                    <div class="quick-action-header">
-                        <i data-lucide="bot"></i>
-                        <span>🤖 AI Помощник</span>
-                        <span class="quick-action-arrow"><i data-lucide="arrow-right"></i></span>
-                    </div>
-                    <span class="quick-action-desc">Создавайте интеграции с помощью искусственного интеллекта</span>
-                </button>
             </div>
         </div>
 
@@ -387,6 +388,12 @@
             color: var(--primary);
         }
 
+        .card-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin: 0.25rem 0 0 0;
+            font-weight: normal;
+        }
 
     </style>
 
@@ -489,7 +496,7 @@
         })
         .catch(error => {
             console.error('Ошибка при создании тестового вебхука:', error);
-            alert('Не удалось создать тестовый вебхук. Попробуйте ещё раз.');
+            window.showNotification('Не удалось создать тестовый вебхук. Попробуйте ещё раз.', 'error');
             
             // Восстанавливаем кнопку
             if (button) {

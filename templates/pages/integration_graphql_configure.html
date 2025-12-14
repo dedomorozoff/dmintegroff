@@ -337,12 +337,12 @@ query {
             try {
                 if (variables) JSON.parse(variables);
             } catch (e) {
-                alert('Ошибка в JSON маппинга переменных: ' + e.message);
+                window.showNotification('Ошибка в JSON маппинга переменных: ' + e.message, 'error');
                 return;
             }
 
             if (!query.trim()) {
-                alert('GraphQL query не может быть пустым');
+                window.showNotification('GraphQL query не может быть пустым', 'error');
                 return;
             }
 
@@ -358,14 +358,14 @@ query {
                 });
 
                 if (response.ok) {
-                    alert('✅ Настройки сохранены!');
+                    window.showNotification('Настройки сохранены!', 'success');
                     window.location.href = `/integrations/${integrationId}/edit`;
                 } else {
                     const data = await response.json();
-                    alert('❌ Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+                    window.showNotification('Ошибка: ' + (data.error || 'Неизвестная ошибка'), 'error');
                 }
             } catch (error) {
-                alert('❌ Ошибка: ' + error.message);
+                window.showNotification('Ошибка: ' + error.message, 'error');
             }
         }
 
@@ -373,9 +373,9 @@ query {
             const field = document.getElementById(fieldId);
             try {
                 JSON.parse(field.value);
-                alert('✅ JSON валиден!');
+                window.showNotification('JSON валиден!', 'success');
             } catch (e) {
-                alert('❌ Ошибка JSON: ' + e.message);
+                window.showNotification('Ошибка JSON: ' + e.message, 'error');
             }
         }
 
@@ -385,7 +385,7 @@ query {
                 const obj = JSON.parse(field.value);
                 field.value = JSON.stringify(obj, null, 2);
             } catch (e) {
-                alert('❌ Ошибка JSON: ' + e.message);
+                window.showNotification('Ошибка JSON: ' + e.message, 'error');
             }
         }
     </script>

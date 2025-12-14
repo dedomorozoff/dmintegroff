@@ -54,7 +54,7 @@
         const aiWidget = document.getElementById('aiChatWidget');
         if (!aiWidget) {
             // Если AI виджета нет, показываем сообщение
-            alert('AI Ассистент доступен на страницах с интеграциями');
+            window.showNotification('AI Ассистент доступен на страницах с интеграциями', 'info');
             return;
         }
 
@@ -66,7 +66,7 @@
             window.aiAssistant.openChat();
         } else {
             // Если AI ассистент не загружен, показываем уведомление
-            alert('AI Ассистент загружается... Попробуйте через несколько секунд.');
+            window.showNotification('AI Ассистент загружается... Попробуйте через несколько секунд.', 'warning');
         }
     };
 </script>

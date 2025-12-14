@@ -79,12 +79,6 @@
                         <strong id="ai-status-text">Проверка статуса...</strong>
                     </div>
                     <p id="ai-status-details" style="margin: 0; color: var(--text-secondary); font-size: 0.875rem;"></p>
-                    <div
-                            style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border); font-size: 0.875rem; color: var(--text-secondary);">
-                        <strong>Глобальный переключатель:</strong> AI можно включить/выключить через переменную
-                        <code>AI_ENABLED</code> в .env файле<br>
-                        <strong>🆓 Бесплатные модели:</strong> Приложение использует только бесплатные модели - никаких трат!
-                    </div>
                 </div>
 
                 <!-- AI Settings Form -->
@@ -112,8 +106,8 @@
                             <small class="ai-form-help" id="api-key-help">
                                 <a href="https://openrouter.ai/keys" target="_blank"
                                    style="color: var(--primary);">Получить ключ OpenRouter</a> -
-                                доступ к бесплатным AI моделям (Llama, Gemma, Phi-3 и др.).<br>
-                                <strong>🆓 Приложение использует только бесплатные модели</strong> - никаких трат на кредиты!
+                                доступ к AI моделям (Llama, Gemma, Phi-3 и др.).<br>
+                                <strong>Приложение использует только бесплатные модели</strong>
                             </small>
                         </div>
                     </div>
@@ -123,7 +117,7 @@
                         <h3
                                 style="font-size: 1rem; font-weight: 600; color: var(--foreground); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
                             <i data-lucide="brain" style="width: 16px; height: 16px;"></i>
-                            🆓 Бесплатные AI модели
+                            Настройка AI модели
                         </h3>
                         <div class="ai-form-group">
                             <label for="openrouter_model" class="ai-form-label">
@@ -137,8 +131,8 @@
                                 <option value="">Выберите модель...</option>
                             </select>
                             <small class="ai-form-help">
-                                🆓 Доступны только бесплатные модели. Рекомендуется Llama 3.1 8B для программирования.
-                                <strong>Нажмите кнопку поиска</strong> для выбора из всех бесплатных моделей.
+                                Доступны только бесплатные модели. Рекомендуется Llama 3.1 8B для программирования.
+                                <strong>Нажмите кнопку поиска</strong> для выбора из моделей.
                             </small>
                         </div>
                     </div>
@@ -323,7 +317,7 @@
 
         if (newPassword !== confirmPassword) {
             e.preventDefault();
-            alert('Пароли не совпадают!');
+            window.showNotification('Пароли не совпадают!', 'error');
             return false;
         }
     });
@@ -748,16 +742,16 @@
                     showAlert('success', result.message || 'Настройки сохранены успешно!');
                     console.log('showAlert выполнен успешно');
 
-                    // И обычный alert как резерв
+                    // И современное уведомление как резерв
                     setTimeout(() => {
-                        alert('✅ НАСТРОЙКИ СОХРАНЕНЫ!\n\n' + (result.message || 'Настройки AI успешно сохранены!'));
+                        window.showNotification('НАСТРОЙКИ СОХРАНЕНЫ!\n\n' + (result.message || 'Настройки AI успешно сохранены!'), 'success');
                     }, 500);
                 } catch (alertError) {
                     console.error('Ошибка показа уведомления:', alertError);
                     try {
-                        alert('✅ ' + (result.message || 'Настройки сохранены успешно!'));
+                        window.showNotification(result.message || 'Настройки сохранены успешно!', 'success');
                     } catch (fallbackError) {
-                        console.error('Даже alert не работает:', fallbackError);
+                        console.error('Даже showNotification не работает:', fallbackError);
                     }
                 }
 
@@ -771,7 +765,7 @@
                     showAlert('error', result.error || 'Ошибка сохранения настроек');
                 } catch (alertError) {
                     console.error('Ошибка показа уведомления об ошибке:', alertError);
-                    alert('❌ ' + (result.error || 'Ошибка сохранения настроек'));
+                    window.showNotification(result.error || 'Ошибка сохранения настроек', 'error');
                 }
             }
         } catch (error) {
@@ -783,14 +777,14 @@
                     showAlert('error', 'Превышено время ожидания ответа от сервера (10 сек)');
                 } catch (alertError) {
                     console.error('Ошибка показа алерта:', alertError);
-                    alert('❌ Превышено время ожидания ответа от сервера');
+                    window.showNotification('Превышено время ожидания ответа от сервера', 'error');
                 }
             } else {
                 try {
                     showAlert('error', 'Ошибка подключения к серверу: ' + error.message);
                 } catch (alertError) {
                     console.error('Ошибка показа алерта:', alertError);
-                    alert('❌ Ошибка подключения к серверу: ' + error.message);
+                    window.showNotification('Ошибка подключения к серверу: ' + error.message, 'error');
                 }
             }
         } finally {

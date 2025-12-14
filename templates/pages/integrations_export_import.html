@@ -302,7 +302,7 @@ function updateExportButton() {
 
 function exportSelected() {
     if (selectedIntegrations.size === 0) {
-        alert('Выберите интеграции для экспорта');
+        window.showNotification('Выберите интеграции для экспорта', 'warning');
         return;
     }
     
@@ -312,7 +312,7 @@ function exportSelected() {
 
 function showGitExportModal() {
     if (selectedIntegrations.size === 0) {
-        alert('Выберите интеграции для экспорта');
+        window.showNotification('Выберите интеграции для экспорта', 'warning');
         return;
     }
     document.getElementById('gitExportModal').style.display = 'flex';
@@ -327,7 +327,7 @@ function closeGitExportModal() {
 
 function performGitExport() {
     if (selectedIntegrations.size === 0) {
-        alert('Выберите интеграции для экспорта');
+        window.showNotification('Выберите интеграции для экспорта', 'warning');
         return;
     }
     
@@ -336,7 +336,7 @@ function performGitExport() {
     const filePath = document.getElementById('gitFilePath').value;
     
     if (!repoPath || !filePath) {
-        alert('Заполните обязательные поля');
+        window.showNotification('Заполните обязательные поля', 'error');
         return;
     }
     
@@ -413,12 +413,12 @@ function performImport() {
     const projectSelect = document.getElementById('targetProject');
     
     if (!fileInput.files[0]) {
-        alert('Выберите файл для импорта');
+        window.showNotification('Выберите файл для импорта', 'warning');
         return;
     }
     
     if (!projectSelect.value) {
-        alert('Выберите целевой проект');
+        window.showNotification('Выберите целевой проект', 'warning');
         return;
     }
     
