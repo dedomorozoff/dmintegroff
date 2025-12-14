@@ -1,0 +1,17 @@
+{
+  "name": "Mixpanel",
+  "description": "Отправка события в Mixpanel",
+  "type": "json",
+  "category": "analytics",
+  "template": {
+    "event": "Webhook Event",
+    "properties": {
+      "distinct_id": "{{user.id}}",
+      "user_email": "{{user.email}}",
+      "user_name": "{{user.name}}",
+      "event_type": "{{event.type}}",
+      "timestamp": "{{timestamp}}",
+      "$insert_id": "{{event.id}}"
+    }
+  }
+}

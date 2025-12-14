@@ -1,0 +1,12 @@
+{
+  "name": "Telegram",
+  "description": "Отправка сообщения через Telegram Bot API",
+  "type": "json",
+  "category": "messengers",
+  "template": {
+    "chat_id": "{{chat.id}}",
+    "text": "🔔 Новое уведомление\n\n👤 Пользователь: {{user.name}}\n📧 Email: {{user.email}}\n📱 Телефон: {{user.phone}}\n\n📝 Сообщение: {{message.text}}",
+    "parse_mode": "Markdown",
+    "disable_web_page_preview": true
+  }
+}

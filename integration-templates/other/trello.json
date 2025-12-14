@@ -1,0 +1,14 @@
+{
+  "name": "Trello",
+  "description": "Создание карточки в Trello",
+  "type": "json",
+  "category": "other",
+  "template": {
+    "name": "{{card.title}}",
+    "desc": "{{card.description}}\n\n**Пользователь:** {{user.name}}\n**Email:** {{user.email}}",
+    "idList": "LIST_ID",
+    "pos": "top",
+    "due": "{{due_date}}",
+    "labels": ["webhook", "new"]
+  }
+}

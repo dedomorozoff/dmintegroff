@@ -1,0 +1,7 @@
+{
+  "name": "MySQL",
+  "description": "SQL запрос для вставки в MySQL",
+  "type": "text",
+  "category": "databases",
+  "template": "INSERT INTO users (name, email, phone, created_at) VALUES ('{{user.name}}', '{{user.email}}', '{{user.phone}}', NOW());"
+}

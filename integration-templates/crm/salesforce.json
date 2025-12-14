@@ -1,0 +1,20 @@
+{
+  "name": "Salesforce",
+  "description": "Создание лида в Salesforce через REST API",
+  "type": "json",
+  "category": "crm",
+  "template": {
+    "records": [{
+      "attributes": {
+        "type": "Lead"
+      },
+      "FirstName": "{{user.first_name}}",
+      "LastName": "{{user.last_name}}",
+      "Email": "{{user.email}}",
+      "Phone": "{{user.phone}}",
+      "Company": "{{company.name}}",
+      "Status": "Open - Not Contacted",
+      "LeadSource": "Web"
+    }]
+  }
+}

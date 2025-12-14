@@ -1,0 +1,21 @@
+{
+  "name": "VK Messages",
+  "description": "Отправка сообщения через VK Messages API",
+  "type": "json",
+  "category": "messengers",
+  "template": {
+    "user_id": "{{user.vk_id}}",
+    "random_id": "{{timestamp}}",
+    "message": "🔔 Новое уведомление\n\n👤 Пользователь: {{user.name}}\n📧 Email: {{user.email}}\n📱 Телефон: {{user.phone}}\n\n📝 Сообщение: {{message.text}}",
+    "keyboard": {
+      "one_time": true,
+      "buttons": [[{
+        "action": {
+          "type": "text",
+          "label": "Ответить"
+        },
+        "color": "primary"
+      }]]
+    }
+  }
+}

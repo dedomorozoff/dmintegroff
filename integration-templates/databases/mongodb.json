@@ -1,0 +1,17 @@
+{
+  "name": "MongoDB",
+  "description": "Документ для вставки в MongoDB",
+  "type": "json",
+  "category": "databases",
+  "template": {
+    "name": "{{user.name}}",
+    "email": "{{user.email}}",
+    "phone": "{{user.phone}}",
+    "metadata": {
+      "source": "webhook",
+      "event_type": "{{event.type}}",
+      "custom_data": "{{custom.*}}"
+    },
+    "created_at": "{{timestamp}}"
+  }
+}

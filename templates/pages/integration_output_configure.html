@@ -58,6 +58,29 @@
                             </select>
                         </div>
 
+                        <!-- Популярные шаблоны -->
+                        <div class="form-group" style="padding: 1rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #10b981;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+                                <div>
+                                    <strong style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <i data-lucide="star"></i> Популярные шаблоны
+                                    </strong>
+                                    <small style="color: #6c757d;">
+                                        Выберите готовый шаблон для популярных систем
+                                    </small>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <select id="popularTemplates" class="form-control" style="min-width: 200px;">
+                                        <option value="">Выберите шаблон...</option>
+                                        <!-- Опции будут загружены через JavaScript -->
+                                    </select>
+                                    <button type="button" id="loadTemplateBtn" class="btn btn-success btn-sm" onclick="loadPopularTemplate()" disabled>
+                                        <i data-lucide="download"></i> Загрузить
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="form-group">
                             <label for="output_template">Шаблон вывода</label>
                             <textarea id="output_template" name="output_template" class="form-control" rows="15" 
@@ -127,6 +150,7 @@
     {{ template "partials/ai_chat.html" . }}
 
     <script src="/static/js/ai-assistant.js"></script>
+    <script src="/static/js/popular-templates.js"></script>
     <script>
         // Инициализируем AI ассистент для настройки маппинга выхода
         document.addEventListener('DOMContentLoaded', function() {

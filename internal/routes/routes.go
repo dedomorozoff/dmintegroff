@@ -36,6 +36,9 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 
 	// Serve static files
 	r.Static("/static", "./static")
+	
+	// Serve integration templates
+	r.Static("/integration-templates", "./integration-templates")
 
 	r.LoadHTMLGlob("templates/*/*")
 

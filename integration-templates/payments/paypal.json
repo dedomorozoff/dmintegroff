@@ -1,0 +1,26 @@
+{
+  "name": "PayPal",
+  "description": "Создание платежа в PayPal",
+  "type": "json",
+  "category": "payments",
+  "template": {
+    "intent": "CAPTURE",
+    "purchase_units": [{
+      "amount": {
+        "currency_code": "RUB",
+        "value": "{{payment.amount}}"
+      },
+      "description": "{{payment.description}}",
+      "payee": {
+        "email_address": "merchant@example.com"
+      }
+    }],
+    "payer": {
+      "name": {
+        "given_name": "{{user.first_name}}",
+        "surname": "{{user.last_name}}"
+      },
+      "email_address": "{{user.email}}"
+    }
+  }
+}

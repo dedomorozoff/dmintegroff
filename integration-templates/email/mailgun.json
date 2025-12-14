@@ -1,0 +1,7 @@
+{
+  "name": "Mailgun",
+  "description": "Отправка email через Mailgun (form-data)",
+  "type": "text",
+  "category": "email",
+  "template": "to={{user.email}}&subject=Новое уведомление&text=Здравствуйте, {{user.name}}!\n\nВаше сообщение получено: {{message.text}}\n\nС уважением,\nКоманда поддержки"
+}

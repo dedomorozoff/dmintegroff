@@ -1,0 +1,19 @@
+{
+  "name": "Яндекс.Метрика",
+  "description": "Отправка цели в Яндекс.Метрику",
+  "type": "json",
+  "category": "analytics",
+  "template": {
+    "client_id": "{{user.id}}",
+    "events": [{
+      "name": "{{event.type}}",
+      "timestamp": "{{timestamp}}",
+      "params": {
+        "user_email": "{{user.email}}",
+        "user_name": "{{user.name}}",
+        "source": "webhook",
+        "value": "{{event.value}}"
+      }
+    }]
+  }
+}

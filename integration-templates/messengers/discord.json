@@ -1,0 +1,30 @@
+{
+  "name": "Discord",
+  "description": "Отправка сообщения в Discord через Webhook",
+  "type": "json",
+  "category": "messengers",
+  "template": {
+    "content": "🔔 **Новое уведомление**",
+    "embeds": [{
+      "title": "Webhook Event",
+      "color": 3447003,
+      "fields": [{
+        "name": "👤 Пользователь",
+        "value": "{{user.name}}",
+        "inline": true
+      }, {
+        "name": "📧 Email",
+        "value": "{{user.email}}",
+        "inline": true
+      }, {
+        "name": "📝 Сообщение",
+        "value": "{{message.text}}",
+        "inline": false
+      }],
+      "timestamp": "{{timestamp}}",
+      "footer": {
+        "text": "Webhook Integration"
+      }
+    }]
+  }
+}

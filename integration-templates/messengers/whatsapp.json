@@ -1,0 +1,14 @@
+{
+  "name": "WhatsApp Business",
+  "description": "Отправка сообщения через WhatsApp Business API",
+  "type": "json",
+  "category": "messengers",
+  "template": {
+    "messaging_product": "whatsapp",
+    "to": "{{user.phone}}",
+    "type": "text",
+    "text": {
+      "body": "Здравствуйте, {{user.name}}!\n\nВаше сообщение получено: {{message.text}}\n\nСпасибо за обращение!"
+    }
+  }
+}

@@ -253,7 +253,7 @@
             <!-- Секция для кастомного шаблона -->
             <div id="templateSection" style="display: none;">
                 <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-                    <h3 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;"><i data-lucide="file-text"></i> К
+                    <h3 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;"><i data-lucide="file-text"></i> Формат шаблона
                     <select name="template_type" id="templateType" onchange="updateTemplateEditor()" 
                             style="padding: 0.5rem; border-radius: 6px; background: #1a1f2e; color: #abb2bf; border: 1px solid #4a5568;">
                         <option value="json" {{ if or (not .integration.TemplateType) (eq .integration.TemplateType "json") }}selected{{ end }}>JSON</option>
@@ -266,6 +266,30 @@
                     Создайте свой шаблон в выбранном формате. Используйте <code style="color: #61afef;">{{`{{field.path}}`}}</code> для
                     подстановки значений из источника.
                 </p>
+
+                <!-- Популярные шаблоны -->
+                <div style="margin-bottom: 1rem; padding: 1rem; background: #2d3748; border-radius: 8px; border-left: 4px solid #10b981;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+                        <div>
+                            <strong style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i data-lucide="star"></i> Популярные шаблоны
+                            </strong>
+                            <p style="margin: 0.5rem 0 0 0; color: var(--text-secondary); font-size: 0.9em;">
+                                Выберите готовый шаблон для популярных систем
+                            </p>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <select id="popularTemplates" style="padding: 0.5rem; border-radius: 6px; background: #1a1f2e; color: #abb2bf; border: 1px solid #4a5568; min-width: 200px;">
+                                <option value="">Выберите шаблон...</option>
+                                <!-- Опции будут загружены через JavaScript -->
+                            </select>
+                            <button type="button" id="loadTemplateBtn" class="btn btn-sm btn-success" onclick="loadPopularTemplate()" disabled>
+                                <i data-lucide="download"></i>
+                                <span class="hide-on-mobile">Загрузить</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Примеры доступных полей -->
                 {{ if .fields }}
@@ -534,6 +558,7 @@
 
 <script src="/static/js/common.js"></script>
 <script src="/static/js/json-highlight.js"></script>
+<script src="/static/js/popular-templates.js"></script>
 <script>
     // Определяем функции в глобальной области видимости сразу
     function copyWebhookUrl() {

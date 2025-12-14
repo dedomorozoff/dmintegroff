@@ -1,0 +1,17 @@
+{
+  "name": "HubSpot",
+  "description": "Создание контакта в HubSpot",
+  "type": "json",
+  "category": "crm",
+  "template": {
+    "properties": {
+      "email": "{{user.email}}",
+      "firstname": "{{user.first_name}}",
+      "lastname": "{{user.last_name}}",
+      "phone": "{{user.phone}}",
+      "company": "{{company.name}}",
+      "website": "{{company.website}}",
+      "lifecyclestage": "lead"
+    }
+  }
+}
