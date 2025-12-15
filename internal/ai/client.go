@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	"dmintegroff/internal/logger"
 )
 
 // Client клиент для работы с AI (OpenAI API)
@@ -91,6 +92,8 @@ func (c *Client) Chat(ctx context.Context, messages []ChatMessage, jsonMode bool
 
 // chatOpenRouter отправляет запрос в OpenRouter API
 func (c *Client) chatOpenRouter(ctx context.Context, messages []ChatMessage, jsonMode bool) (string, error) {
+	startTime := time.Now()
+	
 	// Конвертируем сообщения в формат OpenAI (OpenRouter использует тот же формат)
 	openAIMessages := make([]openAIMessage, len(messages))
 	for i, msg := range messages {
@@ -119,10 +122,35 @@ func (c *Client) chatOpenRouter(ctx context.Context, messages []ChatMessage, jso
 		return "", fmt.Errorf("failed to marshal request: %w", err)
 	}
 
+	// Логируем запрос к AI
+	logger.Log.WithFields(map[string]interface{}{
+		"action":       "ai_request",
+		"provider":     "openrouter",
+		"model":        c.Config.OpenRouterModel,
+		"json_mode":    jsonMode,
+		"max_tokens":   c.Config.MaxTokens,
+		"temperature":  c.Config.Temperature,
+		"message_count": len(messages),
+		"request_size": len(requestBody),
+		"request_preview": func() string {
+			// Логируем только первые 500 символов запроса для безопасности
+			if len(requestBody) > 500 {
+				return string(requestBody[:500]) + "..."
+			}
+			return string(requestBody)
+		}(),
+	}).Info("AI Client: Sending request to OpenRouter")
+
 	// Создаем HTTP запрос
 	apiURL := c.Config.OpenRouterURL + "/chat/completions"
 	req, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewBuffer(requestBody))
 	if err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_request",
+			"provider": "openrouter",
+			"error": "http_request_creation_failed",
+			"details": err.Error(),
+		}).Error("AI Client: Failed to create HTTP request")
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 
@@ -135,6 +163,13 @@ func (c *Client) chatOpenRouter(ctx context.Context, messages []ChatMessage, jso
 	// Отправляем запрос
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_request",
+			"provider": "openrouter",
+			"error": "http_request_failed",
+			"details": err.Error(),
+			"duration": time.Since(startTime).String(),
+		}).Error("AI Client: HTTP request failed")
 		return "", fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
@@ -142,30 +177,96 @@ func (c *Client) chatOpenRouter(ctx context.Context, messages []ChatMessage, jso
 	// Читаем ответ
 	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_request",
+			"provider": "openrouter",
+			"error": "response_read_failed",
+			"details": err.Error(),
+			"status_code": resp.StatusCode,
+			"duration": time.Since(startTime).String(),
+		}).Error("AI Client: Failed to read response")
 		return "", fmt.Errorf("failed to read response: %w", err)
 	}
 
 	// Парсим ответ
 	var openAIResp openAIResponse
 	if err := json.Unmarshal(responseBody, &openAIResp); err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_request",
+			"provider": "openrouter",
+			"error": "response_parse_failed",
+			"details": err.Error(),
+			"status_code": resp.StatusCode,
+			"response_size": len(responseBody),
+			"response_preview": func() string {
+				if len(responseBody) > 500 {
+					return string(responseBody[:500]) + "..."
+				}
+				return string(responseBody)
+			}(),
+			"duration": time.Since(startTime).String(),
+		}).Error("AI Client: Failed to parse response")
 		return "", fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
 	// Проверяем на ошибки
 	if openAIResp.Error != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_request",
+			"provider": "openrouter",
+			"error": "api_error",
+			"api_error_type": openAIResp.Error.Type,
+			"api_error_message": openAIResp.Error.Message,
+			"api_error_code": openAIResp.Error.Code,
+			"status_code": resp.StatusCode,
+			"duration": time.Since(startTime).String(),
+		}).Error("AI Client: OpenRouter API returned error")
 		return "", fmt.Errorf("OpenRouter API error: %s", openAIResp.Error.Message)
 	}
 
 	// Проверяем наличие ответа
 	if len(openAIResp.Choices) == 0 {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_request",
+			"provider": "openrouter",
+			"error": "no_choices",
+			"status_code": resp.StatusCode,
+			"duration": time.Since(startTime).String(),
+		}).Error("AI Client: No response choices from OpenRouter")
 		return "", fmt.Errorf("no response from OpenRouter")
 	}
 
-	return openAIResp.Choices[0].Message.Content, nil
+	responseContent := openAIResp.Choices[0].Message.Content
+
+	// Логируем успешный ответ
+	logger.Log.WithFields(map[string]interface{}{
+		"action": "ai_response",
+		"provider": "openrouter",
+		"model": c.Config.OpenRouterModel,
+		"status_code": resp.StatusCode,
+		"response_length": len(responseContent),
+		"response_preview": func() string {
+			if len(responseContent) > 300 {
+				return responseContent[:300] + "..."
+			}
+			return responseContent
+		}(),
+		"usage": map[string]interface{}{
+			"prompt_tokens": openAIResp.Usage.PromptTokens,
+			"completion_tokens": openAIResp.Usage.CompletionTokens,
+			"total_tokens": openAIResp.Usage.TotalTokens,
+		},
+		"finish_reason": openAIResp.Choices[0].FinishReason,
+		"duration": time.Since(startTime).String(),
+	}).Info("AI Client: Received successful response from OpenRouter")
+
+	return responseContent, nil
 }
 
 // chatOpenAI отправляет запрос в OpenAI API (fallback)
 func (c *Client) chatOpenAI(ctx context.Context, messages []ChatMessage, jsonMode bool) (string, error) {
+	startTime := time.Now()
+	
 	// Конвертируем сообщения в формат OpenAI
 	openAIMessages := make([]openAIMessage, len(messages))
 	for i, msg := range messages {
@@ -194,9 +295,34 @@ func (c *Client) chatOpenAI(ctx context.Context, messages []ChatMessage, jsonMod
 		return "", fmt.Errorf("failed to marshal request: %w", err)
 	}
 
+	// Логируем запрос к AI
+	logger.Log.WithFields(map[string]interface{}{
+		"action":       "ai_request",
+		"provider":     "openai",
+		"model":        c.Config.OpenAIModel,
+		"json_mode":    jsonMode,
+		"max_tokens":   c.Config.MaxTokens,
+		"temperature":  c.Config.Temperature,
+		"message_count": len(messages),
+		"request_size": len(requestBody),
+		"request_preview": func() string {
+			// Логируем только первые 500 символов запроса для безопасности
+			if len(requestBody) > 500 {
+				return string(requestBody[:500]) + "..."
+			}
+			return string(requestBody)
+		}(),
+	}).Info("AI Client: Sending request to OpenAI")
+
 	// Создаем HTTP запрос
 	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.openai.com/v1/chat/completions", bytes.NewBuffer(requestBody))
 	if err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_request",
+			"provider": "openai",
+			"error": "http_request_creation_failed",
+			"details": err.Error(),
+		}).Error("AI Client: Failed to create HTTP request")
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 
@@ -207,6 +333,13 @@ func (c *Client) chatOpenAI(ctx context.Context, messages []ChatMessage, jsonMod
 	// Отправляем запрос
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_request",
+			"provider": "openai",
+			"error": "http_request_failed",
+			"details": err.Error(),
+			"duration": time.Since(startTime).String(),
+		}).Error("AI Client: HTTP request failed")
 		return "", fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
@@ -214,26 +347,90 @@ func (c *Client) chatOpenAI(ctx context.Context, messages []ChatMessage, jsonMod
 	// Читаем ответ
 	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_request",
+			"provider": "openai",
+			"error": "response_read_failed",
+			"details": err.Error(),
+			"status_code": resp.StatusCode,
+			"duration": time.Since(startTime).String(),
+		}).Error("AI Client: Failed to read response")
 		return "", fmt.Errorf("failed to read response: %w", err)
 	}
 
 	// Парсим ответ
 	var openAIResp openAIResponse
 	if err := json.Unmarshal(responseBody, &openAIResp); err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_request",
+			"provider": "openai",
+			"error": "response_parse_failed",
+			"details": err.Error(),
+			"status_code": resp.StatusCode,
+			"response_size": len(responseBody),
+			"response_preview": func() string {
+				if len(responseBody) > 500 {
+					return string(responseBody[:500]) + "..."
+				}
+				return string(responseBody)
+			}(),
+			"duration": time.Since(startTime).String(),
+		}).Error("AI Client: Failed to parse response")
 		return "", fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
 	// Проверяем на ошибки
 	if openAIResp.Error != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_request",
+			"provider": "openai",
+			"error": "api_error",
+			"api_error_type": openAIResp.Error.Type,
+			"api_error_message": openAIResp.Error.Message,
+			"api_error_code": openAIResp.Error.Code,
+			"status_code": resp.StatusCode,
+			"duration": time.Since(startTime).String(),
+		}).Error("AI Client: OpenAI API returned error")
 		return "", fmt.Errorf("OpenAI API error: %s", openAIResp.Error.Message)
 	}
 
 	// Проверяем наличие ответа
 	if len(openAIResp.Choices) == 0 {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_request",
+			"provider": "openai",
+			"error": "no_choices",
+			"status_code": resp.StatusCode,
+			"duration": time.Since(startTime).String(),
+		}).Error("AI Client: No response choices from OpenAI")
 		return "", fmt.Errorf("no response from OpenAI")
 	}
 
-	return openAIResp.Choices[0].Message.Content, nil
+	responseContent := openAIResp.Choices[0].Message.Content
+
+	// Логируем успешный ответ
+	logger.Log.WithFields(map[string]interface{}{
+		"action": "ai_response",
+		"provider": "openai",
+		"model": c.Config.OpenAIModel,
+		"status_code": resp.StatusCode,
+		"response_length": len(responseContent),
+		"response_preview": func() string {
+			if len(responseContent) > 300 {
+				return responseContent[:300] + "..."
+			}
+			return responseContent
+		}(),
+		"usage": map[string]interface{}{
+			"prompt_tokens": openAIResp.Usage.PromptTokens,
+			"completion_tokens": openAIResp.Usage.CompletionTokens,
+			"total_tokens": openAIResp.Usage.TotalTokens,
+		},
+		"finish_reason": openAIResp.Choices[0].FinishReason,
+		"duration": time.Since(startTime).String(),
+	}).Info("AI Client: Received successful response from OpenAI")
+
+	return responseContent, nil
 }
 
 // chatLocal отправляет запрос в локальную LLM (заглушка для будущего)
@@ -244,6 +441,22 @@ func (c *Client) chatLocal(ctx context.Context, messages []ChatMessage) (string,
 
 // AnalyzeData анализирует структуру данных
 func (c *Client) AnalyzeData(ctx context.Context, data map[string]interface{}, format string) (*DataAnalysisResponse, error) {
+	startTime := time.Now()
+	
+	// Логируем начало анализа данных
+	logger.Log.WithFields(map[string]interface{}{
+		"action": "ai_analyze_data_start",
+		"format": format,
+		"data_fields": len(data),
+		"data_preview": func() string {
+			dataJSON, _ := json.Marshal(data)
+			if len(dataJSON) > 200 {
+				return string(dataJSON[:200]) + "..."
+			}
+			return string(dataJSON)
+		}(),
+	}).Info("AI Client: Starting data analysis")
+	
 	// Создаем промпт для анализа данных
 	prompt := c.createDataAnalysisPrompt(data, format)
 	
@@ -252,23 +465,88 @@ func (c *Client) AnalyzeData(ctx context.Context, data map[string]interface{}, f
 		{Role: "user", Content: prompt},
 	}
 
+	// Логируем промпт
+	logger.Log.WithFields(map[string]interface{}{
+		"action": "ai_analyze_data_prompt",
+		"prompt_length": len(prompt),
+		"prompt_preview": func() string {
+			if len(prompt) > 300 {
+				return prompt[:300] + "..."
+			}
+			return prompt
+		}(),
+	}).Info("AI Client: Generated analysis prompt")
+
 	// Отправляем запрос с JSON режимом
 	response, err := c.Chat(ctx, messages, true)
 	if err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_analyze_data",
+			"error": "chat_request_failed",
+			"details": err.Error(),
+			"duration": time.Since(startTime).String(),
+		}).Error("AI Client: Data analysis chat request failed")
 		return nil, fmt.Errorf("failed to analyze data: %w", err)
 	}
+
+	// Логируем полученный ответ
+	logger.Log.WithFields(map[string]interface{}{
+		"action": "ai_analyze_data_response",
+		"response_length": len(response),
+		"response_preview": func() string {
+			if len(response) > 300 {
+				return response[:300] + "..."
+			}
+			return response
+		}(),
+	}).Info("AI Client: Received analysis response")
 
 	// Парсим JSON ответ
 	var analysis DataAnalysisResponse
 	if err := json.Unmarshal([]byte(response), &analysis); err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_analyze_data",
+			"error": "json_parse_failed",
+			"details": err.Error(),
+			"response": response,
+			"duration": time.Since(startTime).String(),
+		}).Error("AI Client: Failed to parse analysis response")
 		return nil, fmt.Errorf("failed to parse analysis response: %w", err)
 	}
+
+	// Логируем успешный результат
+	logger.Log.WithFields(map[string]interface{}{
+		"action": "ai_analyze_data_success",
+		"data_type": analysis.DataType,
+		"confidence": analysis.Confidence,
+		"fields_count": len(analysis.Fields),
+		"suggestions_count": len(analysis.Suggestions),
+		"duration": time.Since(startTime).String(),
+	}).Info("AI Client: Data analysis completed successfully")
 
 	return &analysis, nil
 }
 
 // GenerateMapping генерирует маппинг для интеграции
 func (c *Client) GenerateMapping(ctx context.Context, req *MappingGenerationRequest) (*GeneratedMapping, error) {
+	startTime := time.Now()
+	
+	// Логируем начало генерации маппинга
+	logger.Log.WithFields(map[string]interface{}{
+		"action": "ai_generate_mapping_start",
+		"target_api": req.TargetAPI,
+		"task": req.Task,
+		"user_prompt": req.UserPrompt,
+		"source_data_fields": len(req.SourceData),
+		"source_data_preview": func() string {
+			dataJSON, _ := json.Marshal(req.SourceData)
+			if len(dataJSON) > 200 {
+				return string(dataJSON[:200]) + "..."
+			}
+			return string(dataJSON)
+		}(),
+	}).Info("AI Client: Starting mapping generation")
+	
 	// Создаем промпт для генерации маппинга
 	prompt := c.createMappingPrompt(req)
 	
@@ -277,17 +555,71 @@ func (c *Client) GenerateMapping(ctx context.Context, req *MappingGenerationRequ
 		{Role: "user", Content: prompt},
 	}
 
+	// Логируем промпт
+	logger.Log.WithFields(map[string]interface{}{
+		"action": "ai_generate_mapping_prompt",
+		"prompt_length": len(prompt),
+		"prompt_preview": func() string {
+			if len(prompt) > 300 {
+				return prompt[:300] + "..."
+			}
+			return prompt
+		}(),
+	}).Info("AI Client: Generated mapping prompt")
+
 	// Отправляем запрос с JSON режимом
 	response, err := c.Chat(ctx, messages, true)
 	if err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_generate_mapping",
+			"error": "chat_request_failed",
+			"details": err.Error(),
+			"duration": time.Since(startTime).String(),
+		}).Error("AI Client: Mapping generation chat request failed")
 		return nil, fmt.Errorf("failed to generate mapping: %w", err)
 	}
+
+	// Логируем полученный ответ
+	logger.Log.WithFields(map[string]interface{}{
+		"action": "ai_generate_mapping_response",
+		"response_length": len(response),
+		"response_preview": func() string {
+			if len(response) > 300 {
+				return response[:300] + "..."
+			}
+			return response
+		}(),
+	}).Info("AI Client: Received mapping response")
 
 	// Парсим JSON ответ
 	var mapping GeneratedMapping
 	if err := json.Unmarshal([]byte(response), &mapping); err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_generate_mapping",
+			"error": "json_parse_failed",
+			"details": err.Error(),
+			"response": response,
+			"duration": time.Since(startTime).String(),
+		}).Error("AI Client: Failed to parse mapping response")
 		return nil, fmt.Errorf("failed to parse mapping response: %w", err)
 	}
+
+	// Логируем успешный результат
+	logger.Log.WithFields(map[string]interface{}{
+		"action": "ai_generate_mapping_success",
+		"mapping_type": mapping.Type,
+		"target_url": mapping.TargetURL,
+		"method": mapping.Method,
+		"auth_type": mapping.AuthType,
+		"template_length": len(mapping.Template),
+		"template_preview": func() string {
+			if len(mapping.Template) > 150 {
+				return mapping.Template[:150] + "..."
+			}
+			return mapping.Template
+		}(),
+		"duration": time.Since(startTime).String(),
+	}).Info("AI Client: Mapping generation completed successfully")
 
 	return &mapping, nil
 }

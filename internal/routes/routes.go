@@ -74,6 +74,7 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 		authorized.GET("/integrations", controllers.IntegrationList)
 		authorized.GET("/api/integrations", controllers.IntegrationsListAPI)
 		authorized.GET("/integrations/create", controllers.IntegrationCreate)
+		authorized.GET("/integrations/create-with-ai", controllers.IntegrationCreateWithAI)
 		authorized.POST("/integrations", controllers.IntegrationStore)
 		authorized.GET("/integrations/:id/edit", controllers.IntegrationEdit)
 		authorized.POST("/integrations/:id/update", controllers.IntegrationUpdate)
@@ -91,6 +92,7 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 		authorized.GET("/api/integrations/:id/check", controllers.IntegrationCheckUpdate)
 		authorized.POST("/api/integrations/:id/test-mapping", controllers.IntegrationTestMapping)
 		authorized.POST("/api/integrations/:id/test-oauth", controllers.IntegrationTestOAuth)
+		authorized.POST("/api/integrations/:id/ai/generate-mapping", controllers.IntegrationAIGenerateMapping)
 		
 		// Integration Outputs (Multiple Mappings)
 		authorized.GET("/integrations/:id/outputs", controllers.IntegrationOutputsList)
@@ -112,6 +114,7 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 
 		// Projects
 		authorized.GET("/projects", controllers.ProjectList)
+		authorized.GET("/api/projects", controllers.ProjectsAPI)
 		authorized.GET("/projects/create", controllers.ProjectCreate)
 		authorized.POST("/projects", controllers.ProjectStore)
 		authorized.GET("/projects/:id", controllers.ProjectView)
@@ -173,6 +176,7 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 		authorized.POST("/api/ai/analyze-data", controllers.AIAnalyzeData)
 		authorized.POST("/api/ai/generate-mapping", controllers.AIGenerateMapping)
 		authorized.POST("/api/ai/apply-mapping/:id", controllers.AIApplyMapping)
+		authorized.POST("/api/ai/create-integration", controllers.AICreateIntegration)
 		authorized.GET("/api/ai/status", controllers.AIGetStatus)
 		authorized.GET("/api/ai/suggestions", controllers.AIGetQuickSuggestions)
 		authorized.GET("/api/ai/models", controllers.AIGetModels)

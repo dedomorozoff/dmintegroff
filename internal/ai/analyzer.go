@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"dmintegroff/internal/logger"
 )
 
 // Analyzer анализатор данных для AI
@@ -21,19 +22,73 @@ func NewAnalyzer(client *Client) *Analyzer {
 
 // AnalyzeDataStructure анализирует структуру данных
 func (a *Analyzer) AnalyzeDataStructure(ctx context.Context, data map[string]interface{}, format string) (*DataAnalysisResponse, error) {
+	startTime := time.Now()
+	
+	// Логируем начало анализа
+	logger.Log.WithFields(map[string]interface{}{
+		"action": "analyzer_start",
+		"format": format,
+		"data_fields": len(data),
+		"ai_configured": a.client.IsConfigured(),
+	}).Info("AI Analyzer: Starting data structure analysis")
+	
 	// Сначала делаем локальный анализ
 	localAnalysis := a.analyzeLocally(data)
 	
+	logger.Log.WithFields(map[string]interface{}{
+		"action": "analyzer_local_complete",
+		"detected_type": localAnalysis.DataType,
+		"fields_count": len(localAnalysis.Fields),
+		"confidence": localAnalysis.Confidence,
+		"suggestions_count": len(localAnalysis.Suggestions),
+	}).Info("AI Analyzer: Local analysis completed")
+	
 	// Если AI настроен, дополняем анализом от AI
 	if a.client.IsConfigured() {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "analyzer_ai_start",
+		}).Info("AI Analyzer: Starting AI analysis")
+		
 		aiAnalysis, err := a.client.AnalyzeData(ctx, data, format)
 		if err == nil {
 			// Объединяем результаты
-			return a.mergeAnalysis(localAnalysis, aiAnalysis), nil
+			mergedAnalysis := a.mergeAnalysis(localAnalysis, aiAnalysis)
+			
+			logger.Log.WithFields(map[string]interface{}{
+				"action": "analyzer_success",
+				"analysis_type": "ai_enhanced",
+				"final_type": mergedAnalysis.DataType,
+				"final_confidence": mergedAnalysis.Confidence,
+				"fields_count": len(mergedAnalysis.Fields),
+				"suggestions_count": len(mergedAnalysis.Suggestions),
+				"duration": time.Since(startTime).String(),
+			}).Info("AI Analyzer: Analysis completed with AI enhancement")
+			
+			return mergedAnalysis, nil
 		}
+		
 		// Если AI недоступен, используем только локальный анализ
-		fmt.Printf("AI analysis failed, using local analysis: %v\n", err)
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "analyzer_ai_fallback",
+			"error": err.Error(),
+			"fallback_to": "local_only",
+		}).Warn("AI Analyzer: AI analysis failed, using local analysis only")
+	} else {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "analyzer_local_only",
+			"reason": "ai_not_configured",
+		}).Info("AI Analyzer: Using local analysis only (AI not configured)")
 	}
+	
+	logger.Log.WithFields(map[string]interface{}{
+		"action": "analyzer_success",
+		"analysis_type": "local_only",
+		"final_type": localAnalysis.DataType,
+		"final_confidence": localAnalysis.Confidence,
+		"fields_count": len(localAnalysis.Fields),
+		"suggestions_count": len(localAnalysis.Suggestions),
+		"duration": time.Since(startTime).String(),
+	}).Info("AI Analyzer: Analysis completed with local analysis only")
 	
 	return localAnalysis, nil
 }

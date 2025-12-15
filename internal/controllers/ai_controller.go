@@ -2,16 +2,20 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"dmintegroff/internal/ai"
 	"dmintegroff/internal/database"
+	"dmintegroff/internal/logger"
 	"dmintegroff/internal/models"
+	"dmintegroff/internal/utils"
 )
 
 // AIController контроллер для AI функций
@@ -33,8 +37,24 @@ func NewAIController(config *ai.AIConfig) *AIController {
 
 // Chat обрабатывает запросы к AI чату
 func (c *AIController) Chat(ctx *gin.Context) {
+	startTime := time.Now()
+	
+	// Получаем информацию о пользователе из сессии
+	session := sessions.Default(ctx)
+	userID := session.Get("user_id")
+	username := session.Get("username")
+	
 	var req ai.ChatRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_chat",
+			"user_id": userID,
+			"username": username,
+			"error": "invalid_request_format",
+			"details": err.Error(),
+			"ip": ctx.ClientIP(),
+		}).Error("AI Chat: Invalid request format")
+		
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error": "Неверный формат запроса",
 			"details": err.Error(),
@@ -42,9 +62,40 @@ func (c *AIController) Chat(ctx *gin.Context) {
 		return
 	}
 
+	// Логируем запрос пользователя к AI чату
+	logger.Log.WithFields(map[string]interface{}{
+		"action": "ai_chat_request",
+		"user_id": userID,
+		"username": username,
+		"message": req.Message,
+		"target_api": req.TargetAPI,
+		"has_sample_data": len(req.SampleData) > 0,
+		"sample_data_size": len(req.SampleData),
+		"has_context": len(req.Context) > 0,
+		"context_keys": func() []string {
+			keys := make([]string, 0, len(req.Context))
+			for k := range req.Context {
+				keys = append(keys, k)
+			}
+			return keys
+		}(),
+		"history_length": len(req.History),
+		"ip": ctx.ClientIP(),
+	}).Info("AI Chat: User chat request received")
+
 	// Проверяем, настроен ли AI
 	if !c.client.IsConfigured() {
 		provider := c.client.GetCurrentProvider()
+		
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_chat",
+			"user_id": userID,
+			"username": username,
+			"error": "ai_not_configured",
+			"provider": provider,
+			"ip": ctx.ClientIP(),
+		}).Error("AI Chat: AI not configured")
+		
 		if provider == "Disabled (AI_ENABLED=false)" {
 			ctx.JSON(http.StatusServiceUnavailable, gin.H{
 				"error": "AI отключен",
@@ -94,9 +145,33 @@ func (c *AIController) Chat(ctx *gin.Context) {
 		Content: userPrompt,
 	})
 
+	// Логируем построенный промпт
+	logger.Log.WithFields(map[string]interface{}{
+		"action": "ai_chat_prompt",
+		"user_id": userID,
+		"username": username,
+		"prompt_length": len(userPrompt),
+		"prompt_preview": func() string {
+			if len(userPrompt) > 300 {
+				return userPrompt[:300] + "..."
+			}
+			return userPrompt
+		}(),
+		"messages_count": len(messages),
+	}).Info("AI Chat: Generated prompt for AI")
+
 	// Отправляем запрос к AI
 	response, err := c.client.Chat(requestCtx, messages, false)
 	if err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_chat",
+			"user_id": userID,
+			"username": username,
+			"error": "ai_request_failed",
+			"details": err.Error(),
+			"duration": time.Since(startTime).String(),
+		}).Error("AI Chat: AI request failed")
+		
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Ошибка AI",
 			"details": err.Error(),
@@ -104,8 +179,32 @@ func (c *AIController) Chat(ctx *gin.Context) {
 		return
 	}
 
+	// Логируем ответ от AI
+	logger.Log.WithFields(map[string]interface{}{
+		"action": "ai_chat_response",
+		"user_id": userID,
+		"username": username,
+		"response_length": len(response),
+		"response_preview": func() string {
+			if len(response) > 300 {
+				return response[:300] + "..."
+			}
+			return response
+		}(),
+		"duration": time.Since(startTime).String(),
+	}).Info("AI Chat: Received response from AI")
+
 	// Анализируем ответ и создаем предложения
 	suggestions := c.createSuggestions(req.Message, req.SampleData, req.TargetAPI)
+	
+	// Логируем финальный результат
+	logger.Log.WithFields(map[string]interface{}{
+		"action": "ai_chat_success",
+		"user_id": userID,
+		"username": username,
+		"suggestions_count": len(suggestions),
+		"total_duration": time.Since(startTime).String(),
+	}).Info("AI Chat: Chat request completed successfully")
 	
 	// Возвращаем ответ
 	ctx.JSON(http.StatusOK, ai.ChatResponse{
@@ -118,14 +217,47 @@ func (c *AIController) Chat(ctx *gin.Context) {
 
 // AnalyzeData анализирует структуру данных
 func (c *AIController) AnalyzeData(ctx *gin.Context) {
+	startTime := time.Now()
+	
+	// Получаем информацию о пользователе из сессии
+	session := sessions.Default(ctx)
+	userID := session.Get("user_id")
+	username := session.Get("username")
+	
 	var req ai.DataAnalysisRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_analyze_data",
+			"user_id": userID,
+			"username": username,
+			"error": "invalid_request_format",
+			"details": err.Error(),
+			"ip": ctx.ClientIP(),
+		}).Error("AI Analyze Data: Invalid request format")
+		
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error": "Неверный формат запроса",
 			"details": err.Error(),
 		})
 		return
 	}
+
+	// Логируем запрос на анализ данных
+	logger.Log.WithFields(map[string]interface{}{
+		"action": "ai_analyze_data_request",
+		"user_id": userID,
+		"username": username,
+		"format": req.Format,
+		"data_fields": len(req.Data),
+		"data_preview": func() string {
+			dataJSON, _ := json.Marshal(req.Data)
+			if len(dataJSON) > 200 {
+				return string(dataJSON[:200]) + "..."
+			}
+			return string(dataJSON)
+		}(),
+		"ip": ctx.ClientIP(),
+	}).Info("AI Analyze Data: Data analysis request received")
 
 	// Создаем контекст с таймаутом
 	requestCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -134,6 +266,15 @@ func (c *AIController) AnalyzeData(ctx *gin.Context) {
 	// Анализируем данные
 	analysis, err := c.analyzer.AnalyzeDataStructure(requestCtx, req.Data, req.Format)
 	if err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_analyze_data",
+			"user_id": userID,
+			"username": username,
+			"error": "analysis_failed",
+			"details": err.Error(),
+			"duration": time.Since(startTime).String(),
+		}).Error("AI Analyze Data: Analysis failed")
+		
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Ошибка анализа данных",
 			"details": err.Error(),
@@ -141,19 +282,66 @@ func (c *AIController) AnalyzeData(ctx *gin.Context) {
 		return
 	}
 
+	// Логируем успешный результат анализа
+	logger.Log.WithFields(map[string]interface{}{
+		"action": "ai_analyze_data_success",
+		"user_id": userID,
+		"username": username,
+		"data_type": analysis.DataType,
+		"confidence": analysis.Confidence,
+		"fields_count": len(analysis.Fields),
+		"suggestions_count": len(analysis.Suggestions),
+		"duration": time.Since(startTime).String(),
+	}).Info("AI Analyze Data: Analysis completed successfully")
+
 	ctx.JSON(http.StatusOK, analysis)
 }
 
 // GenerateMapping генерирует маппинг для интеграции
 func (c *AIController) GenerateMapping(ctx *gin.Context) {
+	startTime := time.Now()
+	
+	// Получаем информацию о пользователе из сессии
+	session := sessions.Default(ctx)
+	userID := session.Get("user_id")
+	username := session.Get("username")
+	
 	var req ai.MappingGenerationRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_generate_mapping",
+			"user_id": userID,
+			"username": username,
+			"error": "invalid_request_format",
+			"details": err.Error(),
+			"ip": ctx.ClientIP(),
+		}).Error("AI Generate Mapping: Invalid request format")
+		
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error": "Неверный формат запроса",
 			"details": err.Error(),
 		})
 		return
 	}
+
+	// Логируем запрос на генерацию маппинга
+	logger.Log.WithFields(map[string]interface{}{
+		"action": "ai_generate_mapping_request",
+		"user_id": userID,
+		"username": username,
+		"target_api": req.TargetAPI,
+		"task": req.Task,
+		"user_prompt": req.UserPrompt,
+		"source_data_fields": len(req.SourceData),
+		"source_data_preview": func() string {
+			dataJSON, _ := json.Marshal(req.SourceData)
+			if len(dataJSON) > 200 {
+				return string(dataJSON[:200]) + "..."
+			}
+			return string(dataJSON)
+		}(),
+		"ip": ctx.ClientIP(),
+	}).Info("AI Generate Mapping: Mapping generation request received")
 
 	// Создаем контекст с таймаутом
 	requestCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -162,12 +350,40 @@ func (c *AIController) GenerateMapping(ctx *gin.Context) {
 	// Генерируем маппинг
 	mapping, err := c.generator.GenerateMapping(requestCtx, &req)
 	if err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_generate_mapping",
+			"user_id": userID,
+			"username": username,
+			"error": "generation_failed",
+			"details": err.Error(),
+			"duration": time.Since(startTime).String(),
+		}).Error("AI Generate Mapping: Generation failed")
+		
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Ошибка генерации маппинга",
 			"details": err.Error(),
 		})
 		return
 	}
+
+	// Логируем успешный результат генерации
+	logger.Log.WithFields(map[string]interface{}{
+		"action": "ai_generate_mapping_success",
+		"user_id": userID,
+		"username": username,
+		"mapping_type": mapping.Type,
+		"target_url": mapping.TargetURL,
+		"method": mapping.Method,
+		"auth_type": mapping.AuthType,
+		"template_length": len(mapping.Template),
+		"template_preview": func() string {
+			if len(mapping.Template) > 150 {
+				return mapping.Template[:150] + "..."
+			}
+			return mapping.Template
+		}(),
+		"duration": time.Since(startTime).String(),
+	}).Info("AI Generate Mapping: Mapping generation completed successfully")
 
 	ctx.JSON(http.StatusOK, mapping)
 }
@@ -442,6 +658,241 @@ func (c *AIController) createSuggestions(message string, sampleData map[string]i
 	}
 
 	return suggestions
+}
+
+// CreateIntegration создает интеграцию с помощью AI
+func (c *AIController) CreateIntegration(ctx *gin.Context) {
+	startTime := time.Now()
+	
+	// Получаем пользователя из сессии
+	session := sessions.Default(ctx)
+	userIDInterface := session.Get("user_id")
+	username := session.Get("username")
+	
+	if userIDInterface == nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_create_integration",
+			"error":  "unauthorized_user",
+			"ip":     ctx.ClientIP(),
+		}).Error("AI Integration Creation: Unauthorized user")
+		
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Пользователь не авторизован",
+		})
+		return
+	}
+
+	userID, ok := userIDInterface.(uint)
+	if !ok {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_create_integration",
+			"error":  "invalid_session",
+			"ip":     ctx.ClientIP(),
+		}).Error("AI Integration Creation: Invalid user session")
+		
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Неверная сессия пользователя",
+		})
+		return
+	}
+
+	var req ai.CreateIntegrationRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"action":   "ai_create_integration",
+			"user_id":  userID,
+			"username": username,
+			"error":    "invalid_request_format",
+			"details":  err.Error(),
+			"ip":       ctx.ClientIP(),
+		}).Error("AI Integration Creation: Invalid request format")
+		
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": "Неверный формат запроса",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	// Логируем начало AI операции
+	logger.Log.WithFields(map[string]interface{}{
+		"action":      "ai_create_integration_start",
+		"user_id":     userID,
+		"username":    username,
+		"project_id":  req.ProjectID,
+		"description": req.Description,
+		"has_sample":  req.SampleData != "",
+		"sample_size": len(req.SampleData),
+		"ip":          ctx.ClientIP(),
+	}).Info("AI Integration Creation: Starting AI integration creation")
+
+	// Проверяем, настроен ли AI
+	if !c.client.IsConfigured() {
+		provider := c.client.GetCurrentProvider()
+		
+		logger.Log.WithFields(map[string]interface{}{
+			"action":   "ai_create_integration",
+			"user_id":  userID,
+			"username": username,
+			"error":    "ai_not_configured",
+			"provider": provider,
+			"ip":       ctx.ClientIP(),
+		}).Error("AI Integration Creation: AI not configured")
+		
+		if provider == "Disabled (AI_ENABLED=false)" {
+			ctx.JSON(http.StatusServiceUnavailable, gin.H{
+				"error": "AI отключен",
+				"details": "AI функциональность отключена в настройках сервера (AI_ENABLED=false)",
+			})
+		} else {
+			ctx.JSON(http.StatusServiceUnavailable, gin.H{
+				"error": "AI не настроен",
+				"details": "Необходимо настроить OPENROUTER_API_KEY или OPENAI_API_KEY в разделе Настройки",
+			})
+		}
+		return
+	}
+
+	// Создаем контекст с таймаутом
+	requestCtx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	logger.Log.WithFields(map[string]interface{}{
+		"action":   "ai_create_integration",
+		"user_id":  userID,
+		"username": username,
+		"provider": c.client.GetCurrentProvider(),
+		"timeout":  "60s",
+	}).Info("AI Integration Creation: Starting AI generation")
+
+	// Генерируем интеграцию с помощью AI
+	integration, err := c.generator.CreateIntegration(requestCtx, &req)
+	if err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"action":   "ai_create_integration",
+			"user_id":  userID,
+			"username": username,
+			"error":    "ai_generation_failed",
+			"details":  err.Error(),
+			"duration": time.Since(startTime).String(),
+		}).Error("AI Integration Creation: AI generation failed")
+		
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Ошибка создания интеграции",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	logger.Log.WithFields(map[string]interface{}{
+		"action":        "ai_create_integration",
+		"user_id":       userID,
+		"username":      username,
+		"generated_name": integration.Name,
+		"target_url":    integration.TargetURL,
+		"method":        integration.Method,
+		"template_type": integration.TemplateType,
+		"auth_type":     integration.AuthType,
+		"duration":      time.Since(startTime).String(),
+	}).Info("AI Integration Creation: AI generation completed successfully")
+
+	// Генерируем уникальный webhook токен
+	webhookToken, err := utils.GenerateToken(16)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Ошибка генерации токена",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	// Создаем модель интеграции для сохранения в БД
+	dbIntegration := models.Integration{
+		Name:           integration.Name,
+		TargetAPI:      integration.TargetURL,
+		HTTPMethod:     integration.Method,
+		OutputTemplate: integration.Template,
+		TemplateType:   integration.TemplateType,
+		ProjectID:      uint(req.ProjectID),
+		Mode:          "inactive", // Создаем в неактивном режиме для настройки
+		SamplePayload: req.SampleData,
+		WebhookToken:  webhookToken,
+		CreatedByID:   userID,
+	}
+
+	// Настраиваем аутентификацию
+	if integration.AuthType != "none" {
+		dbIntegration.AuthType = integration.AuthType
+		if integration.AuthType == "bearer" {
+			if token, ok := integration.AuthConfig["token"].(string); ok {
+				dbIntegration.BearerToken = token
+			}
+		} else if integration.AuthType == "basic" {
+			if username, ok := integration.AuthConfig["username"].(string); ok {
+				dbIntegration.BasicAuthUser = username
+			}
+			if password, ok := integration.AuthConfig["password"].(string); ok {
+				dbIntegration.BasicAuthPass = password
+			}
+		}
+	}
+
+	// Сохраняем интеграцию в БД
+	if err := database.DB.Create(&dbIntegration).Error; err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"action":   "ai_create_integration",
+			"user_id":  userID,
+			"username": username,
+			"error":    "database_save_failed",
+			"details":  err.Error(),
+			"duration": time.Since(startTime).String(),
+		}).Error("AI Integration Creation: Failed to save integration to database")
+		
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Ошибка сохранения интеграции",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	// Логируем успешное завершение
+	logger.Log.WithFields(map[string]interface{}{
+		"action":         "ai_create_integration_success",
+		"user_id":        userID,
+		"username":       username,
+		"integration_id": dbIntegration.ID,
+		"integration_name": dbIntegration.Name,
+		"webhook_token":  dbIntegration.WebhookToken,
+		"target_api":     dbIntegration.TargetAPI,
+		"method":         dbIntegration.HTTPMethod,
+		"template_type":  dbIntegration.TemplateType,
+		"auth_type":      dbIntegration.AuthType,
+		"project_id":     dbIntegration.ProjectID,
+		"total_duration": time.Since(startTime).String(),
+		"template_preview": func() string {
+			if len(integration.Template) > 100 {
+				return integration.Template[:100] + "..."
+			}
+			return integration.Template
+		}(), // Первые 100 символов шаблона
+	}).Info("AI Integration Creation: Integration created successfully")
+
+	// Возвращаем успешный ответ
+	ctx.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"integration": gin.H{
+			"id":           dbIntegration.ID,
+			"name":         dbIntegration.Name,
+			"target_api":   dbIntegration.TargetAPI,
+			"method":       dbIntegration.HTTPMethod,
+			"template":     dbIntegration.OutputTemplate,
+			"template_type": dbIntegration.TemplateType,
+			"mode":         dbIntegration.Mode,
+		},
+		"mapping":      integration.Mapping,
+		"explanation":  integration.Explanation,
+		"next_steps":   integration.NextSteps,
+	})
 }
 
 // generateNextSteps генерирует следующие шаги

@@ -93,6 +93,28 @@ type MappingGenerationRequest struct {
 	UserPrompt string                 `json:"user_prompt"` // промпт пользователя
 }
 
+// CreateIntegrationRequest запрос на создание интеграции с помощью AI
+type CreateIntegrationRequest struct {
+	Description string `json:"description" binding:"required"` // описание интеграции
+	SampleData  string `json:"sample_data"`                    // образец данных
+	ProjectID   int    `json:"project_id"`                     // ID проекта
+}
+
+// CreatedIntegration результат создания интеграции
+type CreatedIntegration struct {
+	Name         string                 `json:"name"`          // название интеграции
+	TargetURL    string                 `json:"target_url"`    // URL целевого API
+	Method       string                 `json:"method"`        // HTTP метод
+	Template     string                 `json:"template"`      // шаблон
+	TemplateType string                 `json:"template_type"` // тип шаблона
+	Mapping      map[string]string      `json:"mapping"`       // маппинг полей
+	AuthType     string                 `json:"auth_type"`     // тип аутентификации
+	AuthConfig   map[string]interface{} `json:"auth_config"`   // настройки аутентификации
+	Headers      map[string]string      `json:"headers"`       // заголовки
+	Explanation  string                 `json:"explanation"`   // объяснение
+	NextSteps    []string               `json:"next_steps"`    // следующие шаги
+}
+
 // AIConfig конфигурация AI
 type AIConfig struct {
 	// Глобальные настройки

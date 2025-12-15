@@ -539,3 +539,76 @@
         background: linear-gradient(90deg, var(--muted) 25%, color-mix(in srgb, var(--card) 80%, var(--muted)) 50%, var(--muted) 75%);
     }
 }
+
+/* Sidebar Submenu Styles */
+.sidebar-submenu {
+    position: relative;
+}
+
+.sidebar-submenu .submenu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    padding-left: 1rem;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+    opacity: 0;
+}
+
+.sidebar-submenu:hover .submenu,
+.sidebar-submenu.active .submenu {
+    max-height: 200px;
+    opacity: 1;
+}
+
+.sidebar-submenu .submenu li {
+    margin: 0;
+}
+
+.sidebar-submenu .submenu a {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    color: var(--muted-foreground);
+    text-decoration: none;
+    border-radius: var(--radius);
+    transition: all 0.2s ease;
+    font-size: 0.875rem;
+    margin: 0.25rem 0;
+}
+
+.sidebar-submenu .submenu a:hover {
+    background: var(--accent);
+    color: var(--accent-foreground);
+}
+
+.sidebar-submenu .submenu a.active {
+    background: var(--primary);
+    color: var(--primary-foreground);
+}
+
+.sidebar-submenu .submenu a i {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+/* Показываем подменю если родительский элемент активен */
+.sidebar-submenu > a.active + .submenu {
+    max-height: 200px;
+    opacity: 1;
+}
+
+/* Мобильная адаптация для подменю */
+@media (max-width: 768px) {
+    .sidebar-submenu .submenu {
+        padding-left: 0.5rem;
+    }
+    
+    .sidebar-submenu .submenu a {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.8rem;
+    }
+}

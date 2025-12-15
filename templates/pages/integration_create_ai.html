@@ -1,0 +1,705 @@
+{{ define "pages/integration_create_ai.html" }}
+{{ template "partials/head.html" . }}
+    {{ template "partials/sidebar.html" . }}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <h1>🤖 Создание интеграции с AI</h1>
+            <p>Опишите что нужно сделать, и AI создаст интеграцию автоматически</p>
+        </div>
+        
+        <div class="page-header-mobile">
+            <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Меню">
+                <i data-lucide="menu"></i>
+            </button>
+            <a href="/dashboard">
+                <img src="/static/img/logo.png" alt="dmIntegroff" class="page-header-logo">
+            </a>
+            <h1 class="page-header-title">Создание с AI</h1>
+        </div>
+        <div class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
+        {{ if not .projects }}
+        <div class="info-box" style="background: #fff3cd; border-color: #ffc107; color: #856404;">
+            <strong><i data-lucide="alert-triangle"></i> Внимание:</strong><br>
+            Для создания интеграции необходимо сначала создать проект.<br>
+            <a href="/projects/create" class="btn btn-success" style="margin-top: 1rem;">➕ Создать проект</a>
+        </div>
+        {{ else }}
+        <div class="info-box">
+            <strong><i data-lucide="sparkles"></i> Как это работает:</strong><br>
+            1. Опишите что нужно сделать (например: "Отправлять уведомления в Slack при новых заказах")<br>
+            2. Предоставьте образец данных (опционально)<br>
+            3. AI создаст готовую интеграцию с настроенным маппингом<br>
+            4. Проверьте и активируйте интеграцию
+        </div>
+        {{ end }}
+
+        <!-- AI Status Check -->
+        <div id="aiStatusCard" class="card" style="display: none;">
+            <div class="ai-status-content">
+                <div class="ai-status-icon">
+                    <i data-lucide="bot"></i>
+                </div>
+                <div class="ai-status-text">
+                    <h3>Проверяем AI...</h3>
+                    <p>Подождите, проверяем доступность AI сервиса</p>
+                </div>
+                <div class="ai-spinner"></div>
+            </div>
+        </div>
+
+        <!-- AI Creation Form -->
+        <div id="aiCreationForm" class="card" style="display: none;">
+            <form id="createIntegrationForm" onsubmit="return handleAIFormSubmit(event)">
+                <div class="form-group">
+                    <label>Проект *</label>
+                    <select name="project_id" id="project_id" required {{ if not .projects }}disabled{{ end }}>
+                        <option value="">-- Выберите проект --</option>
+                        {{ range .projects }}
+                        <option value="{{ .ID }}">{{ .Name }}</option>
+                        {{ end }}
+                    </select>
+                    <small>Проект обязателен для создания интеграции. <a href="/projects/create" style="color: var(--accent-primary);">Создать новый проект</a></small>
+                </div>
+
+                <div class="form-group">
+                    <label>Описание задачи *</label>
+                    <textarea name="description" id="description" required 
+                              placeholder="Опишите что нужно сделать. Например:&#10;• Отправлять уведомления в Slack при новых заказах&#10;• Синхронизировать контакты с CRM&#10;• Создавать задачи в Trello при получении заявок"
+                              rows="4" maxlength="1000"></textarea>
+                    <small>Чем подробнее описание, тем точнее будет результат</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Образец входящих данных (опционально)</label>
+                    <textarea name="sample_data" id="sample_data" 
+                              placeholder='Вставьте пример JSON данных, которые будут приходить:&#10;{&#10;  "order_id": "12345",&#10;  "customer_name": "Иван Иванов",&#10;  "amount": 1500,&#10;  "email": "ivan@example.com"&#10;}'
+                              rows="8"></textarea>
+                    <small>JSON данные помогут AI лучше понять структуру и создать точный маппинг</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Популярные сценарии</label>
+                    <div class="ai-quick-scenarios">
+                        <button type="button" class="scenario-btn" onclick="fillScenario('slack')">
+                            💬 Slack уведомления
+                        </button>
+                        <button type="button" class="scenario-btn" onclick="fillScenario('telegram')">
+                            📱 Telegram бот
+                        </button>
+                        <button type="button" class="scenario-btn" onclick="fillScenario('email')">
+                            📧 Email рассылка
+                        </button>
+                        <button type="button" class="scenario-btn" onclick="fillScenario('crm')">
+                            🎯 CRM интеграция
+                        </button>
+                        <button type="button" class="scenario-btn" onclick="fillScenario('trello')">
+                            📋 Trello задачи
+                        </button>
+                        <button type="button" class="scenario-btn" onclick="fillScenario('discord')">
+                            🎮 Discord webhook
+                        </button>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button type="submit" class="btn btn-success" id="createBtn" {{ if not .projects }}disabled{{ end }}>
+                        <i data-lucide="sparkles"></i> Создать с AI
+                    </button>
+                    <a href="/integrations/create" class="btn btn-secondary">
+                        <i data-lucide="settings"></i> Обычное создание
+                    </a>
+                    <a href="/integrations" class="btn btn-secondary">Отмена</a>
+                </div>
+            </form>
+        </div>
+
+        <!-- AI Processing -->
+        <div id="aiProcessing" class="card" style="display: none;">
+            <div class="ai-processing-content">
+                <div class="ai-processing-icon">
+                    <div class="ai-spinner-large"></div>
+                </div>
+                <div class="ai-processing-text">
+                    <h3>AI создает интеграцию...</h3>
+                    <p id="processingStatus">Анализируем описание задачи</p>
+                    <div class="ai-processing-steps">
+                        <div class="processing-step" id="step1">
+                            <i data-lucide="search"></i>
+                            <span>Анализ задачи</span>
+                        </div>
+                        <div class="processing-step" id="step2">
+                            <i data-lucide="brain"></i>
+                            <span>Генерация маппинга</span>
+                        </div>
+                        <div class="processing-step" id="step3">
+                            <i data-lucide="check"></i>
+                            <span>Создание интеграции</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Result -->
+        <div id="aiResult" class="card" style="display: none;">
+            <div class="ai-result-header">
+                <h3><i data-lucide="check-circle"></i> Интеграция создана!</h3>
+            </div>
+            <div id="aiResultContent">
+                <!-- Результат будет заполнен через JavaScript -->
+            </div>
+        </div>
+
+        <!-- AI Error -->
+        <div id="aiError" class="card" style="display: none;">
+            <div class="ai-error-header">
+                <h3><i data-lucide="alert-circle"></i> Ошибка создания</h3>
+            </div>
+            <div id="aiErrorContent">
+                <!-- Ошибка будет заполнена через JavaScript -->
+            </div>
+            <div style="margin-top: 1rem;">
+                <button onclick="resetAIForm()" class="btn btn-secondary">Попробовать снова</button>
+                <a href="/integrations/create" class="btn btn-primary">Создать вручную</a>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        lucide.createIcons();
+
+        // Состояние формы
+        let aiAvailable = false;
+        let isProcessing = false;
+
+        // Проверяем AI при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAIStatus();
+        });
+
+        async function checkAIStatus() {
+            const statusCard = document.getElementById('aiStatusCard');
+            const creationForm = document.getElementById('aiCreationForm');
+            
+            statusCard.style.display = 'block';
+            
+            try {
+                const response = await fetch('/api/ai/status');
+                const data = await response.json();
+                
+                if (data.configured && data.available) {
+                    aiAvailable = true;
+                    statusCard.style.display = 'none';
+                    creationForm.style.display = 'block';
+                } else {
+                    showAIError('AI не настроен или недоступен', data.error || 'Необходимо настроить AI в разделе Настройки');
+                }
+            } catch (error) {
+                showAIError('Ошибка проверки AI', 'Не удалось подключиться к AI сервису');
+            }
+        }
+
+        function showAIError(title, message) {
+            const statusCard = document.getElementById('aiStatusCard');
+            statusCard.innerHTML = `
+                <div class="ai-status-content error">
+                    <div class="ai-status-icon">
+                        <i data-lucide="alert-circle"></i>
+                    </div>
+                    <div class="ai-status-text">
+                        <h3>${title}</h3>
+                        <p>${message}</p>
+                        <div style="margin-top: 1rem;">
+                            <a href="/settings" class="btn btn-primary">Настроить AI</a>
+                            <a href="/integrations/create" class="btn btn-secondary">Создать вручную</a>
+                        </div>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        async function handleAIFormSubmit(event) {
+            event.preventDefault();
+            
+            if (!aiAvailable || isProcessing) {
+                return false;
+            }
+
+            const formData = new FormData(event.target);
+            const projectId = formData.get('project_id');
+            const description = formData.get('description');
+            const sampleData = formData.get('sample_data');
+
+            if (!projectId || !description) {
+                alert('Пожалуйста, заполните все обязательные поля');
+                return false;
+            }
+
+            isProcessing = true;
+            showProcessing();
+
+            try {
+                const requestData = {
+                    project_id: parseInt(projectId),
+                    description: description,
+                    sample_data: sampleData || ''
+                };
+
+                updateProcessingStep(1, 'Анализируем описание задачи...');
+                
+                const response = await fetch('/api/ai/create-integration', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.status === 'success') {
+                    updateProcessingStep(2, 'Генерируем маппинг...');
+                    await new Promise(resolve => setTimeout(resolve, 1000)); // Имитация обработки
+                    
+                    updateProcessingStep(3, 'Создаем интеграцию...');
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    showResult(result);
+                } else {
+                    throw new Error(result.error || 'Неизвестная ошибка');
+                }
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                isProcessing = false;
+            }
+
+            return false;
+        }
+
+        function showProcessing() {
+            document.getElementById('aiCreationForm').style.display = 'none';
+            document.getElementById('aiProcessing').style.display = 'block';
+            
+            // Сбрасываем состояние шагов
+            for (let i = 1; i <= 3; i++) {
+                const step = document.getElementById(`step${i}`);
+                step.classList.remove('active', 'completed');
+            }
+            
+            document.getElementById('step1').classList.add('active');
+        }
+
+        function updateProcessingStep(stepNumber, message) {
+            document.getElementById('processingStatus').textContent = message;
+            
+            // Обновляем состояние шагов
+            for (let i = 1; i <= 3; i++) {
+                const step = document.getElementById(`step${i}`);
+                step.classList.remove('active', 'completed');
+                
+                if (i < stepNumber) {
+                    step.classList.add('completed');
+                } else if (i === stepNumber) {
+                    step.classList.add('active');
+                }
+            }
+        }
+
+        function showResult(result) {
+            document.getElementById('aiProcessing').style.display = 'none';
+            document.getElementById('aiResult').style.display = 'block';
+            
+            const content = document.getElementById('aiResultContent');
+            content.innerHTML = `
+                <div class="ai-result-info">
+                    <div class="result-item">
+                        <strong>Название:</strong> ${result.integration.name}
+                    </div>
+                    <div class="result-item">
+                        <strong>Target API:</strong> ${result.integration.target_api}
+                    </div>
+                    <div class="result-item">
+                        <strong>Метод:</strong> ${result.integration.method}
+                    </div>
+                    <div class="result-item">
+                        <strong>Тип шаблона:</strong> ${result.integration.template_type}
+                    </div>
+                </div>
+                
+                ${result.explanation ? `
+                <div class="ai-explanation">
+                    <h4><i data-lucide="lightbulb"></i> Объяснение AI:</h4>
+                    <p>${result.explanation}</p>
+                </div>
+                ` : ''}
+                
+                ${result.next_steps && result.next_steps.length > 0 ? `
+                <div class="ai-next-steps">
+                    <h4><i data-lucide="list"></i> Следующие шаги:</h4>
+                    <ul>
+                        ${result.next_steps.map(step => `<li>${step}</li>`).join('')}
+                    </ul>
+                </div>
+                ` : ''}
+                
+                <div class="result-actions">
+                    <a href="/integrations/${result.integration.id}/configure" class="btn btn-success">
+                        <i data-lucide="settings"></i> Настроить интеграцию
+                    </a>
+                    <a href="/integrations" class="btn btn-secondary">
+                        <i data-lucide="list"></i> К списку интеграций
+                    </a>
+                    <button onclick="resetAIForm()" class="btn btn-secondary">
+                        <i data-lucide="plus"></i> Создать еще одну
+                    </button>
+                </div>
+            `;
+            
+            lucide.createIcons();
+        }
+
+        function showError(message) {
+            document.getElementById('aiProcessing').style.display = 'none';
+            document.getElementById('aiError').style.display = 'block';
+            
+            const content = document.getElementById('aiErrorContent');
+            content.innerHTML = `
+                <div class="ai-error-message">
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        function resetAIForm() {
+            // Скрываем все блоки результатов
+            document.getElementById('aiResult').style.display = 'none';
+            document.getElementById('aiError').style.display = 'none';
+            document.getElementById('aiProcessing').style.display = 'none';
+            
+            // Показываем форму
+            document.getElementById('aiCreationForm').style.display = 'block';
+            
+            // Очищаем форму
+            document.getElementById('createIntegrationForm').reset();
+            
+            isProcessing = false;
+        }
+
+        function fillScenario(type) {
+            const descriptionField = document.getElementById('description');
+            const sampleDataField = document.getElementById('sample_data');
+            
+            const scenarios = {
+                slack: {
+                    description: 'Отправлять уведомления в Slack канал при получении новых данных',
+                    sampleData: `{
+  "message": "Новый заказ #12345",
+  "customer": "Иван Иванов",
+  "amount": 1500,
+  "status": "new"
+}`
+                },
+                telegram: {
+                    description: 'Отправлять сообщения в Telegram бот при важных событиях',
+                    sampleData: `{
+  "event": "new_order",
+  "text": "Получен новый заказ",
+  "user_id": "123456789",
+  "amount": 2500
+}`
+                },
+                email: {
+                    description: 'Отправлять email уведомления при получении заявок',
+                    sampleData: `{
+  "name": "Анна Петрова",
+  "email": "anna@example.com",
+  "subject": "Новая заявка",
+  "message": "Интересует ваш продукт"
+}`
+                },
+                crm: {
+                    description: 'Создавать контакты в CRM системе при регистрации пользователей',
+                    sampleData: `{
+  "first_name": "Петр",
+  "last_name": "Сидоров",
+  "email": "petr@example.com",
+  "phone": "+7 999 123-45-67",
+  "company": "ООО Рога и Копыта"
+}`
+                },
+                trello: {
+                    description: 'Создавать карточки в Trello при получении новых задач',
+                    sampleData: `{
+  "title": "Новая задача",
+  "description": "Описание задачи",
+  "priority": "high",
+  "assignee": "john@example.com"
+}`
+                },
+                discord: {
+                    description: 'Отправлять сообщения в Discord канал при игровых событиях',
+                    sampleData: `{
+  "player": "PlayerName",
+  "event": "level_up",
+  "level": 25,
+  "achievement": "Мастер меча"
+}`
+                }
+            };
+            
+            if (scenarios[type]) {
+                descriptionField.value = scenarios[type].description;
+                sampleDataField.value = scenarios[type].sampleData;
+            }
+        }
+    </script>
+
+    <!-- AI Creation Styles -->
+    <style>
+        .ai-status-content {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 2rem;
+        }
+
+        .ai-status-content.error .ai-status-icon i {
+            color: var(--destructive);
+        }
+
+        .ai-status-icon {
+            font-size: 2rem;
+            color: var(--primary);
+        }
+
+        .ai-status-text h3 {
+            margin: 0 0 0.5rem 0;
+            color: var(--foreground);
+        }
+
+        .ai-status-text p {
+            margin: 0;
+            color: var(--muted-foreground);
+        }
+
+        .ai-spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border);
+            border-top: 2px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .ai-spinner-large {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--border);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .ai-quick-scenarios {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .scenario-btn {
+            background: var(--secondary);
+            color: var(--secondary-foreground);
+            border: 1px solid var(--border);
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .scenario-btn:hover {
+            background: var(--accent);
+            color: var(--accent-foreground);
+        }
+
+        .ai-processing-content {
+            text-align: center;
+            padding: 3rem 2rem;
+        }
+
+        .ai-processing-icon {
+            margin-bottom: 2rem;
+        }
+
+        .ai-processing-text h3 {
+            margin: 0 0 1rem 0;
+            color: var(--foreground);
+        }
+
+        .ai-processing-text p {
+            margin: 0 0 2rem 0;
+            color: var(--muted-foreground);
+        }
+
+        .ai-processing-steps {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .processing-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            opacity: 0.5;
+            transition: opacity 0.3s;
+        }
+
+        .processing-step.active {
+            opacity: 1;
+            color: var(--primary);
+        }
+
+        .processing-step.completed {
+            opacity: 1;
+            color: var(--success);
+        }
+
+        .processing-step i {
+            width: 24px;
+            height: 24px;
+        }
+
+        .processing-step span {
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        .ai-result-header {
+            background: var(--success);
+            color: var(--success-foreground);
+            padding: 1rem;
+            border-radius: var(--radius) var(--radius) 0 0;
+            margin: -1rem -1rem 1rem -1rem;
+        }
+
+        .ai-result-header h3 {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .ai-result-info {
+            background: var(--muted);
+            padding: 1rem;
+            border-radius: var(--radius);
+            margin-bottom: 1rem;
+        }
+
+        .result-item {
+            margin-bottom: 0.5rem;
+        }
+
+        .result-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .ai-explanation {
+            background: var(--card);
+            border: 1px solid var(--border);
+            padding: 1rem;
+            border-radius: var(--radius);
+            margin-bottom: 1rem;
+        }
+
+        .ai-explanation h4 {
+            margin: 0 0 0.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--foreground);
+        }
+
+        .ai-next-steps {
+            background: var(--card);
+            border: 1px solid var(--border);
+            padding: 1rem;
+            border-radius: var(--radius);
+            margin-bottom: 1rem;
+        }
+
+        .ai-next-steps h4 {
+            margin: 0 0 0.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--foreground);
+        }
+
+        .ai-next-steps ul {
+            margin: 0;
+            padding-left: 1.5rem;
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+
+        .ai-error-header {
+            background: var(--destructive);
+            color: var(--destructive-foreground);
+            padding: 1rem;
+            border-radius: var(--radius) var(--radius) 0 0;
+            margin: -1rem -1rem 1rem -1rem;
+        }
+
+        .ai-error-header h3 {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .ai-error-message {
+            background: var(--muted);
+            padding: 1rem;
+            border-radius: var(--radius);
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .ai-processing-steps {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .result-actions {
+                flex-direction: column;
+            }
+            
+            .ai-quick-scenarios {
+                justify-content: center;
+            }
+        }
+    </style>
+</body>
+</html>
+{{ end }}

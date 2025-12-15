@@ -108,14 +108,14 @@
             </div>
 
             <div class="quick-actions-grid">
-                <button onclick="openAIAssistant()" class="btn btn-primary quick-action-btn ai-quick-action" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+                <a href="/integrations/create-with-ai" class="btn btn-primary quick-action-btn ai-quick-action" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; text-decoration: none;">
                     <div class="quick-action-header">
-                        <i data-lucide="bot"></i>
+                        <i data-lucide="sparkles"></i>
                         <span>С помощью AI</span>
                         <span class="quick-action-arrow"><i data-lucide="arrow-right"></i></span>
                     </div>
                     <span class="quick-action-desc">Создайте интеграцию с помощью искусственного интеллекта</span>
-                </button>
+                </a>
                 <a href="/integrations/create" class="btn btn-success quick-action-btn">
                     <div class="quick-action-header">
                         <i data-lucide="plus"></i>
@@ -665,18 +665,379 @@
 </style>
 
 <!-- AI Assistant Modal -->
-{{ template "partials/ai_chat.html" . }}
+<div id="aiAssistantModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h2><i data-lucide="bot"></i> AI Помощник по интеграциям</h2>
+            <button class="btn-icon" onclick="closeAIAssistant()">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div id="aiAssistantContent">
+                <div class="ai-intro">
+                    <div class="ai-avatar-large">🤖</div>
+                    <h3>Привет! Я помогу создать интеграцию</h3>
+                    <p>Опишите что вы хотите сделать, и я создам интеграцию автоматически.</p>
+                </div>
+                
+                <div class="ai-examples">
+                    <h4>Примеры запросов:</h4>
+                    <div class="ai-example-buttons">
+                        <button class="ai-example-btn" onclick="fillAIPrompt('Создать интеграцию для отправки уведомлений в Slack')">
+                            "Создать интеграцию для отправки уведомлений в Slack"
+                        </button>
+                        <button class="ai-example-btn" onclick="fillAIPrompt('Создать лид в Salesforce CRM из формы обратной связи')">
+                            "Создать лид в Salesforce CRM из формы обратной связи"
+                        </button>
+                        <button class="ai-example-btn" onclick="fillAIPrompt('Отправлять сообщения в Telegram при новых заказах')">
+                            "Отправлять сообщения в Telegram при новых заказах"
+                        </button>
+                        <button class="ai-example-btn" onclick="fillAIPrompt('Сохранить данные формы в Google Sheets')">
+                            "Сохранить данные формы в Google Sheets"
+                        </button>
+                    </div>
+                </div>
+                
+                <form id="aiAssistantForm" onsubmit="createIntegrationWithAI(event)">
+                    <div class="form-group">
+                        <label for="aiDescription">
+                            <i data-lucide="message-square"></i>
+                            Опишите что вы хотите сделать
+                        </label>
+                        <textarea 
+                            id="aiDescription" 
+                            name="description" 
+                            placeholder="Например: Создать интеграцию для отправки уведомлений в Slack при получении новых заявок с сайта"
+                            rows="4"
+                            required
+                            style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); background: var(--input-background); color: var(--text-primary); font-family: inherit; resize: vertical;"
+                        ></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="aiSampleData">
+                            <i data-lucide="file-json"></i>
+                            Образец данных (необязательно)
+                        </label>
+                        <textarea 
+                            id="aiSampleData" 
+                            name="sample_data" 
+                            placeholder='{"name": "Иван Иванов", "email": "ivan@example.com", "message": "Интересует ваш продукт"}'
+                            rows="3"
+                            style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); background: var(--input-background); color: var(--text-primary); font-family: 'Courier New', monospace; resize: vertical;"
+                        ></textarea>
+                        <small style="color: var(--text-secondary); margin-top: 0.25rem; display: block;">
+                            Если у вас есть пример данных, которые будут приходить, вставьте их сюда
+                        </small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="aiProjectSelect">
+                            <i data-lucide="folder"></i>
+                            Проект
+                        </label>
+                        <select 
+                            id="aiProjectSelect" 
+                            name="project_id"
+                            style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); background: var(--input-background); color: var(--text-primary);"
+                        >
+                            <option value="">Выберите проект...</option>
+                            <!-- Опции будут загружены через JavaScript -->
+                        </select>
+                    </div>
+                    
+                    <div id="aiProgress" style="display: none; margin: 1rem 0;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--primary);">
+                            <div style="width: 20px; height: 20px; border: 2px solid var(--border); border-top: 2px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                            <span id="aiProgressText">Создаю интеграцию с помощью AI...</span>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button type="submit" class="btn btn-primary" id="aiCreateBtn">
+                            <i data-lucide="sparkles"></i>
+                            Создать с помощью AI
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="closeAIAssistant()">
+                            Отмена
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .ai-intro {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .ai-avatar-large {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+    
+    .ai-intro h3 {
+        margin: 0 0 0.5rem 0;
+        color: var(--text-primary);
+    }
+    
+    .ai-intro p {
+        color: var(--text-secondary);
+        margin: 0;
+    }
+    
+    .ai-examples {
+        margin-bottom: 2rem;
+    }
+    
+    .ai-examples h4 {
+        margin: 0 0 1rem 0;
+        font-size: 1rem;
+        color: var(--text-primary);
+    }
+    
+    .ai-example-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .ai-example-btn {
+        background: var(--secondary);
+        border: 1px solid var(--border);
+        padding: 0.75rem;
+        border-radius: 8px;
+        text-align: left;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        color: var(--text-primary);
+        font-size: 0.9rem;
+    }
+    
+    .ai-example-btn:hover {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    
+    .modal-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        margin-top: 2rem;
+    }
+    
+    @media (max-width: 768px) {
+        .modal-actions {
+            flex-direction: column;
+        }
+        
+        .ai-example-buttons {
+            gap: 0.75rem;
+        }
+    }
+</style>
 
 <script>
-    // Инициализируем AI ассистент для дашборда
-    document.addEventListener('DOMContentLoaded', function() {
-        if (window.aiAssistant) {
-            // Устанавливаем контекст дашборда
-            window.aiAssistant.setIntegrationContext({
-                source: 'dashboard',
-                total_integrations: {{ if .total_integrations }}{{ .total_integrations }}{{ else }}0{{ end }},
-                active_integrations: {{ if .active_integrations }}{{ .active_integrations }}{{ else }}0{{ end }}
+    // Функции для AI Assistant
+    function openAIAssistant() {
+        const modal = document.getElementById('aiAssistantModal');
+        if (modal) {
+            modal.style.display = 'flex';
+            loadProjectsForAI();
+            
+            // Фокус на поле описания
+            setTimeout(() => {
+                const descField = document.getElementById('aiDescription');
+                if (descField) descField.focus();
+            }, 100);
+        }
+    }
+    
+    function closeAIAssistant() {
+        const modal = document.getElementById('aiAssistantModal');
+        if (modal) {
+            modal.style.display = 'none';
+            
+            // Сброс формы
+            const form = document.getElementById('aiAssistantForm');
+            if (form) form.reset();
+            
+            // Скрытие прогресса
+            const progress = document.getElementById('aiProgress');
+            if (progress) progress.style.display = 'none';
+            
+            // Восстановление кнопки
+            const btn = document.getElementById('aiCreateBtn');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="sparkles"></i> Создать с помощью AI';
+            }
+            
+            if (window.lucide) window.lucide.createIcons();
+        }
+    }
+    
+    function fillAIPrompt(text) {
+        const field = document.getElementById('aiDescription');
+        if (field) {
+            field.value = text;
+            field.focus();
+        }
+    }
+    
+    function loadProjectsForAI() {
+        const select = document.getElementById('aiProjectSelect');
+        if (!select) return;
+        
+        fetch('/api/projects')
+            .then(response => response.json())
+            .then(data => {
+                // Очищаем текущие опции (кроме первой)
+                while (select.children.length > 1) {
+                    select.removeChild(select.lastChild);
+                }
+                
+                if (data.projects && data.projects.length > 0) {
+                    data.projects.forEach(project => {
+                        const option = document.createElement('option');
+                        option.value = project.id;
+                        option.textContent = project.name;
+                        select.appendChild(option);
+                    });
+                } else {
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = 'Нет доступных проектов';
+                    option.disabled = true;
+                    select.appendChild(option);
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка загрузки проектов:', error);
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'Ошибка загрузки проектов';
+                option.disabled = true;
+                select.appendChild(option);
             });
+    }
+    
+    function createIntegrationWithAI(event) {
+        event.preventDefault();
+        
+        const form = event.target;
+        const formData = new FormData(form);
+        const btn = document.getElementById('aiCreateBtn');
+        const progress = document.getElementById('aiProgress');
+        const progressText = document.getElementById('aiProgressText');
+        
+        // Показываем прогресс
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader-2" style="animation: spin 1s linear infinite;"></i> Создаю...';
+        }
+        if (progress) progress.style.display = 'block';
+        if (progressText) progressText.textContent = 'Анализирую описание с помощью AI...';
+        
+        if (window.lucide) window.lucide.createIcons();
+        
+        // Подготавливаем данные для отправки
+        const requestData = {
+            description: formData.get('description'),
+            sample_data: formData.get('sample_data') || '',
+            project_id: parseInt(formData.get('project_id')) || 0
+        };
+        
+        // Отправляем запрос на создание интеграции
+        fetch('/api/ai/create-integration', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                if (progressText) progressText.textContent = 'Интеграция создана! Перенаправляю...';
+                
+                // Показываем уведомление об успехе
+                if (window.showNotification) {
+                    window.showNotification('✅ Интеграция создана с помощью AI!', 'success');
+                }
+                
+                // Закрываем модальное окно
+                setTimeout(() => {
+                    closeAIAssistant();
+                    
+                    // Перенаправляем на страницу настройки интеграции
+                    if (data.integration && data.integration.id) {
+                        window.location.href = `/integrations/${data.integration.id}/configure`;
+                    } else {
+                        // Если нет ID, перенаправляем на список интеграций
+                        window.location.href = '/integrations';
+                    }
+                }, 1000);
+            } else {
+                throw new Error(data.error || 'Неизвестная ошибка');
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка создания интеграции:', error);
+            
+            if (window.showNotification) {
+                window.showNotification(`❌ Ошибка создания интеграции: ${error.message}`, 'error');
+            }
+            
+            // Восстанавливаем форму
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="sparkles"></i> Создать с помощью AI';
+            }
+            if (progress) progress.style.display = 'none';
+            
+            if (window.lucide) window.lucide.createIcons();
+        });
+    }
+    
+    // Закрытие модального окна по клику вне его
+    document.addEventListener('click', (e) => {
+        const modal = document.getElementById('aiAssistantModal');
+        if (modal && e.target === modal) {
+            closeAIAssistant();
+        }
+    });
+    
+    // Закрытие по Escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('aiAssistantModal');
+            if (modal && modal.style.display === 'flex') {
+                closeAIAssistant();
+            }
         }
     });
 </script>

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"dmintegroff/internal/logger"
 )
 
 // Generator генератор маппингов для интеграций
@@ -408,6 +409,227 @@ func (g *Generator) configureAuth(mapping *GeneratedMapping, api PopularAPI) {
 		mapping.AuthType = "none"
 	default:
 		mapping.AuthType = "none"
+	}
+}
+
+// CreateIntegration создает интеграцию с помощью AI
+func (g *Generator) CreateIntegration(ctx context.Context, req *CreateIntegrationRequest) (*CreatedIntegration, error) {
+	logger.Log.WithFields(map[string]interface{}{
+		"action":      "ai_generator_create_integration_start",
+		"description": req.Description,
+		"project_id":  req.ProjectID,
+		"has_sample":  req.SampleData != "",
+		"sample_size": len(req.SampleData),
+	}).Info("AI Generator: Starting integration creation")
+
+	// Парсим образец данных если есть
+	var sampleData map[string]interface{}
+	if req.SampleData != "" {
+		if err := json.Unmarshal([]byte(req.SampleData), &sampleData); err != nil {
+			logger.Log.WithFields(map[string]interface{}{
+				"action": "ai_generator_parse_sample",
+				"error":  "json_parse_failed",
+				"sample": func() string {
+					if len(req.SampleData) > 200 {
+						return req.SampleData[:200] + "..."
+					}
+					return req.SampleData
+				}(),
+			}).Warn("AI Generator: Failed to parse sample as JSON, using as plain text")
+			
+			// Если не JSON, создаем простую структуру
+			sampleData = map[string]interface{}{
+				"data": req.SampleData,
+			}
+		} else {
+			logger.Log.WithFields(map[string]interface{}{
+				"action":      "ai_generator_parse_sample",
+				"field_count": len(sampleData),
+			}).Info("AI Generator: Successfully parsed sample data as JSON")
+		}
+	} else {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_generator_parse_sample",
+		}).Info("AI Generator: No sample data provided, using default structure")
+		
+		// Создаем пустую структуру для анализа
+		sampleData = map[string]interface{}{
+			"message": "sample message",
+		}
+	}
+
+	// Анализируем описание для определения типа интеграции
+	description := strings.ToLower(req.Description)
+	
+	var integrationName string
+	var targetSystem string
+	
+	// Определяем тип интеграции на основе описания
+	if strings.Contains(description, "slack") {
+		integrationName = "Slack уведомления"
+		targetSystem = "slack"
+	} else if strings.Contains(description, "telegram") {
+		integrationName = "Telegram бот"
+		targetSystem = "telegram"
+	} else if strings.Contains(description, "discord") {
+		integrationName = "Discord webhook"
+		targetSystem = "discord"
+	} else if strings.Contains(description, "salesforce") || strings.Contains(description, "crm") {
+		integrationName = "Salesforce CRM"
+		targetSystem = "salesforce"
+	} else if strings.Contains(description, "email") || strings.Contains(description, "mail") {
+		integrationName = "Email уведомления"
+		targetSystem = "email"
+	} else {
+		integrationName = "Пользовательская интеграция"
+		targetSystem = "webhook"
+	}
+
+	logger.Log.WithFields(map[string]interface{}{
+		"action":           "ai_generator_detect_system",
+		"detected_system":  targetSystem,
+		"integration_name": integrationName,
+		"description":      req.Description,
+	}).Info("AI Generator: Detected target system from description")
+
+	// Анализируем данные
+	analysis, err := g.analyzer.AnalyzeDataStructure(ctx, sampleData, "json")
+	if err != nil {
+		// Создаем базовый анализ если AI недоступен
+		analysis = &DataAnalysisResponse{
+			Fields: []FieldInfo{
+				{Name: "message", Type: "string", Description: "Сообщение"},
+			},
+			DataType:   "notification",
+			Confidence: 0.5,
+		}
+	}
+
+	// Генерируем маппинг
+	mappingReq := &MappingGenerationRequest{
+		SourceData: sampleData,
+		TargetAPI:  targetSystem,
+		Task:       req.Description,
+		UserPrompt: req.Description,
+	}
+
+	mapping, err := g.GenerateMapping(ctx, mappingReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate mapping: %w", err)
+	}
+
+	// Создаем маппинг полей
+	fieldMapping := make(map[string]string)
+	for _, field := range analysis.Fields {
+		fieldMapping[field.Name] = field.Name
+	}
+
+	// Генерируем следующие шаги
+	nextSteps := g.generateNextStepsForIntegration(targetSystem, mapping.AuthType)
+
+	// Создаем результат
+	result := &CreatedIntegration{
+		Name:         integrationName,
+		TargetURL:    mapping.TargetURL,
+		Method:       mapping.Method,
+		Template:     mapping.Template,
+		TemplateType: mapping.Type,
+		Mapping:      fieldMapping,
+		AuthType:     mapping.AuthType,
+		AuthConfig:   mapping.AuthConfig,
+		Headers:      mapping.Headers,
+		Explanation:  g.generateExplanation(targetSystem, req.Description),
+		NextSteps:    nextSteps,
+	}
+
+	logger.Log.WithFields(map[string]interface{}{
+		"action":        "ai_generator_create_integration_success",
+		"target_system": targetSystem,
+		"name":          result.Name,
+		"target_url":    result.TargetURL,
+		"method":        result.Method,
+		"template_type": result.TemplateType,
+		"auth_type":     result.AuthType,
+		"field_count":   len(result.Mapping),
+		"template_size": len(result.Template),
+		"template_preview": func() string {
+			if len(result.Template) > 150 {
+				return result.Template[:150] + "..."
+			}
+			return result.Template
+		}(),
+	}).Info("AI Generator: Integration creation completed successfully")
+
+	return result, nil
+}
+
+// generateNextStepsForIntegration генерирует следующие шаги для интеграции
+func (g *Generator) generateNextStepsForIntegration(targetSystem, authType string) []string {
+	steps := make([]string, 0)
+
+	switch targetSystem {
+	case "slack":
+		steps = append(steps, "1. Создайте Incoming Webhook в настройках Slack")
+		steps = append(steps, "2. Замените URL на реальный webhook URL")
+		steps = append(steps, "3. Настройте канал по умолчанию")
+		steps = append(steps, "4. Протестируйте отправку сообщения")
+		steps = append(steps, "5. Активируйте интеграцию")
+	case "telegram":
+		steps = append(steps, "1. Создайте бота через @BotFather в Telegram")
+		steps = append(steps, "2. Получите токен бота и замените в URL")
+		steps = append(steps, "3. Получите chat_id и замените в шаблоне")
+		steps = append(steps, "4. Протестируйте отправку сообщения")
+		steps = append(steps, "5. Активируйте интеграцию")
+	case "discord":
+		steps = append(steps, "1. Создайте webhook в настройках канала Discord")
+		steps = append(steps, "2. Замените URL на реальный webhook URL")
+		steps = append(steps, "3. Настройте формат сообщений")
+		steps = append(steps, "4. Протестируйте отправку сообщения")
+		steps = append(steps, "5. Активируйте интеграцию")
+	case "salesforce":
+		steps = append(steps, "1. Настройте OAuth 2.0 авторизацию в Salesforce")
+		steps = append(steps, "2. Замените URL на ваш Salesforce instance")
+		steps = append(steps, "3. Добавьте необходимые заголовки авторизации")
+		steps = append(steps, "4. Протестируйте создание лида")
+		steps = append(steps, "5. Активируйте интеграцию")
+	case "email":
+		steps = append(steps, "1. Получите API ключ SendGrid")
+		steps = append(steps, "2. Добавьте заголовок Authorization с API ключом")
+		steps = append(steps, "3. Настройте адрес отправителя")
+		steps = append(steps, "4. Протестируйте отправку email")
+		steps = append(steps, "5. Активируйте интеграцию")
+	default:
+		steps = append(steps, "1. Замените URL на реальный API endpoint")
+		steps = append(steps, "2. Настройте необходимые заголовки авторизации")
+		steps = append(steps, "3. Адаптируйте шаблон под формат API")
+		steps = append(steps, "4. Протестируйте отправку данных")
+		steps = append(steps, "5. Активируйте интеграцию")
+	}
+
+	return steps
+}
+
+// generateExplanation генерирует объяснение для интеграции
+func (g *Generator) generateExplanation(targetSystem, description string) string {
+	switch targetSystem {
+	case "slack":
+		return "Создана интеграция для отправки уведомлений в Slack через Incoming Webhook. " +
+			"Сообщения будут отправляться в указанный канал с автоматическим форматированием."
+	case "telegram":
+		return "Создана интеграция для отправки сообщений через Telegram Bot API. " +
+			"Сообщения будут отправляться в указанный чат с поддержкой HTML форматирования."
+	case "discord":
+		return "Создана интеграция для отправки сообщений в Discord через webhook. " +
+			"Поддерживается отправка обычных сообщений и rich embeds."
+	case "salesforce":
+		return "Создана интеграция для создания лидов в Salesforce CRM. " +
+			"Данные будут автоматически преобразованы в формат Salesforce Lead API."
+	case "email":
+		return "Создана интеграция для отправки email уведомлений через SendGrid API. " +
+			"Поддерживается отправка текстовых и HTML сообщений."
+	default:
+		return fmt.Sprintf("Создана пользовательская интеграция на основе описания: %s. " +
+			"Данные будут отправляться в JSON формате на указанный endpoint.", description)
 	}
 }
 

@@ -88,3 +88,8 @@ func AIGetQuickSuggestions(c *gin.Context) {
 func AIGetModels(c *gin.Context) {
 	getAIController().GetModels(c)
 }
+
+// AICreateIntegration создает интеграцию с помощью AI
+func AICreateIntegration(c *gin.Context) {
+	getAIController().CreateIntegration(c)
+}

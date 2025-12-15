@@ -170,6 +170,45 @@
                     Система автоматически разбирает вложенные объекты и массивы.
                 </p>
 
+                <!-- AI Генерация маппинга -->
+                {{ if .integration.SamplePayload }}
+                <div style="margin-bottom: 1.5rem; padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; border-left: 4px solid #667eea;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+                        <div>
+                            <strong style="display: flex; align-items: center; gap: 0.5rem; color: white;">
+                                <i data-lucide="bot"></i> AI Генерация маппинга
+                            </strong>
+                            <p style="margin: 0.5rem 0 0 0; color: rgba(255,255,255,0.9); font-size: 0.9em;">
+                                Автоматически создайте маппинг полей с помощью искусственного интеллекта
+                            </p>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                            <select id="aiTargetSystem" style="padding: 0.5rem; border-radius: 6px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3); min-width: 150px;">
+                                <option value="">Выберите систему...</option>
+                                <option value="salesforce">Salesforce CRM</option>
+                                <option value="hubspot">HubSpot CRM</option>
+                                <option value="slack">Slack</option>
+                                <option value="telegram">Telegram</option>
+                                <option value="webhook">Generic Webhook</option>
+                                <option value="email">Email Service</option>
+                                <option value="custom">Другая система</option>
+                            </select>
+                            <button type="button" id="generateAIMappingBtn" class="btn" onclick="generateAIMapping()" 
+                                    style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); white-space: nowrap;">
+                                <i data-lucide="sparkles"></i>
+                                <span class="hide-on-mobile">Сгенерировать</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="aiMappingStatus" style="margin-top: 1rem; display: none;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; color: rgba(255,255,255,0.9);">
+                            <div style="width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top: 2px solid white; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                            <span>Генерирую маппинг с помощью AI...</span>
+                        </div>
+                    </div>
+                </div>
+                {{ end }}
+
                 <div class="table-container mapping-table-container">
                     <table class="mapping-table">
                         <thead>
@@ -253,7 +292,7 @@
             <!-- Секция для кастомного шаблона -->
             <div id="templateSection" style="display: none;">
                 <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-                    <h3 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;"><i data-lucide="file-text"></i> Формат шаблона
+                    <h3 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;"><i data-lucide="file-text"></i> Шаблон
                     <select name="template_type" id="templateType" onchange="updateTemplateEditor()" 
                             style="padding: 0.5rem; border-radius: 6px; background: #1a1f2e; color: #abb2bf; border: 1px solid #4a5568;">
                         <option value="json" {{ if or (not .integration.TemplateType) (eq .integration.TemplateType "json") }}selected{{ end }}>JSON</option>
@@ -266,6 +305,45 @@
                     Создайте свой шаблон в выбранном формате. Используйте <code style="color: #61afef;">{{`{{field.path}}`}}</code> для
                     подстановки значений из источника.
                 </p>
+
+                <!-- AI Генерация шаблона -->
+                {{ if .integration.SamplePayload }}
+                <div style="margin-bottom: 1rem; padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; border-left: 4px solid #667eea;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+                        <div>
+                            <strong style="display: flex; align-items: center; gap: 0.5rem; color: white;">
+                                <i data-lucide="bot"></i> AI Генерация шаблона
+                            </strong>
+                            <p style="margin: 0.5rem 0 0 0; color: rgba(255,255,255,0.9); font-size: 0.9em;">
+                                Автоматически создайте шаблон для целевой системы
+                            </p>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                            <select id="aiTemplateTargetSystem" style="padding: 0.5rem; border-radius: 6px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3); min-width: 150px;">
+                                <option value="">Выберите систему...</option>
+                                <option value="salesforce">Salesforce CRM</option>
+                                <option value="hubspot">HubSpot CRM</option>
+                                <option value="slack">Slack</option>
+                                <option value="telegram">Telegram</option>
+                                <option value="webhook">Generic Webhook</option>
+                                <option value="email">Email Service</option>
+                                <option value="custom">Другая система</option>
+                            </select>
+                            <button type="button" id="generateAITemplateBtn" class="btn" onclick="generateAITemplate()" 
+                                    style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); white-space: nowrap;">
+                                <i data-lucide="sparkles"></i>
+                                <span class="hide-on-mobile">Сгенерировать</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="aiTemplateStatus" style="display: none;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; color: rgba(255,255,255,0.9);">
+                            <div style="width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top: 2px solid white; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                            <span>Генерирую шаблон с помощью AI...</span>
+                        </div>
+                    </div>
+                </div>
+                {{ end }}
 
                 <!-- Популярные шаблоны -->
                 <div style="margin-bottom: 1rem; padding: 1rem; background: #2d3748; border-radius: 8px; border-left: 4px solid #10b981;">
@@ -1607,6 +1685,225 @@ Email: {{`{{user.email}}`}}
             closeTestModal();
         }
     });
+
+    // AI Mapping Generation
+    async function generateAIMapping() {
+        const targetSystem = document.getElementById('aiTargetSystem').value;
+        const statusDiv = document.getElementById('aiMappingStatus');
+        const btn = document.getElementById('generateAIMappingBtn');
+        
+        if (!targetSystem) {
+            window.showNotification('Выберите целевую систему', 'warning');
+            return;
+        }
+        
+        // Показываем индикатор загрузки
+        statusDiv.style.display = 'block';
+        btn.disabled = true;
+        
+        try {
+            const samplePayload = document.getElementById('samplePayloadTextarea')?.value || 
+                                document.getElementById('payloadViewPre')?.textContent || '';
+            
+            if (!samplePayload.trim()) {
+                throw new Error('Нет образца данных для анализа');
+            }
+            
+            const response = await fetch(`/api/integrations/${integrationId}/ai/generate-mapping`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    sample_payload: samplePayload,
+                    target_system: targetSystem,
+                    description: `Генерация маппинга для ${targetSystem}`
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                // Применяем сгенерированный маппинг
+                applyAIMapping(data.mapping, data.explanation, data.suggestions);
+                
+                // Если есть шаблон, предлагаем переключиться на режим шаблона
+                if (data.template) {
+                    const useTemplate = confirm(
+                        `AI также сгенерировал готовый шаблон для ${targetSystem}. ` +
+                        'Переключиться на режим шаблона и использовать его?'
+                    );
+                    
+                    if (useTemplate) {
+                        document.getElementById('modeTemplate').checked = true;
+                        switchTransformMode();
+                        
+                        if (data.template_type) {
+                            const templateTypeSelect = document.getElementById('templateType');
+                            if (templateTypeSelect) {
+                                templateTypeSelect.value = data.template_type;
+                                updateTemplateEditor();
+                            }
+                        }
+                        
+                        const templateTextarea = document.getElementById('outputTemplate');
+                        if (templateTextarea) {
+                            templateTextarea.value = data.template;
+                            templateTextarea.dispatchEvent(new Event('input'));
+                        }
+                    }
+                }
+                
+                window.showNotification('✅ Маппинг успешно сгенерирован с помощью AI!', 'success');
+                
+                // Показываем объяснение
+                if (data.explanation) {
+                    setTimeout(() => {
+                        window.showNotification(`💡 ${data.explanation}`, 'info');
+                    }, 2000);
+                }
+            } else {
+                throw new Error(data.error || 'Неизвестная ошибка');
+            }
+        } catch (error) {
+            console.error('AI Mapping Error:', error);
+            window.showNotification(`❌ Ошибка генерации маппинга: ${error.message}`, 'error');
+        } finally {
+            statusDiv.style.display = 'none';
+            btn.disabled = false;
+        }
+    }
+    
+    // AI Template Generation
+    async function generateAITemplate() {
+        const targetSystem = document.getElementById('aiTemplateTargetSystem').value;
+        const statusDiv = document.getElementById('aiTemplateStatus');
+        const btn = document.getElementById('generateAITemplateBtn');
+        
+        if (!targetSystem) {
+            window.showNotification('Выберите целевую систему', 'warning');
+            return;
+        }
+        
+        // Показываем индикатор загрузки
+        statusDiv.style.display = 'block';
+        btn.disabled = true;
+        
+        try {
+            const samplePayload = document.getElementById('samplePayloadTextarea')?.value || 
+                                document.getElementById('payloadViewPre')?.textContent || '';
+            
+            if (!samplePayload.trim()) {
+                throw new Error('Нет образца данных для анализа');
+            }
+            
+            const response = await fetch(`/api/integrations/${integrationId}/ai/generate-mapping`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    sample_payload: samplePayload,
+                    target_system: targetSystem,
+                    description: `Генерация шаблона для ${targetSystem}`
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success' && data.template) {
+                // Переключаемся на режим шаблона
+                document.getElementById('modeTemplate').checked = true;
+                switchTransformMode();
+                
+                // Устанавливаем тип шаблона
+                if (data.template_type) {
+                    const templateTypeSelect = document.getElementById('templateType');
+                    if (templateTypeSelect) {
+                        templateTypeSelect.value = data.template_type;
+                        updateTemplateEditor();
+                    }
+                }
+                
+                // Загружаем шаблон
+                const templateTextarea = document.getElementById('outputTemplate');
+                if (templateTextarea) {
+                    // Подтверждение замены
+                    if (templateTextarea.value.trim() && !confirm('Заменить текущий шаблон? Несохраненные изменения будут потеряны.')) {
+                        return;
+                    }
+                    
+                    templateTextarea.value = data.template;
+                    templateTextarea.dispatchEvent(new Event('input'));
+                }
+                
+                window.showNotification('✅ Шаблон успешно сгенерирован с помощью AI!', 'success');
+                
+                // Показываем объяснение
+                if (data.explanation) {
+                    setTimeout(() => {
+                        window.showNotification(`💡 ${data.explanation}`, 'info');
+                    }, 2000);
+                }
+            } else {
+                throw new Error(data.error || 'Не удалось сгенерировать шаблон');
+            }
+        } catch (error) {
+            console.error('AI Template Error:', error);
+            window.showNotification(`❌ Ошибка генерации шаблона: ${error.message}`, 'error');
+        } finally {
+            statusDiv.style.display = 'none';
+            btn.disabled = false;
+        }
+    }
+    
+    // Применение AI маппинга к форме
+    function applyAIMapping(mapping, explanation, suggestions) {
+        const form = document.getElementById('mappingForm');
+        if (!form) return;
+        
+        // Очищаем текущие значения
+        const inputs = form.querySelectorAll('input[type="text"][data-path]');
+        inputs.forEach(input => {
+            input.value = '';
+        });
+        
+        // Снимаем все галочки "игнорировать"
+        const ignoreCheckboxes = form.querySelectorAll('input[type="checkbox"][name^="ignore_"]');
+        ignoreCheckboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        
+        // Применяем новый маппинг
+        Object.entries(mapping).forEach(([targetField, sourceField]) => {
+            const input = form.querySelector(`input[data-path="${sourceField}"]`);
+            if (input) {
+                input.value = targetField;
+                
+                // Подсвечиваем измененное поле
+                input.style.background = 'rgba(16, 185, 129, 0.1)';
+                input.style.borderColor = '#10b981';
+                
+                setTimeout(() => {
+                    input.style.background = '';
+                    input.style.borderColor = '';
+                }, 3000);
+            }
+        });
+        
+        // Обновляем мастер-чекбокс
+        updateMasterCheckbox();
+        
+        // Показываем предложения если есть
+        if (suggestions && suggestions.length > 0) {
+            setTimeout(() => {
+                const suggestionText = suggestions.map((s, i) => `${i + 1}. ${s}`).join('\n');
+                if (confirm(`💡 AI предлагает дополнительные улучшения:\n\n${suggestionText}\n\nПоказать подробности в консоли?`)) {
+                    console.log('AI Suggestions:', suggestions);
+                }
+            }, 3000);
+        }
+    }
 
     // Mobile Sidebar Toggle
     function toggleMobileSidebar() {
