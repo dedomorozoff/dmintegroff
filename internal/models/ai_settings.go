@@ -68,16 +68,15 @@ func GetActiveAISettings(db *gorm.DB) (*AISettings, error) {
 
 // SaveAISettings сохраняет настройки AI
 func SaveAISettings(db *gorm.DB, settings *AISettings) error {
-	// Деактивируем все существующие настройки
-	if err := db.Model(&AISettings{}).Where("is_active = ?", true).Update("is_active", false).Error; err != nil {
-		return err
-	}
-	
-	// Устанавливаем новые настройки как активные
+	// Устанавливаем настройки как активные
 	settings.IsActive = true
 	
 	// Если ID не указан, создаем новую запись
 	if settings.ID == 0 {
+		// Деактивируем все существующие настройки перед созданием новой
+		if err := db.Model(&AISettings{}).Where("is_active = ?", true).Update("is_active", false).Error; err != nil {
+			return err
+		}
 		return db.Create(settings).Error
 	}
 	

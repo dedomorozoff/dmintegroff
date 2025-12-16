@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"dmintegroff/internal/config"
 	"dmintegroff/internal/database"
 	"sync"
@@ -37,15 +38,21 @@ func getAIController() *AIController {
 
 // reloadAIController перезагружает AI контроллер с новой конфигурацией
 func reloadAIController() {
+	fmt.Printf("🔄 AI Wrapper: Начинаем перезагрузку AI контроллера...\n")
+	
 	aiMutex.Lock()
 	defer aiMutex.Unlock()
 	
 	// Принудительно сбрасываем контроллер
 	aiController = nil
+	fmt.Printf("🔄 AI Wrapper: Старый контроллер сброшен\n")
 	
 	// Загружаем новую конфигурацию и создаем новый контроллер
 	aiConfig := config.LoadAIConfig(database.DB)
 	aiController = NewAIController(aiConfig)
+	
+	fmt.Printf("✅ AI Wrapper: Новый контроллер создан с моделью: %s, max_tokens: %d\n", 
+		aiConfig.OpenRouterModel, aiConfig.MaxTokens)
 }
 
 // AIChat обрабатывает запросы к AI чату

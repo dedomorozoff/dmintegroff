@@ -210,8 +210,10 @@ func SaveAISettings(c *gin.Context) {
 		return
 	}
 
-	// Получаем существующие настройки для сохранения API ключей
+	// Получаем существующие настройки для обновления
 	existingSettings, err := models.GetActiveAISettings(database.DB)
+	var aiSettings *models.AISettings
+	
 	if err != nil && err != gorm.ErrRecordNotFound {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Ошибка получения существующих настроек",
@@ -220,30 +222,42 @@ func SaveAISettings(c *gin.Context) {
 		return
 	}
 
-	// Создаем объект настроек
-	aiSettings := &models.AISettings{
-		OpenRouterModel:  req.OpenRouterModel,
-		OpenRouterURL:    "https://openrouter.ai/api/v1", // фиксированный URL
-		OpenAIModel:      req.OpenAIModel,
-		MaxTokens:        req.MaxTokens,
-		Temperature:      req.Temperature,
-		RequestTimeout:   req.RequestTimeout,
-		LocalLLMEnabled:  false, // пока не поддерживается в UI
-		LocalLLMURL:      "http://localhost:11434",
+	// Если настройки существуют, обновляем их, иначе создаем новые
+	if existingSettings != nil {
+		// Обновляем существующие настройки
+		aiSettings = existingSettings
+		aiSettings.OpenRouterModel = req.OpenRouterModel
+		aiSettings.OpenRouterURL = "https://openrouter.ai/api/v1" // фиксированный URL
+		aiSettings.OpenAIModel = req.OpenAIModel
+		aiSettings.MaxTokens = req.MaxTokens
+		aiSettings.Temperature = req.Temperature
+		aiSettings.RequestTimeout = req.RequestTimeout
+		aiSettings.LocalLLMEnabled = false // пока не поддерживается в UI
+		aiSettings.LocalLLMURL = "http://localhost:11434"
+	} else {
+		// Создаем новые настройки
+		aiSettings = &models.AISettings{
+			OpenRouterModel:  req.OpenRouterModel,
+			OpenRouterURL:    "https://openrouter.ai/api/v1", // фиксированный URL
+			OpenAIModel:      req.OpenAIModel,
+			MaxTokens:        req.MaxTokens,
+			Temperature:      req.Temperature,
+			RequestTimeout:   req.RequestTimeout,
+			LocalLLMEnabled:  false, // пока не поддерживается в UI
+			LocalLLMURL:      "http://localhost:11434",
+		}
 	}
 
 	// Обрабатываем API ключи - если null, сохраняем существующие
 	if req.OpenRouterAPIKey != nil {
 		aiSettings.OpenRouterAPIKey = *req.OpenRouterAPIKey
-	} else if existingSettings != nil {
-		aiSettings.OpenRouterAPIKey = existingSettings.OpenRouterAPIKey
 	}
+	// Если existingSettings == nil, то OpenRouterAPIKey останется пустым
 
 	if req.OpenAIAPIKey != nil {
 		aiSettings.OpenAIAPIKey = *req.OpenAIAPIKey
-	} else if existingSettings != nil {
-		aiSettings.OpenAIAPIKey = existingSettings.OpenAIAPIKey
 	}
+	// Если existingSettings == nil, то OpenAIAPIKey останется пустым
 
 	// Сохраняем в базу данных
 	if err := models.SaveAISettings(database.DB, aiSettings); err != nil {
@@ -256,8 +270,7 @@ func SaveAISettings(c *gin.Context) {
 
 	// Перезагружаем AI контроллер с новыми настройками
 	fmt.Printf("SaveAISettings: Перезагружаем AI контроллер\n")
-	// TODO: Implement AI controller reload if needed
-	// reloadAIController()
+	reloadAIController()
 
 	fmt.Printf("🎉 SaveAISettings: ОТПРАВЛЯЕМ УСПЕШНЫЙ ОТВЕТ!\n")
 	c.JSON(http.StatusOK, gin.H{
