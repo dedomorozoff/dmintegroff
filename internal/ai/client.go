@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 	"dmintegroff/internal/logger"
 )
@@ -501,9 +502,12 @@ func (c *Client) AnalyzeData(ctx context.Context, data map[string]interface{}, f
 		}(),
 	}).Info("AI Client: Received analysis response")
 
+	// Очищаем ответ от markdown форматирования
+	cleanResponse := cleanMarkdownJSON(response)
+	
 	// Парсим JSON ответ
 	var analysis DataAnalysisResponse
-	if err := json.Unmarshal([]byte(response), &analysis); err != nil {
+	if err := json.Unmarshal([]byte(cleanResponse), &analysis); err != nil {
 		logger.Log.WithFields(map[string]interface{}{
 			"action": "ai_analyze_data",
 			"error": "json_parse_failed",
@@ -591,9 +595,12 @@ func (c *Client) GenerateMapping(ctx context.Context, req *MappingGenerationRequ
 		}(),
 	}).Info("AI Client: Received mapping response")
 
+	// Очищаем ответ от markdown форматирования
+	cleanResponse := cleanMarkdownJSON(response)
+	
 	// Парсим JSON ответ
 	var mapping GeneratedMapping
-	if err := json.Unmarshal([]byte(response), &mapping); err != nil {
+	if err := json.Unmarshal([]byte(cleanResponse), &mapping); err != nil {
 		logger.Log.WithFields(map[string]interface{}{
 			"action": "ai_generate_mapping",
 			"error": "json_parse_failed",
@@ -611,12 +618,13 @@ func (c *Client) GenerateMapping(ctx context.Context, req *MappingGenerationRequ
 		"target_url": mapping.TargetURL,
 		"method": mapping.Method,
 		"auth_type": mapping.AuthType,
-		"template_length": len(mapping.Template),
+		"template_length": len(mapping.GetTemplateString()),
 		"template_preview": func() string {
-			if len(mapping.Template) > 150 {
-				return mapping.Template[:150] + "..."
+			template := mapping.GetTemplateString()
+			if len(template) > 150 {
+				return template[:150] + "..."
 			}
-			return mapping.Template
+			return template
 		}(),
 		"duration": time.Since(startTime).String(),
 	}).Info("AI Client: Mapping generation completed successfully")
@@ -628,46 +636,46 @@ func (c *Client) GenerateMapping(ctx context.Context, req *MappingGenerationRequ
 func (c *Client) createDataAnalysisPrompt(data map[string]interface{}, format string) string {
 	dataJSON, _ := json.MarshalIndent(data, "", "  ")
 	
-	return fmt.Sprintf(`Проанализируй структуру данных и верни результат в JSON формате.
+	return fmt.Sprintf(`Analyze the data structure and return the result in JSON format.
 
-Данные (%s формат):
+Data (%s format):
 %s
 
-Верни JSON с полями:
-- fields: массив объектов с информацией о каждом поле (name, type, required, examples, description)
-- schema: строка с описанием схемы
-- suggestions: массив предложений маппинга полей
-- data_type: тип данных (order, user, event, notification, etc.)
-- confidence: уверенность анализа (0-1)
+Return JSON with fields:
+- fields: array of objects with information about each field (name, type, required, examples, description)
+- schema: string with schema description
+- suggestions: array of field mapping suggestions
+- data_type: data type (order, user, event, notification, etc.)
+- confidence: analysis confidence (0-1)
 
-Типы полей: string, number, boolean, email, phone, date, datetime, url, array, object`, format, string(dataJSON))
+Field types: string, number, boolean, email, phone, date, datetime, url, array, object`, format, string(dataJSON))
 }
 
 // createMappingPrompt создает промпт для генерации маппинга
 func (c *Client) createMappingPrompt(req *MappingGenerationRequest) string {
 	sourceJSON, _ := json.MarshalIndent(req.SourceData, "", "  ")
 	
-	return fmt.Sprintf(`Создай маппинг для интеграции webhook и верни результат в JSON формате.
+	return fmt.Sprintf(`Create a webhook integration mapping and return the result in JSON format.
 
-Задача: %s
-Целевой API: %s
-Промпт пользователя: %s
+Task: %s
+Target API: %s
+User prompt: %s
 
-Исходные данные:
+Source data:
 %s
 
-Верни JSON с полями:
-- type: тип маппинга (json_template, xml_template, custom)
-- template: шаблон трансформации с {{field}} плейсхолдерами
-- target_url: URL целевого API (если известен)
-- method: HTTP метод (POST, PUT, etc.)
-- headers: объект с заголовками
-- auth_type: тип аутентификации (bearer, oauth, basic, none)
-- auth_config: настройки аутентификации
-- description: описание маппинга
-- reasoning: объяснение логики
+Return JSON with fields:
+- type: mapping type (json_template, xml_template, custom)
+- template: transformation template with {{field}} placeholders
+- target_url: target API URL (if known)
+- method: HTTP method (POST, PUT, etc.)
+- headers: headers object
+- auth_type: authentication type (bearer, oauth, basic, none)
+- auth_config: authentication settings
+- description: mapping description
+- reasoning: logic explanation
 
-Для популярных API (Slack, Telegram, Discord) используй правильные URL и форматы.`, 
+For popular APIs (Slack, Telegram, Discord) use correct URLs and formats.`, 
 		req.Task, req.TargetAPI, req.UserPrompt, string(sourceJSON))
 }
 
@@ -853,4 +861,39 @@ func (c *Client) IsConfigured() bool {
 // GetCurrentProvider возвращает текущего провайдера AI
 func (c *Client) GetCurrentProvider() string {
 	return c.Config.GetCurrentProvider()
+}
+
+// cleanMarkdownJSON очищает JSON ответ от markdown форматирования
+func cleanMarkdownJSON(response string) string {
+	// Удаляем тройные кавычки и указание языка
+	response = strings.ReplaceAll(response, "```json", "")
+	response = strings.ReplaceAll(response, "```", "")
+	
+	// Удаляем комментарии в JSON (// комментарий)
+	lines := strings.Split(response, "\n")
+	var cleanLines []string
+	for _, line := range lines {
+		// Ищем комментарий в строке
+		if commentIndex := strings.Index(line, "//"); commentIndex != -1 {
+			// Проверяем, что комментарий не внутри строки
+			beforeComment := line[:commentIndex]
+			quoteCount := strings.Count(beforeComment, "\"") - strings.Count(beforeComment, "\\\"")
+			if quoteCount%2 == 0 { // четное количество кавычек = комментарий вне строки
+				line = strings.TrimSpace(beforeComment)
+				// Удаляем запятую в конце если она есть
+				if strings.HasSuffix(line, ",") && !strings.HasSuffix(strings.TrimSpace(line[:len(line)-1]), "}") && !strings.HasSuffix(strings.TrimSpace(line[:len(line)-1]), "]") {
+					// Оставляем запятую только если после неё должен быть следующий элемент
+				}
+			}
+		}
+		if strings.TrimSpace(line) != "" {
+			cleanLines = append(cleanLines, line)
+		}
+	}
+	response = strings.Join(cleanLines, "\n")
+	
+	// Удаляем лишние пробелы и переносы строк в начале и конце
+	response = strings.TrimSpace(response)
+	
+	return response
 }

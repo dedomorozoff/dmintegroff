@@ -532,7 +532,7 @@ func (g *Generator) CreateIntegration(ctx context.Context, req *CreateIntegratio
 		Name:         integrationName,
 		TargetURL:    mapping.TargetURL,
 		Method:       mapping.Method,
-		Template:     mapping.Template,
+		Template:     mapping.GetTemplateString(),
 		TemplateType: mapping.Type,
 		Mapping:      fieldMapping,
 		AuthType:     mapping.AuthType,

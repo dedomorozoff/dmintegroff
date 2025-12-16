@@ -1556,13 +1556,14 @@ func IntegrationAIGenerateMapping(c *gin.Context) {
 		"target_system":  req.TargetSystem,
 		"template_type":  mapping.Type,
 		"field_count":    len(fieldMapping),
-		"template_size":  len(mapping.Template),
+		"template_size":  len(mapping.GetTemplateString()),
 		"duration":       time.Since(startTime).String(),
 		"template_preview": func() string {
-			if len(mapping.Template) > 100 {
-				return mapping.Template[:100] + "..."
+			template := mapping.GetTemplateString()
+			if len(template) > 100 {
+				return template[:100] + "..."
 			}
-			return mapping.Template
+			return template
 		}(),
 	}).Info("AI Mapping Generation: Mapping generated successfully")
 
@@ -1570,7 +1571,7 @@ func IntegrationAIGenerateMapping(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status":       "success",
 		"mapping":      fieldMapping,
-		"template":     mapping.Template,
+		"template":     mapping.GetTemplateString(),
 		"template_type": mapping.Type,
 		"explanation":  mapping.Description,
 		"suggestions":  []string{

@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 )
@@ -41,7 +42,7 @@ type AISuggestion struct {
 // GeneratedMapping сгенерированный AI маппинг
 type GeneratedMapping struct {
 	Type         string                 `json:"type"`          // "json_template", "xml_template", "custom"
-	Template     string                 `json:"template"`      // шаблон трансформации
+	Template     interface{}            `json:"template"`      // шаблон трансформации (может быть строкой или объектом)
 	TargetURL    string                 `json:"target_url"`    // URL целевого API
 	Method       string                 `json:"method"`        // HTTP метод
 	Headers      map[string]string      `json:"headers"`       // заголовки
@@ -49,6 +50,22 @@ type GeneratedMapping struct {
 	AuthConfig   map[string]interface{} `json:"auth_config"`   // настройки аутентификации
 	Description  string                 `json:"description"`   // описание маппинга
 	Reasoning    string                 `json:"reasoning"`     // объяснение логики AI
+}
+
+// GetTemplateString возвращает шаблон как строку
+func (gm *GeneratedMapping) GetTemplateString() string {
+	switch v := gm.Template.(type) {
+	case string:
+		return v
+	case map[string]interface{}:
+		// Преобразуем объект в JSON строку
+		if jsonBytes, err := json.Marshal(v); err == nil {
+			return string(jsonBytes)
+		}
+		return "{}"
+	default:
+		return "{}"
+	}
 }
 
 // DataAnalysisRequest запрос на анализ данных

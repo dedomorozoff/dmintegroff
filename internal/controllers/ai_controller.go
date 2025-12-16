@@ -110,8 +110,9 @@ func (c *AIController) Chat(ctx *gin.Context) {
 		return
 	}
 
-	// Создаем контекст с таймаутом
-	requestCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	// Создаем контекст с таймаутом из конфигурации AI
+	timeoutDuration := time.Duration(c.client.Config.RequestTimeout) * time.Second
+	requestCtx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
 	defer cancel()
 
 	// Строим промпт
@@ -259,8 +260,9 @@ func (c *AIController) AnalyzeData(ctx *gin.Context) {
 		"ip": ctx.ClientIP(),
 	}).Info("AI Analyze Data: Data analysis request received")
 
-	// Создаем контекст с таймаутом
-	requestCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	// Создаем контекст с таймаутом из конфигурации AI
+	timeoutDuration := time.Duration(c.client.Config.RequestTimeout) * time.Second
+	requestCtx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
 	defer cancel()
 
 	// Анализируем данные
@@ -343,8 +345,9 @@ func (c *AIController) GenerateMapping(ctx *gin.Context) {
 		"ip": ctx.ClientIP(),
 	}).Info("AI Generate Mapping: Mapping generation request received")
 
-	// Создаем контекст с таймаутом
-	requestCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	// Создаем контекст с таймаутом из конфигурации AI
+	timeoutDuration := time.Duration(c.client.Config.RequestTimeout) * time.Second
+	requestCtx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
 	defer cancel()
 
 	// Генерируем маппинг
@@ -375,12 +378,13 @@ func (c *AIController) GenerateMapping(ctx *gin.Context) {
 		"target_url": mapping.TargetURL,
 		"method": mapping.Method,
 		"auth_type": mapping.AuthType,
-		"template_length": len(mapping.Template),
+		"template_length": len(mapping.GetTemplateString()),
 		"template_preview": func() string {
-			if len(mapping.Template) > 150 {
-				return mapping.Template[:150] + "..."
+			template := mapping.GetTemplateString()
+			if len(template) > 150 {
+				return template[:150] + "..."
 			}
-			return mapping.Template
+			return template
 		}(),
 		"duration": time.Since(startTime).String(),
 	}).Info("AI Generate Mapping: Mapping generation completed successfully")
@@ -420,7 +424,7 @@ func (c *AIController) ApplyMapping(ctx *gin.Context) {
 	// Применяем маппинг к интеграции
 	integration.TargetAPI = mapping.TargetURL
 	integration.HTTPMethod = mapping.Method
-	integration.OutputTemplate = mapping.Template
+	integration.OutputTemplate = mapping.GetTemplateString()
 	// Note: Integration model doesn't have Description field, using Name instead
 	if mapping.Description != "" {
 		integration.Name = mapping.Description
@@ -474,7 +478,9 @@ func (c *AIController) GetStatus(ctx *gin.Context) {
 
 	// Проверяем доступность AI
 	if c.client.IsConfigured() {
-		testCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		// Используем настроенный таймаут из конфигурации AI вместо хардкода
+		timeoutDuration := time.Duration(c.client.Config.RequestTimeout) * time.Second
+		testCtx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
 		defer cancel()
 		
 		testMessages := []ai.ChatMessage{
@@ -512,8 +518,9 @@ func (c *AIController) GetQuickSuggestions(ctx *gin.Context) {
 
 // GetModels возвращает список доступных AI моделей
 func (c *AIController) GetModels(ctx *gin.Context) {
-	// Создаем контекст с таймаутом
-	requestCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// Создаем контекст с таймаутом из конфигурации AI
+	timeoutDuration := time.Duration(c.client.Config.RequestTimeout) * time.Second
+	requestCtx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
 	defer cancel()
 
 	result := gin.H{
@@ -753,8 +760,9 @@ func (c *AIController) CreateIntegration(ctx *gin.Context) {
 		return
 	}
 
-	// Создаем контекст с таймаутом
-	requestCtx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	// Создаем контекст с увеличенным таймаутом для сложных операций создания интеграции
+	timeoutDuration := time.Duration(c.client.Config.RequestTimeout*2) * time.Second
+	requestCtx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
 	defer cancel()
 
 	logger.Log.WithFields(map[string]interface{}{
@@ -762,7 +770,7 @@ func (c *AIController) CreateIntegration(ctx *gin.Context) {
 		"user_id":  userID,
 		"username": username,
 		"provider": c.client.GetCurrentProvider(),
-		"timeout":  "60s",
+		"timeout":  timeoutDuration.String(),
 	}).Info("AI Integration Creation: Starting AI generation")
 
 	// Генерируем интеграцию с помощью AI

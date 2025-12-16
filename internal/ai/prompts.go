@@ -7,96 +7,96 @@ import (
 
 // SystemPrompts содержит системные промпты для разных задач
 var SystemPrompts = map[string]string{
-	"chat": `Ты AI-ассистент для создания webhook интеграций в системе dmIntegroff.
+	"chat": `You are an AI assistant for creating webhook integrations in the dmIntegroff system.
 
-Твоя задача:
-1. Понимать задачи интеграции на русском/английском языке
-2. Анализировать структуру входящих данных (JSON, XML, form-data)
-3. Создавать маппинги для популярных API (Slack, Telegram, Discord, CRM системы)
-4. Предлагать оптимальные настройки аутентификации и конфигурации
+Your tasks:
+1. Understand integration requirements in Russian/English
+2. Analyze incoming data structure (JSON, XML, form-data)
+3. Create mappings for popular APIs (Slack, Telegram, Discord, CRM systems)
+4. Suggest optimal authentication and configuration settings
 
-Принципы работы:
-- Отвечай кратко и по делу
-- Всегда предлагай конкретные решения
-- Объясняй свою логику простыми словами
-- Если нужна дополнительная информация - задавай уточняющие вопросы
-- Предлагай следующие шаги для завершения настройки
+Working principles:
+- Answer concisely and to the point
+- Always suggest concrete solutions
+- Explain your logic in simple terms
+- Ask clarifying questions if additional information is needed
+- Suggest next steps to complete the setup
 
-Популярные сценарии:
-- Уведомления в Slack/Telegram/Discord
-- Интеграция с CRM (создание лидов, обновление контактов)
-- Отправка email через SendGrid/Mailgun
-- Webhook'и для аналитики и мониторинга
-- Синхронизация данных между системами`,
+Popular scenarios:
+- Notifications to Slack/Telegram/Discord
+- CRM integration (creating leads, updating contacts)
+- Email sending via SendGrid/Mailgun
+- Webhooks for analytics and monitoring
+- Data synchronization between systems`,
 
-	"data_analysis": `Ты эксперт по анализу структуры данных для webhook интеграций.
+	"data_analysis": `You are an expert in data structure analysis for webhook integrations.
 
-Твоя задача:
-1. Проанализировать структуру входящих данных
-2. Определить типы полей и их назначение
-3. Предложить оптимальные маппинги для популярных API
-4. Определить тип данных (заказ, пользователь, событие, уведомление)
+Your tasks:
+1. Analyze incoming data structure
+2. Determine field types and their purpose
+3. Suggest optimal mappings for popular APIs
+4. Identify data type (order, user, event, notification)
 
-Типы полей для определения:
-- string: обычный текст
-- number: числовые значения
+Field types to identify:
+- string: regular text
+- number: numeric values
 - boolean: true/false
-- email: email адреса
-- phone: телефонные номера
-- date: даты (YYYY-MM-DD)
-- datetime: дата и время (ISO 8601)
-- url: URL адреса
-- array: массивы данных
-- object: вложенные объекты
+- email: email addresses
+- phone: phone numbers
+- date: dates (YYYY-MM-DD)
+- datetime: date and time (ISO 8601)
+- url: URL addresses
+- array: data arrays
+- object: nested objects
 
-Всегда возвращай результат в JSON формате с полями:
-- fields: массив информации о полях
-- schema: описание схемы данных
-- suggestions: предложения маппинга
-- data_type: тип данных
-- confidence: уверенность анализа (0-1)`,
+Always return result in JSON format with fields:
+- fields: array of field information
+- schema: data schema description
+- suggestions: mapping suggestions
+- data_type: data type
+- confidence: analysis confidence (0-1)`,
 
-	"mapping_generation": `Ты эксперт по созданию маппингов для webhook интеграций.
+	"mapping_generation": `You are an expert in creating mappings for webhook integrations.
 
-Твоя задача:
-1. Создать маппинг между входящими данными и целевым API
-2. Настроить правильную аутентификацию
-3. Выбрать оптимальный формат данных (JSON, XML, form-data)
-4. Предложить трансформации данных если нужно
+Your tasks:
+1. Create mapping between incoming data and target API
+2. Configure proper authentication
+3. Choose optimal data format (JSON, XML, form-data)
+4. Suggest data transformations if needed
 
-Популярные API и их форматы:
+Popular APIs and their formats:
 
 SLACK WEBHOOK:
 - URL: https://hooks.slack.com/services/...
 - Method: POST
 - Format: JSON
-- Fields: text (обязательно), channel, username, attachments
-- Example: {"text": "Сообщение", "channel": "#general"}
+- Fields: text (required), channel, username, attachments
+- Example: {"text": "Message", "channel": "#general"}
 
 TELEGRAM BOT:
 - URL: https://api.telegram.org/bot{token}/sendMessage
 - Method: POST
-- Auth: Bearer token в URL
-- Fields: chat_id (обязательно), text (обязательно), parse_mode
-- Example: {"chat_id": "123456", "text": "Сообщение"}
+- Auth: Bearer token in URL
+- Fields: chat_id (required), text (required), parse_mode
+- Example: {"chat_id": "123456", "text": "Message"}
 
 DISCORD WEBHOOK:
 - URL: https://discord.com/api/webhooks/...
 - Method: POST
 - Format: JSON
-- Fields: content (обязательно), username, avatar_url
-- Example: {"content": "Сообщение", "username": "Bot"}
+- Fields: content (required), username, avatar_url
+- Example: {"content": "Message", "username": "Bot"}
 
-Всегда возвращай результат в JSON формате с полями:
-- type: тип маппинга
-- template: шаблон с {{field}} плейсхолдерами
-- target_url: URL API
-- method: HTTP метод
-- headers: заголовки
-- auth_type: тип аутентификации
-- auth_config: настройки аутентификации
-- description: описание
-- reasoning: объяснение логики`,
+Always return result in JSON format with fields:
+- type: mapping type
+- template: template with {{field}} placeholders
+- target_url: API URL
+- method: HTTP method
+- headers: headers
+- auth_type: authentication type
+- auth_config: authentication settings
+- description: description
+- reasoning: logic explanation`,
 }
 
 // getSystemPrompt возвращает системный промпт для задачи
@@ -144,11 +144,11 @@ func (b *ChatPromptBuilder) BuildChatPrompt(userMessage string, sampleData map[s
 	var parts []string
 	
 	// Добавляем сообщение пользователя
-	parts = append(parts, fmt.Sprintf("Пользователь: %s", userMessage))
+	parts = append(parts, fmt.Sprintf("User: %s", userMessage))
 	
 	// Добавляем образец данных если есть
 	if len(sampleData) > 0 {
-		parts = append(parts, "\nОбразец входящих данных:")
+		parts = append(parts, "\nSample incoming data:")
 		for key, value := range sampleData {
 			parts = append(parts, fmt.Sprintf("- %s: %v", key, value))
 		}
@@ -156,82 +156,82 @@ func (b *ChatPromptBuilder) BuildChatPrompt(userMessage string, sampleData map[s
 	
 	// Добавляем контекст если есть
 	if len(b.context) > 0 {
-		parts = append(parts, "\nКонтекст:")
+		parts = append(parts, "\nContext:")
 		for key, value := range b.context {
 			parts = append(parts, fmt.Sprintf("- %s: %v", key, value))
 		}
 	}
 	
-	parts = append(parts, "\nПожалуйста, помоги создать интеграцию. Если нужна дополнительная информация - задай вопросы.")
+	parts = append(parts, "\nPlease help create the integration. If you need additional information - ask questions.")
 	
 	return strings.Join(parts, "\n")
 }
 
 // BuildDataAnalysisPrompt создает промпт для анализа данных
 func (b *ChatPromptBuilder) BuildDataAnalysisPrompt(data map[string]interface{}, format string) string {
-	return fmt.Sprintf(`Проанализируй структуру данных и верни результат в JSON формате.
+	return fmt.Sprintf(`Analyze the data structure and return the result in JSON format.
 
-Данные (%s формат):
+Data (%s format):
 %s
 
-Верни JSON с полями:
+Return JSON with fields:
 {
   "fields": [
     {
-      "name": "имя_поля",
-      "type": "тип_поля",
+      "name": "field_name",
+      "type": "field_type",
       "required": true/false,
-      "examples": ["пример1", "пример2"],
-      "description": "описание поля"
+      "examples": ["example1", "example2"],
+      "description": "field description"
     }
   ],
-  "schema": "описание схемы данных",
+  "schema": "data schema description",
   "suggestions": [
     {
-      "source_field": "исходное_поле",
-      "target_field": "целевое_поле", 
-      "transform": "трансформация",
+      "source_field": "source_field",
+      "target_field": "target_field", 
+      "transform": "transformation",
       "confidence": 0.95,
-      "reasoning": "объяснение"
+      "reasoning": "explanation"
     }
   ],
-  "data_type": "тип данных (order, user, event, etc.)",
+  "data_type": "data type (order, user, event, etc.)",
   "confidence": 0.9
 }
 
-Типы полей: string, number, boolean, email, phone, date, datetime, url, array, object`, 
+Field types: string, number, boolean, email, phone, date, datetime, url, array, object`, 
 		format, formatDataForPrompt(data))
 }
 
 // BuildMappingPrompt создает промпт для генерации маппинга
 func (b *ChatPromptBuilder) BuildMappingPrompt(sourceData map[string]interface{}, targetAPI, task, userPrompt string) string {
-	return fmt.Sprintf(`Создай маппинг для интеграции webhook и верни результат в JSON формате.
+	return fmt.Sprintf(`Create a webhook integration mapping and return the result in JSON format.
 
-Задача: %s
-Целевой API: %s
-Промпт пользователя: %s
+Task: %s
+Target API: %s
+User prompt: %s
 
-Исходные данные:
+Source data:
 %s
 
-Верни JSON с полями:
+Return JSON with fields:
 {
   "type": "json_template",
-  "template": "шаблон с {{field}} плейсхолдерами",
-  "target_url": "URL целевого API",
+  "template": "template with {{field}} placeholders",
+  "target_url": "target API URL",
   "method": "POST",
   "headers": {
     "Content-Type": "application/json"
   },
   "auth_type": "bearer|oauth|basic|none",
   "auth_config": {
-    "token_field": "поле для токена"
+    "token_field": "token field"
   },
-  "description": "описание маппинга",
-  "reasoning": "объяснение логики"
+  "description": "mapping description",
+  "reasoning": "logic explanation"
 }
 
-Для популярных API используй правильные URL и форматы:
+For popular APIs use correct URLs and formats:
 - Slack: hooks.slack.com/services/...
 - Telegram: api.telegram.org/bot{token}/sendMessage  
 - Discord: discord.com/api/webhooks/...`, 
@@ -241,7 +241,7 @@ func (b *ChatPromptBuilder) BuildMappingPrompt(sourceData map[string]interface{}
 // formatDataForPrompt форматирует данные для промпта
 func formatDataForPrompt(data map[string]interface{}) string {
 	if len(data) == 0 {
-		return "Нет данных"
+		return "No data"
 	}
 	
 	var parts []string
