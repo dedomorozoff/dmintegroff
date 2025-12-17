@@ -509,11 +509,7 @@
     }
 
     // System Statistics Functions (Admin Only)
-    {
-        {
-            if eq.role "admin"
-        }
-    }
+    {{ if eq .role "admin" }}
 
     function loadSystemStats() {
         fetch('/api/system-stats')
@@ -610,11 +606,7 @@
     document.addEventListener('DOMContentLoaded', function () {
         loadSystemStats();
     });
-    {
-        {
-            end
-        }
-    }
+    {{ end }}
 </script>
 
 <style>

@@ -1055,15 +1055,55 @@ func IntegrationTestMapping(c *gin.Context) {
 		return
 	}
 
+	// Parse optional request body for overrides
+	var req struct {
+		MappingConfig  string `json:"mapping_config"`
+		OutputTemplate string `json:"output_template"`
+		TemplateType   string `json:"template_type"`
+		SamplePayload  string `json:"sample_payload"`
+	}
+	
+	// Start with DB values
+	samplePayload := integration.SamplePayload
+	outputTemplate := integration.OutputTemplate
+	mappingConfig := integration.MappingConfig
+	templateType := integration.TemplateType
+	if templateType == "" {
+		templateType = "json"
+	}
+
+	// Override if provided in request
+	if err := c.ShouldBindJSON(&req); err == nil {
+		if req.SamplePayload != "" {
+			samplePayload = req.SamplePayload
+		}
+		
+		// If explicit template provided
+		if req.OutputTemplate != "" {
+			outputTemplate = req.OutputTemplate
+			mappingConfig = "" // Force template mode
+			if req.TemplateType != "" {
+				templateType = req.TemplateType
+			}
+		} else if req.MappingConfig != "" {
+			// If explicit mapping config provided
+			mappingConfig = req.MappingConfig
+			outputTemplate = "" // Force mapping mode
+		} else if req.TemplateType != "" && integration.OutputTemplate != "" {
+			// Only changing template type for existing template
+			templateType = req.TemplateType
+		}
+	}
+
 	// Check if sample payload exists
-	if integration.SamplePayload == "" {
+	if samplePayload == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "No sample payload available"})
 		return
 	}
 
 	// Parse sample payload
 	var payload map[string]interface{}
-	if err := json.Unmarshal([]byte(integration.SamplePayload), &payload); err != nil {
+	if err := json.Unmarshal([]byte(samplePayload), &payload); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid sample payload JSON"})
 		return
 	}
@@ -1073,16 +1113,12 @@ func IntegrationTestMapping(c *gin.Context) {
 	var transformedString string
 	var isStringTemplate bool
 
-	if integration.OutputTemplate != "" {
+	if outputTemplate != "" {
 		processor := utils.NewTemplateProcessor()
-		templateType := integration.TemplateType
-		if templateType == "" {
-			templateType = "json"
-		}
 
 		if templateType == "json" {
 			var err error
-			transformed, err = processor.ProcessTemplate(integration.OutputTemplate, payload)
+			transformed, err = processor.ProcessTemplate(outputTemplate, payload)
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
 					"error": "Template processing failed: " + err.Error(),
@@ -1091,7 +1127,7 @@ func IntegrationTestMapping(c *gin.Context) {
 			}
 		} else {
 			var err error
-			transformedString, err = processor.ProcessTemplateString(integration.OutputTemplate, payload)
+			transformedString, err = processor.ProcessTemplateString(outputTemplate, payload)
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
 					"error": "Template processing failed: " + err.Error(),
@@ -1100,9 +1136,9 @@ func IntegrationTestMapping(c *gin.Context) {
 			}
 			isStringTemplate = true
 		}
-	} else if integration.MappingConfig != "" {
+	} else if mappingConfig != "" {
 		var mapping map[string]string
-		if err := json.Unmarshal([]byte(integration.MappingConfig), &mapping); err != nil {
+		if err := json.Unmarshal([]byte(mappingConfig), &mapping); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid mapping config"})
 			return
 		}
@@ -1134,7 +1170,7 @@ func IntegrationTestMapping(c *gin.Context) {
 		"output":      transformedOutput,
 		"target_api":  integration.TargetAPI,
 		"http_method": integration.HTTPMethod,
-		"template_type": integration.TemplateType,
+		"template_type": templateType,
 	})
 }
 

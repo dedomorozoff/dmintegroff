@@ -823,7 +823,7 @@ class SidebarSubmenuManager {
             const submenuItems = document.querySelectorAll('.sidebar-submenu');
             
             submenuItems.forEach(item => {
-                const mainLink = item.querySelector('> a');
+                const mainLink = item.querySelector(':scope > a');
                 const submenu = item.querySelector('.submenu');
                 
                 if (mainLink && submenu) {

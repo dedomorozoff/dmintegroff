@@ -27,12 +27,17 @@
         <a href="/projects/create" class="btn btn-success" style="margin-top: 1rem;">➕ Создать проект</a>
     </div>
     {{ else }}
-    <div class="info-box">
-        <strong><i data-lucide="sparkles"></i> Как это работает:</strong><br><br>
-        1. Опишите что нужно сделать (например: "Отправлять уведомления в Slack при новых заказах")<br>
-        2. Предоставьте образец данных (опционально)<br>
-        3. AI создаст готовую интеграцию с настроенным маппингом<br>
-        4. Проверьте и активируйте интеграцию
+    <div class="info-box ai-how-it-works">
+        <div class="info-box-header">
+            <i data-lucide="sparkles"></i>
+            <strong>Как это работает:</strong>
+        </div>
+        <ol class="info-box-steps">
+            <li>Опишите что нужно сделать (например: "Отправлять уведомления в Slack при новых заказах")</li>
+            <li>Предоставьте образец данных (опционально)</li>
+            <li>AI создаст готовую интеграцию с настроенным маппингом</li>
+            <li>Проверьте и активируйте интеграцию</li>
+        </ol>
     </div>
     {{ end }}
 
@@ -691,6 +696,79 @@
         margin-bottom: 1rem;
     }
 
+    /* AI How It Works Styling */
+    .ai-how-it-works {
+        background: linear-gradient(135deg, 
+            color-mix(in srgb, var(--primary) 8%, transparent), 
+            color-mix(in srgb, var(--accent) 5%, transparent));
+        border-left: 4px solid var(--primary);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .ai-how-it-works::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 60px;
+        height: 60px;
+        background: color-mix(in srgb, var(--primary) 15%, transparent);
+        border-radius: 50%;
+        transform: translate(20px, -20px);
+        opacity: 0.3;
+    }
+
+    .info-box-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        color: var(--primary);
+        font-size: 1rem;
+    }
+
+    .info-box-header i {
+        width: 20px;
+        height: 20px;
+    }
+
+    .info-box-steps {
+        margin: 0;
+        padding-left: 1.5rem;
+        list-style: none;
+        counter-reset: step-counter;
+    }
+
+    .info-box-steps li {
+        counter-increment: step-counter;
+        margin-bottom: 0.75rem;
+        padding-left: 0.5rem;
+        position: relative;
+        line-height: 1.5;
+    }
+
+    .info-box-steps li:last-child {
+        margin-bottom: 0;
+    }
+
+    .info-box-steps li::before {
+        content: counter(step-counter);
+        position: absolute;
+        left: -1.5rem;
+        top: 0;
+        width: 1.25rem;
+        height: 1.25rem;
+        background: var(--primary);
+        color: var(--primary-foreground);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
     @media (max-width: 768px) {
         .ai-processing-steps {
             flex-direction: column;
@@ -703,6 +781,14 @@
 
         .ai-quick-scenarios {
             justify-content: center;
+        }
+
+        .info-box-steps {
+            padding-left: 2rem;
+        }
+
+        .info-box-steps li::before {
+            left: -2rem;
         }
     }
 </style>

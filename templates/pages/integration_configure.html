@@ -74,8 +74,7 @@
     <div
         style="margin-top: 1rem; background: #6b7280; color: white; padding: 0.75rem 1.5rem; border-radius: 8px; display: flex; align-items: center; gap: 0.5rem;">
         <i data-lucide="pause-circle"></i>
-        <span><strong>Ожидание остановлено.</strong> Вы можете настроить маппинг вручную {{ if
-            .integration.SamplePayload }}с полученными данными{{ end }} и активировать интеграцию.</span>
+        <span><strong>Ожидание остановлено.</strong> Вы можете настроить маппинг вручную {{ if .integration.SamplePayload }}с полученными данными{{ end }} и активировать интеграцию.</span>
     </div>
     {{ end }}
     </div>
@@ -239,8 +238,7 @@
                                     <div class="mobile-field-info show-on-mobile">
                                         <span class="field-type">{{ $field.Type }}</span>
                                         <span class="field-value">
-                                            {{ if eq $field.Type "string" }}"{{ $field.Value }}"{{ else }}{{
-                                            $field.Value }}{{ end }}
+                                            {{ if eq $field.Type "string" }}"{{ $field.Value }}"{{ else }}{{ $field.Value }}{{ end }}
                                         </span>
                                     </div>
                                 </td>
@@ -249,8 +247,7 @@
                                 </td>
                                 <td class="hide-on-mobile">
                                     <span class="field-value">
-                                        {{ if eq $field.Type "string" }}"{{ $field.Value }}"{{ else }}{{ $field.Value
-                                        }}{{ end }}
+                                        {{ if eq $field.Type "string" }}"{{ $field.Value }}"{{ else }}{{ $field.Value }}{{ end }}
                                     </span>
                                 </td>
                                 <td class="field-mapping">
@@ -301,8 +298,7 @@
                             data-lucide="file-text"></i> Шаблон
                         <select name="template_type" id="templateType" onchange="updateTemplateEditor()"
                             style="padding: 0.5rem; border-radius: 6px; background: #1a1f2e; color: #abb2bf; border: 1px solid #4a5568;">
-                            <option value="json" {{ if or (not .integration.TemplateType) (eq
-                                .integration.TemplateType "json" ) }}selected{{ end }}>JSON</option>
+                            <option value="json" {{ if or (not .integration.TemplateType) (eq .integration.TemplateType "json" ) }}selected{{ end }}>JSON</option>
                             <option value="xml" {{ if eq .integration.TemplateType "xml" }}selected{{ end }}>XML
                             </option>
                             <option value="text" {{ if eq .integration.TemplateType "text" }}selected{{ end }}>Plain
@@ -373,8 +369,7 @@
                                 </td>
                                 <td style="padding: 0.25rem; color: #c678dd;">{{ $field.Type }}</td>
                                 <td style="padding: 0.25rem; color: #98c379;">
-                                    {{ if eq $field.Type "string" }}"{{ $field.Value }}"{{ else }}{{ $field.Value }}{{
-                                    end }}
+                                    {{ if eq $field.Type "string" }}"{{ $field.Value }}"{{ else }}{{ $field.Value }}{{ end }}
                                 </td>
                                 <td style="padding: 0.25rem; text-align: center;">
                                     <button type="button"
@@ -1479,6 +1474,7 @@ Email: {{`{ { user.email } } `}}
 
         // Определяем начальный режим на основе наличия output_template
         const hasOutputTemplate = {{ if .integration.OutputTemplate }}true{{ else }}false{{ end }};
+
     if (hasOutputTemplate) {
         document.getElementById('modeTemplate').checked = true;
         switchTransformMode();
@@ -1588,12 +1584,55 @@ Email: {{`{ { user.email } } `}}
         `;
         modal.style.display = 'flex';
 
+        // Prepare request body with current UI state
+        const requestBody = {};
+
+        // Add sample payload if available (it might be edited)
+        const payloadTextarea = document.getElementById('samplePayloadTextarea');
+        if (payloadTextarea && payloadTextarea.value.trim()) {
+            requestBody.sample_payload = payloadTextarea.value.trim();
+        }
+
+        const mappingMode = document.getElementById('modeMapping').checked;
+
+        if (mappingMode) {
+            // Collect Mapping Config
+            const mapping = {};
+            const inputs = document.querySelectorAll('input[type="text"][data-path]');
+
+            inputs.forEach(input => {
+                const fieldPath = input.getAttribute('data-path');
+                const newName = input.value.trim();
+                // Checkbox name needs escaping if path contains special chars, but querySelector works better with CSS.escape potentially
+                // or just use name selector directly 
+                // Using generic selector might be safer:
+                // find checkbox with data-path attribute corresponding to this field
+                const ignoreCheckbox = document.querySelector(`input[type="checkbox"][data-path="${fieldPath.replace(/"/g, '\\"')}"]`);
+
+                if (ignoreCheckbox && !ignoreCheckbox.checked && newName) {
+                    mapping[newName] = fieldPath;
+                }
+            });
+            requestBody.mapping_config = JSON.stringify(mapping);
+        } else {
+            // Collect Template
+            const outputTemplate = document.getElementById('outputTemplate');
+            if (outputTemplate) {
+                requestBody.output_template = outputTemplate.value;
+            }
+            const templateType = document.getElementById('templateType');
+            if (templateType) {
+                requestBody.template_type = templateType.value;
+            }
+        }
+
         // Send test request
         fetch('/api/integrations/{{ .integration.ID }}/test-mapping', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify(requestBody)
         })
             .then(response => response.json())
             .then(data => {
