@@ -109,6 +109,8 @@ func (g *Generator) generateTemplateForAPI(api PopularAPI, sourceData map[string
 		return g.generateTelegramTemplate(sourceData, analysis)
 	case "discord":
 		return g.generateDiscordTemplate(sourceData, analysis)
+	case "amocrm":
+		return g.generateAmoCRMTemplate(sourceData, analysis)
 	default:
 		return g.generateGenericTemplate(sourceData, analysis)
 	}
@@ -245,6 +247,139 @@ func (g *Generator) generateDiscordTemplate(sourceData map[string]interface{}, a
 	
 	templateJSON, _ := json.MarshalIndent(template, "", "  ")
 	return string(templateJSON), "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN"
+}
+
+// generateAmoCRMTemplate генерирует шаблон для AmoCRM
+func (g *Generator) generateAmoCRMTemplate(sourceData map[string]interface{}, analysis *DataAnalysisResponse) (string, string) {
+	// Определяем тип операции - создание контакта или лида
+	isLead := false
+	for _, field := range analysis.Fields {
+		name := strings.ToLower(field.Name)
+		if strings.Contains(name, "amount") || strings.Contains(name, "price") || strings.Contains(name, "sum") {
+			isLead = true
+			break
+		}
+	}
+	
+	// Находим основные поля
+	nameField := g.findBestField(analysis.Fields, []string{"name", "client", "customer", "first_name", "full_name"})
+	phoneField := g.findBestField(analysis.Fields, []string{"phone", "tel", "telephone", "mobile"})
+	emailField := g.findBestField(analysis.Fields, []string{"email", "mail", "e_mail"})
+	
+	if nameField == "" {
+		nameField = g.getFirstStringField(analysis.Fields)
+	}
+	
+	if isLead {
+		// Генерируем шаблон для создания лида
+		amountField := g.findBestField(analysis.Fields, []string{"amount", "price", "sum", "total", "cost"})
+		sourceField := g.findBestField(analysis.Fields, []string{"source", "utm_source", "channel", "origin"})
+		
+		template := []map[string]interface{}{
+			{
+				"name": fmt.Sprintf("Лид из dmIntegroff - {{%s}}", nameField),
+				"price": func() interface{} {
+					if amountField != "" {
+						return fmt.Sprintf("{{%s}}", amountField)
+					}
+					return 0
+				}(),
+				"custom_fields_values": []map[string]interface{}{
+					{
+						"field_id": 123458, // ID поля "Описание" (нужно заменить на реальный)
+						"values": []map[string]interface{}{
+							{
+								"value": func() string {
+									if sourceField != "" {
+										return fmt.Sprintf("Источник: {{%s}}", sourceField)
+									}
+									return "Лид создан через dmIntegroff"
+								}(),
+							},
+						},
+					},
+				},
+				"_embedded": map[string]interface{}{
+					"contacts": []map[string]interface{}{
+						{
+							"name": fmt.Sprintf("{{%s}}", nameField),
+							"custom_fields_values": func() []map[string]interface{} {
+								var fields []map[string]interface{}
+								
+								if phoneField != "" {
+									fields = append(fields, map[string]interface{}{
+										"field_id": 123456, // ID поля "Телефон" (нужно заменить на реальный)
+										"values": []map[string]interface{}{
+											{
+												"value":     fmt.Sprintf("{{%s}}", phoneField),
+												"enum_code": "WORK",
+											},
+										},
+									})
+								}
+								
+								if emailField != "" {
+									fields = append(fields, map[string]interface{}{
+										"field_id": 123457, // ID поля "Email" (нужно заменить на реальный)
+										"values": []map[string]interface{}{
+											{
+												"value":     fmt.Sprintf("{{%s}}", emailField),
+												"enum_code": "WORK",
+											},
+										},
+									})
+								}
+								
+								return fields
+							}(),
+						},
+					},
+				},
+			},
+		}
+		
+		templateJSON, _ := json.MarshalIndent(template, "", "  ")
+		return string(templateJSON), "https://SUBDOMAIN.amocrm.ru/api/v4/leads"
+	} else {
+		// Генерируем шаблон для создания контакта
+		template := []map[string]interface{}{
+			{
+				"name": fmt.Sprintf("{{%s}}", nameField),
+				"custom_fields_values": func() []map[string]interface{} {
+					var fields []map[string]interface{}
+					
+					if phoneField != "" {
+						fields = append(fields, map[string]interface{}{
+							"field_id": 123456, // ID поля "Телефон" (нужно заменить на реальный)
+							"values": []map[string]interface{}{
+								{
+									"value":     fmt.Sprintf("{{%s}}", phoneField),
+									"enum_code": "WORK",
+								},
+							},
+						})
+					}
+					
+					if emailField != "" {
+						fields = append(fields, map[string]interface{}{
+							"field_id": 123457, // ID поля "Email" (нужно заменить на реальный)
+							"values": []map[string]interface{}{
+								{
+									"value":     fmt.Sprintf("{{%s}}", emailField),
+									"enum_code": "WORK",
+								},
+							},
+						})
+					}
+					
+					return fields
+				}(),
+			},
+		}
+		
+		templateJSON, _ := json.MarshalIndent(template, "", "  ")
+		return string(templateJSON), "https://SUBDOMAIN.amocrm.ru/api/v4/contacts"
+	}
 }
 
 // generateGenericTemplate генерирует общий шаблон
@@ -474,7 +609,10 @@ func (g *Generator) CreateIntegration(ctx context.Context, req *CreateIntegratio
 	} else if strings.Contains(description, "discord") {
 		integrationName = "Discord webhook"
 		targetSystem = "discord"
-	} else if strings.Contains(description, "salesforce") || strings.Contains(description, "crm") {
+	} else if strings.Contains(description, "amocrm") || strings.Contains(description, "амо") {
+		integrationName = "AmoCRM интеграция"
+		targetSystem = "amocrm"
+	} else if strings.Contains(description, "salesforce") {
 		integrationName = "Salesforce CRM"
 		targetSystem = "salesforce"
 	} else if strings.Contains(description, "email") || strings.Contains(description, "mail") {
@@ -598,6 +736,12 @@ func (g *Generator) generateNextStepsForIntegration(targetSystem, authType strin
 		steps = append(steps, "3. Настройте адрес отправителя")
 		steps = append(steps, "4. Протестируйте отправку email")
 		steps = append(steps, "5. Активируйте интеграцию")
+	case "amocrm":
+		steps = append(steps, "1. Получите Access Token в настройках AmoCRM")
+		steps = append(steps, "2. Замените SUBDOMAIN на ваш поддомен AmoCRM")
+		steps = append(steps, "3. Замените field_id на реальные ID полей из вашей AmoCRM")
+		steps = append(steps, "4. Протестируйте создание контакта/лида")
+		steps = append(steps, "5. Активируйте интеграцию")
 	default:
 		steps = append(steps, "1. Замените URL на реальный API endpoint")
 		steps = append(steps, "2. Настройте необходимые заголовки авторизации")
@@ -627,6 +771,9 @@ func (g *Generator) generateExplanation(targetSystem, description string) string
 	case "email":
 		return "Создана интеграция для отправки email уведомлений через SendGrid API. " +
 			"Поддерживается отправка текстовых и HTML сообщений."
+	case "amocrm":
+		return "Создана интеграция для работы с AmoCRM API. " +
+			"Данные будут автоматически преобразованы в формат AmoCRM для создания контактов или лидов."
 	default:
 		return fmt.Sprintf("Создана пользовательская интеграция на основе описания: %s. " +
 			"Данные будут отправляться в JSON формате на указанный endpoint.", description)

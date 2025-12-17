@@ -230,6 +230,100 @@ func GetPopularAPIs() []PopularAPI {
 			},
 		},
 		{
+			Name:        "AmoCRM",
+			BaseURL:     "https://SUBDOMAIN.amocrm.ru/api/v4",
+			AuthType:    "bearer",
+			Description: "Интеграция с AmoCRM для создания лидов и контактов",
+			CommonFields: map[string]string{
+				"name":  "Имя контакта",
+				"phone": "Телефон",
+				"email": "Email адрес",
+			},
+			Templates: []APITemplate{
+				{
+					Name:    "Создание контакта",
+					Purpose: "Создание нового контакта в AmoCRM",
+					Method:  "POST",
+					Path:    "/contacts",
+					Headers: map[string]string{
+						"Content-Type":  "application/json",
+						"Authorization": "Bearer YOUR_ACCESS_TOKEN",
+					},
+					BodyTemplate: `[
+  {
+    "name": "{{.name}}",
+    "custom_fields_values": [
+      {
+        "field_id": 123456,
+        "values": [
+          {
+            "value": "{{.phone}}",
+            "enum_code": "WORK"
+          }
+        ]
+      },
+      {
+        "field_id": 123457,
+        "values": [
+          {
+            "value": "{{.email}}",
+            "enum_code": "WORK"
+          }
+        ]
+      }
+    ]
+  }
+]`,
+					RequiredFields: []string{"name"},
+				},
+				{
+					Name:    "Создание лида",
+					Purpose: "Создание нового лида в AmoCRM",
+					Method:  "POST",
+					Path:    "/leads",
+					Headers: map[string]string{
+						"Content-Type":  "application/json",
+						"Authorization": "Bearer YOUR_ACCESS_TOKEN",
+					},
+					BodyTemplate: `[
+  {
+    "name": "Лид из {{.source}}",
+    "price": {{.amount}},
+    "custom_fields_values": [
+      {
+        "field_id": 123458,
+        "values": [
+          {
+            "value": "{{.description}}"
+          }
+        ]
+      }
+    ],
+    "_embedded": {
+      "contacts": [
+        {
+          "name": "{{.client_name}}",
+          "custom_fields_values": [
+            {
+              "field_id": 123456,
+              "values": [
+                {
+                  "value": "{{.phone}}",
+                  "enum_code": "WORK"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+]`,
+					RequiredFields: []string{"client_name", "source"},
+				},
+			},
+		},
+		{
 			Name:        "Generic REST API",
 			BaseURL:     "https://api.example.com",
 			AuthType:    "bearer",
