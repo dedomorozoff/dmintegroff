@@ -3,6 +3,16 @@
 
 <!-- JSON Highlight Styles -->
 <link rel="stylesheet" href="/static/css/json-highlight.css">
+<style>
+    @keyframes spin {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
+</style>
 
 {{ template "partials/sidebar.html" . }}
 
@@ -58,28 +68,36 @@
                             </select>
                         </div>
 
-                        <!-- Популярные шаблоны -->
-                        <div class="form-group" style="padding: 1rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #10b981;">
+                        <!-- AI Генерация шаблона -->
+                        {{ if .integration.SamplePayload }}
+                        <div class="form-group" style="padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; border-left: 4px solid #667eea;">
                             <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
                                 <div>
-                                    <strong style="display: flex; align-items: center; gap: 0.5rem;">
-                                        <i data-lucide="star"></i> Популярные шаблоны
+                                    <strong style="display: flex; align-items: center; gap: 0.5rem; color: white;">
+                                        <i data-lucide="bot"></i> AI Генерация шаблона
                                     </strong>
-                                    <small style="color: #6c757d;">
-                                        Выберите готовый шаблон для популярных систем
+                                    <small style="color: rgba(255,255,255,0.9);">
+                                        Автоматически создайте шаблон для целевой системы
                                     </small>
                                 </div>
-                                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <select id="popularTemplates" class="form-control" style="min-width: 200px;">
-                                        <option value="">Выберите шаблон...</option>
-                                        <!-- Опции будут загружены через JavaScript -->
-                                    </select>
-                                    <button type="button" id="loadTemplateBtn" class="btn btn-success btn-sm" onclick="loadPopularTemplate()" disabled>
-                                        <i data-lucide="download"></i> Загрузить
+                                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; flex: 1;">
+                                    <input type="text" id="aiTemplateTargetSystem" placeholder="Например: Salesforce CRM, Slack, Telegram..." 
+                                           style="padding: 0.5rem; border-radius: 6px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3); flex: 1; min-width: 200px;"
+                                           onkeypress="if(event.key==='Enter'){event.preventDefault();generateAITemplate();}">
+                                    <button type="button" id="generateAITemplateBtn" class="btn btn-success btn-sm" onclick="generateAITemplate()" 
+                                            style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); white-space: nowrap;">
+                                        <i data-lucide="sparkles"></i> Сгенерировать
                                     </button>
                                 </div>
                             </div>
+                            <div id="aiTemplateStatus" style="display: none;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; color: rgba(255,255,255,0.9);">
+                                    <div style="width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top: 2px solid white; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                                    <span>Генерирую шаблон с помощью AI...</span>
+                                </div>
+                            </div>
                         </div>
+                        {{ end }}
 
                         <div class="form-group">
                             <label for="output_template">Шаблон вывода</label>
@@ -167,6 +185,49 @@
     </script>
 
     <script>
+    function generateAITemplate() {
+        const targetSystem = document.getElementById('aiTemplateTargetSystem').value;
+        if (!targetSystem || !targetSystem.trim()) {
+            alert('Укажите целевую систему');
+            return;
+        }
+
+        const statusDiv = document.getElementById('aiTemplateStatus');
+        const generateBtn = document.getElementById('generateAITemplateBtn');
+        
+        statusDiv.style.display = 'block';
+        generateBtn.disabled = true;
+
+        fetch('/api/ai/generate-template', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                integration_id: {{ .integration.ID }},
+                output_id: {{ .output.ID }},
+                target_system: targetSystem,
+                template_type: document.getElementById('template_type').value
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success' && data.template) {
+                document.getElementById('output_template').value = data.template;
+                alert('✅ Шаблон успешно сгенерирован!');
+            } else {
+                alert('❌ Ошибка: ' + (data.error || 'Не удалось сгенерировать шаблон'));
+            }
+        })
+        .catch(error => {
+            alert('❌ Ошибка: ' + error.message);
+        })
+        .finally(() => {
+            statusDiv.style.display = 'none';
+            generateBtn.disabled = false;
+        });
+    }
+
     function toggleMappingType() {
         const mappingType = document.querySelector('input[name="mapping_type"]:checked').value;
         if (mappingType === 'template') {

@@ -632,6 +632,39 @@ func (c *Client) GenerateMapping(ctx context.Context, req *MappingGenerationRequ
 	return &mapping, nil
 }
 
+// GenerateTemplate генерирует только шаблон
+func (c *Client) GenerateTemplate(ctx context.Context, req *MappingGenerationRequest) (*GeneratedMapping, error) {
+	startTime := time.Now()
+	
+	prompt := c.createTemplatePrompt(req)
+	
+	messages := []ChatMessage{
+		{Role: "system", Content: getSystemPrompt("template_generation")},
+		{Role: "user", Content: prompt},
+	}
+
+	response, err := c.Chat(ctx, messages, true)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generated template: %w", err)
+	}
+
+	cleanResponse := cleanMarkdownJSON(response)
+	
+	var mapping GeneratedMapping
+	if err := json.Unmarshal([]byte(cleanResponse), &mapping); err != nil {
+		return nil, fmt.Errorf("failed to parse template response: %w", err)
+	}
+
+	logger.Log.WithFields(map[string]interface{}{
+		"action": "ai_generate_template_success",
+		"template_length": len(mapping.GetTemplateString()),
+		"request_format": req.RequestedFormat,
+		"duration": time.Since(startTime).String(),
+	}).Info("AI Client: Template generation completed successfully")
+
+	return &mapping, nil
+}
+
 // createDataAnalysisPrompt создает промпт для анализа данных
 func (c *Client) createDataAnalysisPrompt(data map[string]interface{}, format string) string {
 	dataJSON, _ := json.MarshalIndent(data, "", "  ")
@@ -677,6 +710,27 @@ Return JSON with fields:
 
 For popular APIs (Slack, Telegram, Discord) use correct URLs and formats.`, 
 		req.Task, req.TargetAPI, req.UserPrompt, string(sourceJSON))
+}
+
+// createTemplatePrompt создает промпт для генерации шаблона
+func (c *Client) createTemplatePrompt(req *MappingGenerationRequest) string {
+	sourceJSON, _ := json.MarshalIndent(req.SourceData, "", "  ")
+	
+	formatInstruction := ""
+	if req.RequestedFormat != "" {
+		formatInstruction = fmt.Sprintf("User explicitly confirms the desired format: %s", req.RequestedFormat)
+	}
+
+	return fmt.Sprintf(`Create a data template based on user request.
+
+User request: %s
+%s
+
+Source data structure (available variables):
+%s
+
+Generate a template that satisfies the user request using {{variable}} syntax for placeholders.`, 
+		req.UserPrompt, formatInstruction, string(sourceJSON))
 }
 
 // supportsJSONMode проверяет, поддерживает ли модель JSON режим

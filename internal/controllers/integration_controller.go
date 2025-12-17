@@ -1459,9 +1459,11 @@ func IntegrationAIGenerateMapping(c *gin.Context) {
 
 	// Парсим запрос
 	var req struct {
-		SamplePayload string `json:"sample_payload" binding:"required"`
-		TargetSystem  string `json:"target_system" binding:"required"`
-		Description   string `json:"description"`
+		SamplePayload   string `json:"sample_payload" binding:"required"`
+		TargetSystem    string `json:"target_system" binding:"required"`
+		Description     string `json:"description"`
+		Mode            string `json:"mode"`
+		RequestedFormat string `json:"requested_format"`
 	}
 	
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -1482,13 +1484,15 @@ func IntegrationAIGenerateMapping(c *gin.Context) {
 	}
 
 	logger.Log.WithFields(map[string]interface{}{
-		"action":         "ai_generate_mapping",
-		"user_id":        userID,
-		"username":       username,
-		"integration_id": integrationID,
-		"target_system":  req.TargetSystem,
-		"description":    req.Description,
-		"sample_size":    len(req.SamplePayload),
+		"action":           "ai_generate_mapping",
+		"user_id":          userID,
+		"username":         username,
+		"integration_id":   integrationID,
+		"target_system":    req.TargetSystem,
+		"description":      req.Description,
+		"mode":             req.Mode,
+		"requested_format": req.RequestedFormat,
+		"sample_size":      len(req.SamplePayload),
 	}).Info("AI Mapping Generation: Processing mapping generation request")
 
 	// Используем AI wrapper для генерации маппинга
@@ -1515,15 +1519,23 @@ func IntegrationAIGenerateMapping(c *gin.Context) {
 	
 	// Создаем запрос для генерации маппинга
 	mappingReq := &ai.MappingGenerationRequest{
-		SourceData: sampleData,
-		TargetAPI:  req.TargetSystem,
-		Task:       req.Description,
-		UserPrompt: req.Description,
+		SourceData:      sampleData,
+		TargetAPI:       req.TargetSystem,
+		Task:            req.Description,
+		UserPrompt:      req.Description,
+		RequestedFormat: req.RequestedFormat,
 	}
 
-	// Генерируем маппинг
-	mapping, err := aiController.generator.GenerateMapping(ctx, mappingReq)
-	if err != nil {
+	var mapping *ai.GeneratedMapping
+	var errGen error
+
+	if req.Mode == "template_only" {
+		mapping, errGen = aiController.generator.GenerateTemplate(ctx, mappingReq)
+	} else {
+		mapping, errGen = aiController.generator.GenerateMapping(ctx, mappingReq)
+	}
+
+	if errGen != nil {
 		logger.Log.WithFields(map[string]interface{}{
 			"action":         "ai_generate_mapping",
 			"user_id":        userID,
@@ -1531,13 +1543,13 @@ func IntegrationAIGenerateMapping(c *gin.Context) {
 			"integration_id": integrationID,
 			"target_system":  req.TargetSystem,
 			"error":          "mapping_generation_failed",
-			"details":        err.Error(),
+			"details":        errGen.Error(),
 			"duration":       time.Since(startTime).String(),
 		}).Error("AI Mapping Generation: Failed to generate mapping")
 		
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status": "error",
-			"error":  "Ошибка генерации маппинга: " + err.Error(),
+			"error":  "Ошибка генерации маппинга: " + errGen.Error(),
 		})
 		return
 	}

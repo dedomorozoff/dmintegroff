@@ -104,10 +104,11 @@ type FieldMapping struct {
 
 // MappingGenerationRequest запрос на генерацию маппинга
 type MappingGenerationRequest struct {
-	SourceData map[string]interface{} `json:"source_data"` // исходные данные
-	TargetAPI  string                 `json:"target_api"`  // целевой API
-	Task       string                 `json:"task"`        // описание задачи
-	UserPrompt string                 `json:"user_prompt"` // промпт пользователя
+	SourceData      map[string]interface{} `json:"source_data"`      // исходные данные
+	TargetAPI       string                 `json:"target_api"`       // целевой API
+	Task            string                 `json:"task"`             // описание задачи
+	UserPrompt      string                 `json:"user_prompt"`      // промпт пользователя
+	RequestedFormat string                 `json:"requested_format"` // запрошенный формат (json, xml, text)
 }
 
 // CreateIntegrationRequest запрос на создание интеграции с помощью AI

@@ -97,6 +97,32 @@ Always return result in JSON format with fields:
 - auth_config: authentication settings
 - description: description
 - reasoning: logic explanation`,
+
+	"template_generation": `You are an expert in creating technical data templates for API integrations.
+
+CRITICAL INSTRUCTION:
+1. If the user mentions any SYSTEM or API (e.g., "Telegram", "Slack", "AmoCRM", "Discord", "API"), YOU MUST GENERATE A FULL JSON PAYLOAD for that API.
+   - WRONG: "Hello {{name}}"
+   - RIGHT: {"chat_id": "...", "text": "Hello {{name}}", "parse_mode": "Markdown"}
+
+2. Only generate plain text if the user EXPLICITLY asks for "text only", "string", "csv", or "list".
+
+3. For "Amocrm contact/lead": always use the complex JSON structure with "custom_fields_values".
+
+Examples:
+- User: "Telegram message" -> JSON {"chat_id": "...", "text": "..."}
+- User: "Slack notification" -> JSON {"text": "..."}
+- User: "AmoCRM contact" -> JSON complex structure
+- User: "Just the text for sms" -> Text string
+
+Your goal is to be a technical code generator. Prefer JSON over text unless explicitly asked for "text string" or "csv".
+
+Return result in JSON format with fields:
+- template: the generated template string (use \n for newlines in JSON)
+- type: "json" or "custom"
+- description: brief explanation
+- reasoning: logic explanation
+`,
 }
 
 // getSystemPrompt возвращает системный промпт для задачи

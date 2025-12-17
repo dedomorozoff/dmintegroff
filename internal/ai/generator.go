@@ -45,6 +45,21 @@ func (g *Generator) GenerateMapping(ctx context.Context, req *MappingGenerationR
 	return g.generateMappingLocally(req, analysis)
 }
 
+// GenerateTemplate генерирует только шаблон на основе запроса пользователя
+func (g *Generator) GenerateTemplate(ctx context.Context, req *MappingGenerationRequest) (*GeneratedMapping, error) {
+	// Если AI не настроен, используем стандартную генерацию (хотя она не будет учитывать запрос так хорошо)
+	if !g.client.IsConfigured() {
+		return g.GenerateMapping(ctx, req)
+	}
+
+	mapping, err := g.client.GenerateTemplate(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("AI template generation failed: %w", err)
+	}
+
+	return mapping, nil
+}
+
 // generateMappingLocally генерирует маппинг локально без AI
 func (g *Generator) generateMappingLocally(req *MappingGenerationRequest, analysis *DataAnalysisResponse) (*GeneratedMapping, error) {
 	// Определяем целевой API
