@@ -36,6 +36,8 @@
                         data-lucide="history"></i> История запросов</a></li>
             <li><a href="/logs" {{ if eq .CurrentPage "logs" }}class="active" {{ end }}><i
                         data-lucide="flask-conical"></i> Тесты интеграций</a></li>
+            <li><a href="/webhook-test-simple" {{ if eq .CurrentPage "webhook-test-simple" }}class="active" {{ end }}><i
+                        data-lucide="send"></i> Отправка запросов</a></li>
         </ul>
     </nav>
 

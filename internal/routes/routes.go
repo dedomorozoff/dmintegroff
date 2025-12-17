@@ -168,6 +168,10 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 		authorized.DELETE("/api/webhook-test/:token", controllers.DeleteWebhookTest)
 		authorized.POST("/api/webhook-test/:token/use-as-sample/:request_id", controllers.UseRequestAsSample)
 		
+		// Simple Webhook Test
+		authorized.GET("/webhook-test-simple", controllers.WebhookTestSimplePage)
+		authorized.POST("/api/http-proxy", controllers.HTTPProxyRequest)
+		
 		// HTTP Proxy (для избежания CORS)
 		authorized.POST("/api/proxy/http", controllers.ProxyHTTPRequest)
 		
