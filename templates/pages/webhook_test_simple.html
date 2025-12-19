@@ -21,7 +21,7 @@
     </div>
 
     <!-- Sidebar Overlay -->
-    <div class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+    <div class="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
 
     <!-- Test URL Card -->
     <div class="card">
@@ -33,10 +33,11 @@
             </button>
         </div>
         <div class="card-body">
-            <div style="background: var(--secondary); padding: 1rem; border-radius: 8px; font-family: monospace; word-break: break-all; margin-bottom: 1rem;">
+            <div
+                style="background: var(--secondary); padding: 1rem; border-radius: var(--radius); font-family: monospace; word-break: break-all; margin-bottom: 1rem;">
                 <code id="test-url" style="color: var(--primary);">{{ .test_url }}</code>
             </div>
-            <p style="color: var(--text-secondary); font-size: 0.875rem;">
+            <p style="color: var(--muted-foreground); font-size: 0.875rem;">
                 Встроенный тестовый URL для отладки. Все запросы на этот URL сохраняются и отображаются ниже
             </p>
         </div>
@@ -52,16 +53,12 @@
                 <div class="form-group">
                     <label for="target-url">URL для запроса</label>
                     <div style="display: flex; gap: 0.5rem; align-items: center;">
-                        <input type="url" id="target-url" name="target-url" class="form-control" 
-                               placeholder="https://api.example.com/webhook" 
-                               value="{{ .test_url }}" style="flex: 1;">
+                        <input type="url" id="target-url" name="target-url" class="form-control"
+                            placeholder="https://api.example.com/webhook" value="{{ .test_url }}" style="flex: 1;">
                         <button type="button" class="btn btn-secondary btn-sm" onclick="useTestURL()">
                             Тестовый URL
                         </button>
                     </div>
-                    <small style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.25rem; display: block;">
-                        Укажите любой URL для тестирования или используйте встроенный тестовый URL
-                    </small>
                 </div>
 
                 <div class="form-group">
@@ -77,12 +74,14 @@
 
                 <div class="form-group">
                     <label for="headers">Заголовки (JSON)</label>
-                    <textarea id="headers" name="headers" class="form-control" rows="3" placeholder='{"Content-Type": "application/json", "Authorization": "Bearer token"}'>{"Content-Type": "application/json"}</textarea>
+                    <textarea id="headers" name="headers" class="form-control" rows="3"
+                        placeholder='{"Content-Type": "application/json"}'>{"Content-Type": "application/json"}</textarea>
                 </div>
 
                 <div class="form-group">
                     <label for="body">Тело запроса</label>
-                    <textarea id="body" name="body" class="form-control" rows="8" placeholder='{"test": true, "message": "Тестовый запрос"}'>{"test": true, "message": "Тестовый запрос", "timestamp": "{{ .current_time }}"}</textarea>
+                    <textarea id="body" name="body" class="form-control" rows="8"
+                        placeholder='{"message": "Hello"}'>{"test": true, "message": "Тестовый запрос", "timestamp": "{{ .current_time }}"}</textarea>
                 </div>
 
                 <button type="submit" class="btn btn-primary">
@@ -96,9 +95,10 @@
     <!-- Recent Requests -->
     <div class="card">
         <div class="card-header">
-            <h2 class="card-title">История запросов (только тестовый URL)</h2>
+            <h2 class="card-title">История запросов</h2>
             <div style="display: flex; gap: 0.5rem;">
-                <span class="badge badge-primary" id="live-indicator" style="display: flex; align-items: center; gap: 0.25rem;">
+                <span class="badge badge-info" id="live-indicator"
+                    style="display: flex; align-items: center; gap: 0.25rem;">
                     <i data-lucide="radio" style="width: 12px; height: 12px;"></i>
                     <span>Обновление: 5 сек</span>
                 </span>
@@ -111,11 +111,9 @@
         <div class="card-body" style="padding: 0;">
             <div id="requests-container">
                 <div class="empty-state" id="empty-state">
-                    <i data-lucide="inbox" style="width: 64px; height: 64px; color: var(--text-secondary); margin-bottom: 1rem;"></i>
-                    <p style="color: var(--text-secondary);">Пока нет запросов</p>
-                    <p style="color: var(--text-secondary); font-size: 0.875rem;">
-                        Отправьте HTTP-запрос на URL выше, чтобы увидеть его здесь
-                    </p>
+                    <i data-lucide="inbox"
+                        style="width: 64px; height: 64px; color: var(--muted-foreground); margin-bottom: 1rem;"></i>
+                    <p style="color: var(--muted-foreground);">Пока нет запросов</p>
                 </div>
             </div>
         </div>
@@ -123,6 +121,7 @@
 </main>
 
 <style>
+    /* Стили для элементов списка запросов */
     .request-item {
         border-bottom: 1px solid var(--border);
         transition: background 0.2s ease;
@@ -136,15 +135,6 @@
         background: var(--secondary);
     }
 
-    .request-item.new {
-        animation: highlight 1s ease;
-    }
-
-    @keyframes highlight {
-        0% { background: rgba(139, 142, 255, 0.3); }
-        100% { background: transparent; }
-    }
-
     .request-header {
         display: flex;
         justify-content: space-between;
@@ -156,6 +146,7 @@
     .request-details {
         padding: 0 1.5rem 1rem 1.5rem;
         border-top: 1px solid var(--border);
+        background: color-mix(in srgb, var(--secondary) 30%, transparent);
     }
 
     .request-section {
@@ -163,31 +154,27 @@
     }
 
     .request-section h4 {
-        font-size: 0.875rem;
+        font-size: 0.75rem;
         font-weight: 600;
         margin-bottom: 0.5rem;
-        color: var(--text-secondary);
+        color: var(--muted-foreground);
         text-transform: uppercase;
         letter-spacing: 0.05em;
     }
 
     .request-section pre {
-        background: var(--secondary);
+        background: var(--background);
         padding: 1rem;
         border-radius: 8px;
         overflow-x: auto;
         margin: 0;
+        border: 1px solid var(--border);
     }
 
     .request-section code {
-        font-family: monospace;
+        font-family: 'Courier New', monospace;
         font-size: 0.875rem;
-        color: var(--text-primary);
-    }
-
-    .request-section p {
-        margin: 0.5rem 0;
-        font-size: 0.875rem;
+        color: var(--foreground);
     }
 
     .empty-state {
@@ -199,75 +186,39 @@
         text-align: center;
     }
 
-    .btn-icon {
-        background: transparent;
-        border: none;
-        border-radius: var(--radius);
-        cursor: pointer;
-        padding: 0.2rem;
-        color: var(--muted-foreground);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-    }
-
-    .btn-icon:hover {
-        background: var(--secondary);
-        color: var(--foreground);
-    }
-
-    .btn-icon i {
-        width: 18px;
-        height: 18px;
-        transition: transform 0.2s ease-in-out;
-    }
-
     #live-indicator {
         animation: pulse 2s ease-in-out infinite;
     }
 
     @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.6; }
+
+        0%,
+        100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.5;
+        }
     }
 
-    .form-group {
-        margin-bottom: 1.5rem;
+    /* Исправление скроллбара для темной темы */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
     }
 
-    .form-group label {
-        display: block;
-        margin-bottom: 0.5rem;
-        font-weight: 500;
-        color: var(--text-primary);
-    }
-
-    .form-control {
-        width: 100%;
-        padding: 0.75rem;
-        border: 1px solid var(--border);
-        border-radius: 8px;
+    ::-webkit-scrollbar-track {
         background: var(--background);
-        color: var(--text-primary);
-        font-family: inherit;
-        font-size: 0.875rem;
-        transition: border-color 0.2s ease;
     }
 
-    .form-control:focus {
-        outline: none;
-        border-color: var(--primary);
-        box-shadow: 0 0 0 3px rgba(139, 142, 255, 0.1);
+    ::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 4px;
     }
 
-    textarea.form-control {
-        font-family: monospace;
-        resize: vertical;
-    }
-
-    select.form-control {
-        cursor: pointer;
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--muted-foreground);
     }
 </style>
 
@@ -275,49 +226,35 @@
 <script>
     let pollInterval;
 
-    // Инициализация иконок после загрузки
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         if (typeof lucide !== 'undefined') {
             lucide.createIcons();
         }
-        
-        // Запускаем polling
         pollInterval = setInterval(refreshRequests, 5000);
-        
-        // Загружаем запросы при загрузке страницы
         refreshRequests();
     });
 
-    // Копирование тестового URL в буфер обмена
     function copyTestURL() {
         const url = document.getElementById('test-url').textContent;
         navigator.clipboard.writeText(url).then(() => {
-            window.showNotification('URL скопирован в буфер обмена', 'success');
-        }).catch(err => {
-            console.error('Failed to copy URL:', err);
-            window.showNotification('Не удалось скопировать URL', 'error');
+            window.showNotification('URL скопирован', 'success');
         });
     }
 
-    // Использовать тестовый URL
     function useTestURL() {
-        const testURL = document.getElementById('test-url').textContent;
-        const targetURL = document.getElementById('target-url');
-        targetURL.value = testURL;
-        targetURL.focus();
+        document.getElementById('target-url').value = document.getElementById('test-url').textContent;
     }
 
-    // Отправка тестового запроса
     function sendTestRequest(event) {
         event.preventDefault();
-        
+
         const method = document.getElementById('method').value;
         const headersText = document.getElementById('headers').value;
         const body = document.getElementById('body').value;
         const targetURL = document.getElementById('target-url').value.trim();
 
         if (!targetURL) {
-            window.showNotification('Укажите URL для отправки запроса', 'error');
+            window.showNotification('Укажите URL', 'error');
             return;
         }
 
@@ -327,263 +264,171 @@
                 headers = JSON.parse(headersText);
             }
         } catch (e) {
-            window.showNotification('Ошибка в формате заголовков (должен быть JSON)', 'error');
+            window.showNotification('Ошибка в формате JSON заголовков', 'error');
             return;
         }
 
-        const options = {
-            method: method,
-            headers: headers,
-            mode: 'cors' // Для поддержки CORS запросов
-        };
-
-        if (method !== 'GET' && body.trim()) {
-            options.body = body;
-        }
-
-        // Показываем индикатор загрузки
-        const submitButton = event.target.querySelector('button[type="submit"]') || 
-                           document.querySelector('button[type="submit"]');
+        const submitButton = event.target.querySelector('button[type="submit"]');
         const originalText = submitButton.innerHTML;
         submitButton.innerHTML = '<i data-lucide="loader-2" style="animation: spin 1s linear infinite;"></i> Отправка...';
         submitButton.disabled = true;
+        if (window.lucide) lucide.createIcons();
 
         const isTestURL = targetURL === document.getElementById('test-url').textContent;
-        
-        let requestPromise;
-        
-        if (isTestURL) {
-            // Прямой запрос на тестовый URL
-            requestPromise = fetch(targetURL, options)
-                .then(response => {
-                    return response.json().then(data => ({
-                        ok: response.ok,
-                        status: response.status,
-                        statusText: response.statusText,
-                        data: data,
-                        isJson: true,
-                        isDirect: true
-                    }));
-                });
-        } else {
-            // Запрос через прокси для внешних URL
-            requestPromise = fetch('/api/http-proxy', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    url: targetURL,
-                    method: method,
-                    headers: headers,
-                    body: body
-                })
+
+        // Используем прокси для всех запросов, чтобы логировать их на бэкенде
+        fetch('/api/http-proxy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                url: targetURL,
+                method: method,
+                headers: headers,
+                body: body
             })
+        })
             .then(response => response.json())
-            .then(proxyResult => ({
-                ok: proxyResult.success || false,
-                status: proxyResult.status || 0,
-                statusText: proxyResult.statusText || 'Unknown',
-                data: proxyResult,
-                isJson: false,
-                isDirect: false,
-                duration: proxyResult.duration
-            }));
-        }
-        
-        requestPromise
             .then(result => {
-                let message = `Запрос выполнен (${result.status})`;
-                if (result.duration) {
-                    message += ` за ${result.duration}мс`;
-                }
-                
-                if (result.ok) {
-                    window.showNotification(message, 'success');
+                if (result.success || result.status > 0) {
+                    window.showNotification(`Выполнено: ${result.status}`, result.success ? 'success' : 'warning');
                 } else {
-                    window.showNotification(message, 'warning');
+                    window.showNotification('Ошибка запроса', 'error');
                 }
-                
-                // Показываем результат в консоли для отладки
-                console.log('Response:', result);
-                
-                // Показываем детали ответа для внешних URL
-                if (!result.isDirect && result.data) {
-                    console.log('Response Body:', result.data.body);
-                    console.log('Response Headers:', result.data.headers);
-                }
-                
-                // Обновляем список запросов только для тестового URL
-                if (result.isDirect) {
-                    setTimeout(refreshRequests, 1000);
-                }
+                refreshRequests();
             })
             .catch(error => {
-                console.error('Error:', error);
-                if (error.name === 'TypeError' && error.message.includes('CORS')) {
-                    window.showNotification('Ошибка CORS: сервер не разрешает запросы с этого домена', 'error');
-                } else {
-                    window.showNotification('Ошибка при отправке запроса: ' + error.message, 'error');
-                }
+                window.showNotification('Ошибка: ' + error.message, 'error');
             })
             .finally(() => {
-                // Восстанавливаем кнопку
                 submitButton.innerHTML = originalText;
                 submitButton.disabled = false;
-                if (typeof lucide !== 'undefined') {
-                    lucide.createIcons();
-                }
+                if (window.lucide) lucide.createIcons();
             });
     }
 
-    // Обновление списка запросов
     function refreshRequests() {
         fetch('/api/logs?limit=10&type=test')
             .then(response => response.json())
             .then(data => {
                 updateRequestsList(data.logs || []);
             })
-            .catch(error => {
-                console.error('Error fetching requests:', error);
-            });
+            .catch(console.error);
     }
 
-    // Обновление списка запросов в UI
     function updateRequestsList(logs) {
         const container = document.getElementById('requests-container');
-        const emptyState = document.getElementById('empty-state');
-        
-        if (!logs || logs.length === 0) {
-            if (!emptyState) {
-                container.innerHTML = `
-                    <div class="empty-state" id="empty-state">
-                        <i data-lucide="inbox" style="width: 64px; height: 64px; color: var(--text-secondary); margin-bottom: 1rem;"></i>
-                        <p style="color: var(--text-secondary);">Пока нет запросов</p>
-                        <p style="color: var(--text-secondary); font-size: 0.875rem;">
-                            Отправьте запрос на тестовый URL, чтобы увидеть его здесь
-                        </p>
-                    </div>
-                `;
-                if (typeof lucide !== 'undefined') {
-                    lucide.createIcons();
-                }
-            }
-            return;
-        }
+        if (!logs || logs.length === 0) return;
 
-        // Удаляем empty state если есть
-        if (emptyState) {
-            emptyState.remove();
-        }
+        // Хелпер для экранирования HTML (защита от XSS и поломки верстки)
+        const escapeHTML = (str) => {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        };
 
-        // Создаем HTML для запросов
-        const requestsHTML = logs.map(log => {
-            const date = new Date(log.created_at);
-            const time = date.toLocaleTimeString('ru-RU');
-            const fullDate = date.toLocaleString('ru-RU');
-            
+        const html = logs.map(log => {
+            const createdAt = log.created_at || log.CreatedAt;
+            const date = new Date(createdAt);
+            const timeStr = isNaN(date.getTime()) ? '---' : date.toLocaleTimeString('ru-RU');
+
             const methodColors = {
-                'GET': 'primary',
-                'POST': 'success',
-                'PUT': 'warning',
-                'DELETE': 'danger',
-                'PATCH': 'info'
+                'GET': 'badge-info',
+                'POST': 'badge-success',
+                'PUT': 'badge-warning',
+                'DELETE': 'badge-danger'
             };
-            const methodColor = methodColors[log.method] || 'secondary';
+            const badgeClass = methodColors[log.method] || 'badge-secondary';
 
-            let headers = '';
-            try {
-                const headersObj = JSON.parse(log.request_headers || '{}');
-                headers = JSON.stringify(headersObj, null, 2);
-            } catch (e) {
-                headers = log.request_headers || '';
-            }
+            const formatJSON = (str) => {
+                if (!str) return null;
+                try {
+                    return JSON.stringify(JSON.parse(str), null, 2);
+                } catch (e) {
+                    return str;
+                }
+            };
+
+            const reqHeaders = formatJSON(log.request_headers);
+            const respHeaders = formatJSON(log.response_headers);
 
             return `
-                <div class="request-item" data-id="${log.id}">
+                <div class="request-item">
                     <div class="request-header" onclick="toggleRequest(${log.id})">
                         <div style="display: flex; align-items: center; gap: 0.75rem;">
-                            <span class="badge badge-${methodColor}">${log.method}</span>
-                            <span style="font-family: monospace; font-size: 0.875rem;">${log.url}</span>
-                            ${log.status_code ? `<span class="badge badge-${log.status_code >= 400 ? 'danger' : 'success'}">${log.status_code}</span>` : ''}
+                            <span class="badge ${badgeClass}">${escapeHTML(log.method)}</span>
+                            <span style="font-family: monospace; font-size: 0.8125rem; color: var(--foreground); opacity: 0.8; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHTML(log.url)}</span>
+                            ${log.status_code ? `<span class="badge ${log.status_code >= 400 ? 'badge-danger' : 'badge-success'}">${log.status_code}</span>` : ''}
                         </div>
                         <div style="display: flex; align-items: center; gap: 1rem;">
-                            <span style="color: var(--text-secondary); font-size: 0.875rem;">${time}</span>
-                            <button class="btn-icon">
-                                <i data-lucide="chevron-down" id="chevron-${log.id}"></i>
-                            </button>
+                            <span style="color: var(--muted-foreground); font-size: 0.75rem;">${timeStr}</span>
+                            <i data-lucide="chevron-down" id="chevron-${log.id}" style="width: 16px; height: 16px; color: var(--muted-foreground);"></i>
                         </div>
                     </div>
                     <div class="request-details" id="details-${log.id}" style="display: none;">
                         <div class="request-section">
-                            <h4>Заголовки</h4>
-                            <pre><code>${headers}</code></pre>
+                            <h4>Запрос: Заголовки</h4>
+                            <pre><code>${escapeHTML(reqHeaders) || 'Нет заголовков'}</code></pre>
                         </div>
                         ${log.request_body ? `
                         <div class="request-section">
-                            <h4>Тело запроса</h4>
-                            <pre><code>${log.request_body}</code></pre>
-                        </div>
-                        ` : ''}
+                            <h4>Запрос: Тело</h4>
+                            <pre><code>${escapeHTML(log.request_body)}</code></pre>
+                        </div>` : ''}
+                        
+                        ${respHeaders ? `
+                        <div class="request-section">
+                            <h4>Ответ: Заголовки</h4>
+                            <pre><code>${escapeHTML(respHeaders)}</code></pre>
+                        </div>` : ''}
+
+                        ${log.response_body ? `
+                        <div class="request-section">
+                            <h4>Ответ: Тело</h4>
+                            <pre><code>${escapeHTML(log.response_body)}</code></pre>
+                        </div>` : ''}
+
                         ${log.error_message ? `
                         <div class="request-section">
                             <h4>Ошибка</h4>
-                            <pre style="background: var(--destructive); color: white;"><code>${log.error_message}</code></pre>
-                        </div>
-                        ` : ''}
-                        <div class="request-section">
-                            <h4>Информация</h4>
-                            <p><strong>Время:</strong> ${fullDate}</p>
-                            <p><strong>ID:</strong> ${log.id}</p>
+                            <pre style="border-color: var(--destructive); color: var(--destructive);"><code>${escapeHTML(log.error_message)}</code></pre>
+                        </div>` : ''}
+                        
+                        <div class="request-section" style="font-size: 0.75rem; color: var(--muted-foreground); border-top: 1px solid var(--border); padding-top: 0.5rem; margin-top: 1rem;">
+                            <span>ID: ${log.id}</span>
+                            ${log.response_time ? `<span style="margin-left: 1rem;">Длительность: ${log.response_time} мс</span>` : ''}
                         </div>
                     </div>
                 </div>
             `;
         }).join('');
 
-        container.innerHTML = requestsHTML;
-        
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-        }
+        container.innerHTML = html;
+        if (window.lucide) lucide.createIcons();
     }
 
-    // Переключение отображения деталей запроса
     function toggleRequest(id) {
         const details = document.getElementById(`details-${id}`);
         const chevron = document.getElementById(`chevron-${id}`);
-        
-        if (details && chevron) {
-            if (details.style.display === 'none' || details.style.display === '') {
-                details.style.display = 'block';
-                chevron.style.transform = 'rotate(180deg)';
-            } else {
-                details.style.display = 'none';
-                chevron.style.transform = 'rotate(0deg)';
-            }
+        if (!details) return;
+
+        const isHidden = details.style.display === 'none';
+        details.style.display = isHidden ? 'block' : 'none';
+        if (chevron) {
+            chevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
         }
     }
 
-    // Mobile Sidebar Toggle
     function toggleMobileSidebar() {
-        const sidebar = document.querySelector('.sidebar');
-        const overlay = document.querySelector('.sidebar-overlay');
-        sidebar.classList.toggle('mobile-open');
-        overlay.classList.toggle('active');
-    }
-    
-    function closeMobileSidebar() {
-        const sidebar = document.querySelector('.sidebar');
-        const overlay = document.querySelector('.sidebar-overlay');
-        sidebar.classList.remove('mobile-open');
-        overlay.classList.remove('active');
+        document.querySelector('.sidebar').classList.toggle('mobile-open');
+        document.querySelector('.sidebar-overlay').classList.toggle('active');
     }
 
-    // Останавливаем polling при уходе со страницы
     window.addEventListener('beforeunload', () => {
-        if (pollInterval) {
-            clearInterval(pollInterval);
-        }
+        if (pollInterval) clearInterval(pollInterval);
     });
 </script>
 {{ end }}

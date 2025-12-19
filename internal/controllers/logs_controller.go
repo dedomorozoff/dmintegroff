@@ -296,6 +296,17 @@ func HTTPProxyRequest(c *gin.Context) {
 	duration := time.Since(startTime)
 
 	if err != nil {
+		// Сохраняем лог ошибки
+		log := models.RequestLog{
+			Method:       requestData.Method,
+			URL:          requestData.URL,
+			RequestBody:  requestData.Body,
+			LogType:      "test",
+			ErrorMessage: err.Error(),
+			StatusCode:   502,
+		}
+		CreateLogWithLimit(&log)
+
 		c.JSON(http.StatusBadGateway, gin.H{
 			"error":    "Request failed",
 			"details":  err.Error(),
@@ -323,6 +334,24 @@ func HTTPProxyRequest(c *gin.Context) {
 			responseHeaders[key] = values[0]
 		}
 	}
+
+	// Сохраняем успешный лог
+	reqHeadersJSON, _ := json.Marshal(requestData.Headers)
+	respHeadersJSON, _ := json.Marshal(responseHeaders)
+	log := models.RequestLog{
+		Method:          requestData.Method,
+		URL:             requestData.URL,
+		RequestBody:     requestData.Body,
+		RequestHeaders:  string(reqHeadersJSON),
+		ResponseBody:    string(responseBody),
+		ResponseHeaders: string(respHeadersJSON),
+		StatusCode:      resp.StatusCode,
+		LogType:         "test",
+		ResponseTime:    duration.Milliseconds(),
+		RequestSize:     len(requestData.Body),
+		ResponseSize:    len(responseBody),
+	}
+	CreateLogWithLimit(&log)
 
 	// Возвращаем результат
 	c.JSON(http.StatusOK, gin.H{
