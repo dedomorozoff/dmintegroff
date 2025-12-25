@@ -6,11 +6,15 @@ import (
 	"dmintegroff/internal/models"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
+
+// StartTime время запуска сервера
+var StartTime = time.Now()
 
 // ActivityItem представляет элемент активности для отображения
 type ActivityItem struct {
@@ -484,6 +488,37 @@ func GetSystemStats(c *gin.Context) {
 		successRate = (float64(successfulRequests) / float64(requestsLast24h)) * 100
 	}
 
+	// Среднее время ответа (за последние 24 часа)
+	var avgRespTime float64
+	database.DB.Model(&models.RequestLog{}).
+		Where("created_at >= datetime('now', '-24 hours')").
+		Select("COALESCE(AVG(response_time), 0)").
+		Scan(&avgRespTime)
+
+	// Время работы (Uptime)
+	uptimeDuration := time.Since(StartTime)
+	uptime := formatUptime(uptimeDuration)
+
+	// Статистика базы данных
+	var dbConnections int
+	var dbSizeStr string = "N/A"
+
+	if sqlDB, err := database.DB.DB(); err == nil {
+		dbConnections = sqlDB.Stats().OpenConnections
+	}
+
+	// Размер файла БД (для SQLite)
+	dbFile := os.Getenv("DB_DSN")
+	if dbFile == "" {
+		dbFile = "dmIntegroff.db"
+	}
+	// Если это не mysql dsn
+	if os.Getenv("DB_TYPE") != "mysql" {
+		if fi, err := os.Stat(dbFile); err == nil {
+			dbSizeStr = formatBytes(fi.Size())
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"rate_limiter":        rateLimiterStats,
 		"total_integrations":  totalIntegrations,
@@ -492,5 +527,39 @@ func GetSystemStats(c *gin.Context) {
 		"requests_last_24h":   requestsLast24h,
 		"errors_last_24h":     errorsLast24h,
 		"success_rate":        fmt.Sprintf("%.1f", successRate),
+		"avg_response_time":   int(avgRespTime),
+		"uptime":              uptime,
+		"version":             "1.0.0",
+		"db_connections":      dbConnections,
+		"db_size":             dbSizeStr,
 	})
+}
+
+// formatUptime форматирует продолжительность работы
+func formatUptime(d time.Duration) string {
+	days := int(d.Hours()) / 24
+	hours := int(d.Hours()) % 24
+	minutes := int(d.Minutes()) % 60
+	
+	if days > 0 {
+		return fmt.Sprintf("%dд %dч %dм", days, hours, minutes)
+	}
+	if hours > 0 {
+		return fmt.Sprintf("%dч %dм", hours, minutes)
+	}
+	return fmt.Sprintf("%dм", minutes)
+}
+
+// formatBytes форматирует размер в байтах
+func formatBytes(b int64) string {
+	const unit = 1024
+	if b < unit {
+		return fmt.Sprintf("%d B", b)
+	}
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "KMGTPE"[exp])
 }
