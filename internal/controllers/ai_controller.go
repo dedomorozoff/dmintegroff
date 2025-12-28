@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -20,19 +21,26 @@ import (
 
 // AIController контроллер для AI функций
 type AIController struct {
-	client    *ai.Client
-	generator *ai.Generator
-	analyzer  *ai.Analyzer
+	client       *ai.Client
+	generator    *ai.Generator
+	analyzer     *ai.Analyzer
+	demoResponses *ai.DemoResponses
 }
 
 // NewAIController создает новый AI контроллер
 func NewAIController(config *ai.AIConfig) *AIController {
 	client := ai.NewClient(config)
 	return &AIController{
-		client:    client,
-		generator: ai.NewGenerator(client),
-		analyzer:  ai.NewAnalyzer(client),
+		client:        client,
+		generator:     ai.NewGenerator(client),
+		analyzer:      ai.NewAnalyzer(client),
+		demoResponses: ai.NewDemoResponses(),
 	}
+}
+
+// isDemoMode проверяет, включен ли демо режим
+func (c *AIController) isDemoMode() bool {
+	return os.Getenv("DEMO_MODE") == "true"
 }
 
 // Chat обрабатывает запросы к AI чату
@@ -80,10 +88,36 @@ func (c *AIController) Chat(ctx *gin.Context) {
 			return keys
 		}(),
 		"history_length": len(req.History),
+		"demo_mode": c.isDemoMode(),
 		"ip": ctx.ClientIP(),
 	}).Info("AI Chat: User chat request received")
 
-	// Проверяем, настроен ли AI
+	// Проверяем демо режим
+	if c.isDemoMode() {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_chat_demo",
+			"user_id": userID,
+			"username": username,
+			"message": req.Message,
+			"target_api": req.TargetAPI,
+		}).Info("AI Chat: Demo mode - returning demo response")
+		
+		// Возвращаем демо ответ
+		demoResponse := c.demoResponses.GetDemoChatResponse(req.Message, req.TargetAPI, req.SampleData)
+		
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_chat_demo_success",
+			"user_id": userID,
+			"username": username,
+			"suggestions_count": len(demoResponse.Suggestions),
+			"duration": time.Since(startTime).String(),
+		}).Info("AI Chat: Demo response sent successfully")
+		
+		ctx.JSON(http.StatusOK, demoResponse)
+		return
+	}
+
+	// Проверяем, настроен ли AI (только если не демо режим)
 	if !c.client.IsConfigured() {
 		provider := c.client.GetCurrentProvider()
 		
@@ -257,10 +291,37 @@ func (c *AIController) AnalyzeData(ctx *gin.Context) {
 			}
 			return string(dataJSON)
 		}(),
+		"demo_mode": c.isDemoMode(),
 		"ip": ctx.ClientIP(),
 	}).Info("AI Analyze Data: Data analysis request received")
 
-	// Создаем контекст с таймаутом из конфигурации AI
+	// Проверяем демо режим
+	if c.isDemoMode() {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_analyze_data_demo",
+			"user_id": userID,
+			"username": username,
+			"format": req.Format,
+			"data_fields": len(req.Data),
+		}).Info("AI Analyze Data: Demo mode - returning demo analysis")
+		
+		// Возвращаем демо анализ
+		demoAnalysis := c.demoResponses.GetDemoDataAnalysis(req.Data, req.Format)
+		
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_analyze_data_demo_success",
+			"user_id": userID,
+			"username": username,
+			"data_type": demoAnalysis.DataType,
+			"fields_count": len(demoAnalysis.Fields),
+			"duration": time.Since(startTime).String(),
+		}).Info("AI Analyze Data: Demo analysis sent successfully")
+		
+		ctx.JSON(http.StatusOK, demoAnalysis)
+		return
+	}
+
+	// Создаем контекст с таймаутом из конфигурации AI (только если не демо режим)
 	timeoutDuration := time.Duration(c.client.Config.RequestTimeout) * time.Second
 	requestCtx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
 	defer cancel()
@@ -342,10 +403,37 @@ func (c *AIController) GenerateMapping(ctx *gin.Context) {
 			}
 			return string(dataJSON)
 		}(),
+		"demo_mode": c.isDemoMode(),
 		"ip": ctx.ClientIP(),
 	}).Info("AI Generate Mapping: Mapping generation request received")
 
-	// Создаем контекст с таймаутом из конфигурации AI
+	// Проверяем демо режим
+	if c.isDemoMode() {
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_generate_mapping_demo",
+			"user_id": userID,
+			"username": username,
+			"target_api": req.TargetAPI,
+			"task": req.Task,
+		}).Info("AI Generate Mapping: Demo mode - returning demo mapping")
+		
+		// Возвращаем демо маппинг
+		demoMapping := c.demoResponses.GetDemoGeneratedMapping(&req)
+		
+		logger.Log.WithFields(map[string]interface{}{
+			"action": "ai_generate_mapping_demo_success",
+			"user_id": userID,
+			"username": username,
+			"mapping_type": demoMapping.Type,
+			"target_url": demoMapping.TargetURL,
+			"duration": time.Since(startTime).String(),
+		}).Info("AI Generate Mapping: Demo mapping sent successfully")
+		
+		ctx.JSON(http.StatusOK, demoMapping)
+		return
+	}
+
+	// Создаем контекст с таймаутом из конфигурации AI (только если не демо режим)
 	timeoutDuration := time.Duration(c.client.Config.RequestTimeout) * time.Second
 	requestCtx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
 	defer cancel()
@@ -470,13 +558,23 @@ func (c *AIController) ApplyMapping(ctx *gin.Context) {
 // GetStatus возвращает статус AI сервиса
 func (c *AIController) GetStatus(ctx *gin.Context) {
 	status := gin.H{
+		"demo_mode":  c.isDemoMode(),
 		"configured": c.client.IsConfigured(),
 		"provider":   c.client.GetCurrentProvider(),
 		"models":     c.client.GetAvailableModels(),
 		"enabled":    c.client.Config.Enabled, // добавляем информацию о глобальном переключателе
 	}
 
-	// Проверяем доступность AI
+	// В демо режиме всегда показываем как доступный
+	if c.isDemoMode() {
+		status["available"] = true
+		status["provider"] = "Demo Mode"
+		status["demo_message"] = "AI функции работают в демонстрационном режиме"
+		ctx.JSON(http.StatusOK, status)
+		return
+	}
+
+	// Проверяем доступность AI (только если не демо режим)
 	if c.client.IsConfigured() {
 		// Используем настроенный таймаут из конфигурации AI вместо хардкода
 		timeoutDuration := time.Duration(c.client.Config.RequestTimeout) * time.Second
@@ -730,10 +828,104 @@ func (c *AIController) CreateIntegration(ctx *gin.Context) {
 		"description": req.Description,
 		"has_sample":  req.SampleData != "",
 		"sample_size": len(req.SampleData),
+		"demo_mode":   c.isDemoMode(),
 		"ip":          ctx.ClientIP(),
 	}).Info("AI Integration Creation: Starting AI integration creation")
 
-	// Проверяем, настроен ли AI
+	// Проверяем демо режим
+	if c.isDemoMode() {
+		logger.Log.WithFields(map[string]interface{}{
+			"action":      "ai_create_integration_demo",
+			"user_id":     userID,
+			"username":    username,
+			"description": req.Description,
+		}).Info("AI Integration Creation: Demo mode - returning demo integration")
+		
+		// Возвращаем демо интеграцию
+		demoIntegration := c.demoResponses.GetDemoCreatedIntegration(&req)
+		
+		// Генерируем уникальный webhook токен для демо интеграции
+		webhookToken, err := utils.GenerateToken(16)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Ошибка генерации токена",
+				"details": err.Error(),
+			})
+			return
+		}
+
+		// Создаем модель интеграции для сохранения в БД (даже в демо режиме)
+		dbIntegration := models.Integration{
+			Name:           demoIntegration.Name,
+			TargetAPI:      demoIntegration.TargetURL,
+			HTTPMethod:     demoIntegration.Method,
+			OutputTemplate: demoIntegration.Template,
+			TemplateType:   demoIntegration.TemplateType,
+			ProjectID:      uint(req.ProjectID),
+			Mode:          "inactive", // Создаем в неактивном режиме
+			SamplePayload: req.SampleData,
+			WebhookToken:  webhookToken,
+			CreatedByID:   userID,
+		}
+
+		// Настраиваем аутентификацию
+		if demoIntegration.AuthType != "none" {
+			dbIntegration.AuthType = demoIntegration.AuthType
+			if demoIntegration.AuthType == "bearer" {
+				if token, ok := demoIntegration.AuthConfig["token"].(string); ok {
+					dbIntegration.BearerToken = token
+				}
+			}
+		}
+
+		// Сохраняем интеграцию в БД
+		if err := database.DB.Create(&dbIntegration).Error; err != nil {
+			logger.Log.WithFields(map[string]interface{}{
+				"action":   "ai_create_integration_demo",
+				"user_id":  userID,
+				"username": username,
+				"error":    "database_save_failed",
+				"details":  err.Error(),
+				"duration": time.Since(startTime).String(),
+			}).Error("AI Integration Creation: Failed to save demo integration to database")
+			
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Ошибка сохранения интеграции",
+				"details": err.Error(),
+			})
+			return
+		}
+
+		logger.Log.WithFields(map[string]interface{}{
+			"action":         "ai_create_integration_demo_success",
+			"user_id":        userID,
+			"username":       username,
+			"integration_id": dbIntegration.ID,
+			"integration_name": dbIntegration.Name,
+			"webhook_token":  dbIntegration.WebhookToken,
+			"duration":       time.Since(startTime).String(),
+		}).Info("AI Integration Creation: Demo integration created successfully")
+
+		// Возвращаем успешный ответ
+		ctx.JSON(http.StatusOK, gin.H{
+			"status": "success",
+			"integration": gin.H{
+				"id":           dbIntegration.ID,
+				"name":         dbIntegration.Name,
+				"target_api":   dbIntegration.TargetAPI,
+				"method":       dbIntegration.HTTPMethod,
+				"template":     dbIntegration.OutputTemplate,
+				"template_type": dbIntegration.TemplateType,
+				"mode":         dbIntegration.Mode,
+			},
+			"mapping":      demoIntegration.Mapping,
+			"explanation":  demoIntegration.Explanation,
+			"next_steps":   demoIntegration.NextSteps,
+		})
+		return
+	}
+
+	// Проверяем, настроен ли AI (только если не демо режим)
 	if !c.client.IsConfigured() {
 		provider := c.client.GetCurrentProvider()
 		
