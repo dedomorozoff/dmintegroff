@@ -2,6 +2,7 @@ package main
 
 import (
 	"dmintegroff/internal/cache"
+	"dmintegroff/internal/config"
 	"dmintegroff/internal/controllers"
 	"dmintegroff/internal/database"
 	"dmintegroff/internal/logger"
@@ -27,13 +28,23 @@ func main() {
 	logger.Init()
 	logger.Log.Info("Starting dmIntegroff server...")
 
+	// Database connection first
+	database.Connect()
+	
+	// Initialize AI configuration (after database connection)
+	aiConfig := config.LoadAIConfig(database.DB)
+	if aiConfig.IsConfigured() {
+		logger.Log.Info("AI configured with provider: " + aiConfig.GetCurrentProvider())
+	} else {
+		logger.Log.Warn("AI not configured - set OPENROUTER_API_KEY or OPENAI_API_KEY in settings")
+	}
+
 	// Initialize Redis (optional)
 	if err := cache.InitRedis(); err != nil {
 		logger.Log.Warn("Redis initialization failed: " + err.Error())
 	}
 
-	database.Connect()
-	database.Migrate(&models.User{}, &models.Project{}, &models.Integration{}, &models.IntegrationOutput{}, &models.RequestLog{}, &models.WebhookTest{}, &models.WebhookTestRequest{})
+	database.Migrate(&models.User{}, &models.Project{}, &models.Integration{}, &models.IntegrationOutput{}, &models.RequestLog{}, &models.WebhookTest{}, &models.WebhookTestRequest{}, &models.AISettings{})
 	database.SeedAdmin()
 
 	// Initialize rate limiter

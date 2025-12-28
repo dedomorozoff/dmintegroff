@@ -1,0 +1,24 @@
+{
+  "name": "SendGrid",
+  "description": "Отправка email через SendGrid с шаблоном",
+  "type": "json",
+  "category": "email",
+  "template": {
+    "personalizations": [{
+      "to": [{
+        "email": "{{user.email}}",
+        "name": "{{user.name}}"
+      }],
+      "dynamic_template_data": {
+        "user_name": "{{user.name}}",
+        "message": "{{message.text}}",
+        "timestamp": "{{timestamp}}"
+      }
+    }],
+    "from": {
+      "email": "noreply@example.com",
+      "name": "Your Service"
+    },
+    "template_id": "d-1234567890abcdef"
+  }
+}

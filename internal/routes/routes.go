@@ -15,6 +15,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+
+
 func SetupRouter(healthService *services.HealthService) *gin.Engine {
 	r := gin.Default()
 
@@ -34,6 +36,9 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 
 	// Serve static files
 	r.Static("/static", "./static")
+	
+	// Serve integration templates
+	r.Static("/integration-templates", "./integration-templates")
 
 	r.LoadHTMLGlob("templates/*/*")
 
@@ -69,6 +74,7 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 		authorized.GET("/integrations", controllers.IntegrationList)
 		authorized.GET("/api/integrations", controllers.IntegrationsListAPI)
 		authorized.GET("/integrations/create", controllers.IntegrationCreate)
+		authorized.GET("/integrations/create-with-ai", controllers.IntegrationCreateWithAI)
 		authorized.POST("/integrations", controllers.IntegrationStore)
 		authorized.GET("/integrations/:id/edit", controllers.IntegrationEdit)
 		authorized.POST("/integrations/:id/update", controllers.IntegrationUpdate)
@@ -86,6 +92,7 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 		authorized.GET("/api/integrations/:id/check", controllers.IntegrationCheckUpdate)
 		authorized.POST("/api/integrations/:id/test-mapping", controllers.IntegrationTestMapping)
 		authorized.POST("/api/integrations/:id/test-oauth", controllers.IntegrationTestOAuth)
+		authorized.POST("/api/integrations/:id/ai/generate-mapping", controllers.IntegrationAIGenerateMapping)
 		
 		// Integration Outputs (Multiple Mappings)
 		authorized.GET("/integrations/:id/outputs", controllers.IntegrationOutputsList)
@@ -107,6 +114,7 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 
 		// Projects
 		authorized.GET("/projects", controllers.ProjectList)
+		authorized.GET("/api/projects", controllers.ProjectsAPI)
 		authorized.GET("/projects/create", controllers.ProjectCreate)
 		authorized.POST("/projects", controllers.ProjectStore)
 		authorized.GET("/projects/:id", controllers.ProjectView)
@@ -149,6 +157,10 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 		authorized.GET("/settings", controllers.SettingsPage)
 		authorized.POST("/settings/change-password", controllers.ChangePassword)
 		
+		// AI Settings (admin only)
+		authorized.GET("/api/settings/ai", controllers.GetAISettings)
+		authorized.POST("/api/settings/ai", controllers.SaveAISettings)
+		
 		// Webhook Test
 		authorized.POST("/api/webhook-test/create", controllers.CreateWebhookTest)
 		authorized.GET("/webhook-test/:token", controllers.WebhookTestPage)
@@ -156,8 +168,22 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 		authorized.DELETE("/api/webhook-test/:token", controllers.DeleteWebhookTest)
 		authorized.POST("/api/webhook-test/:token/use-as-sample/:request_id", controllers.UseRequestAsSample)
 		
+		// Simple Webhook Test
+		authorized.GET("/webhook-test-simple", controllers.WebhookTestSimplePage)
+		authorized.POST("/api/http-proxy", controllers.HTTPProxyRequest)
+		
 		// HTTP Proxy (для избежания CORS)
 		authorized.POST("/api/proxy/http", controllers.ProxyHTTPRequest)
+		
+		// AI Assistant endpoints
+		authorized.POST("/api/ai/chat", controllers.AIChat)
+		authorized.POST("/api/ai/analyze-data", controllers.AIAnalyzeData)
+		authorized.POST("/api/ai/generate-mapping", controllers.AIGenerateMapping)
+		authorized.POST("/api/ai/apply-mapping/:id", controllers.AIApplyMapping)
+		authorized.POST("/api/ai/create-integration", controllers.AICreateIntegration)
+		authorized.GET("/api/ai/status", controllers.AIGetStatus)
+		authorized.GET("/api/ai/suggestions", controllers.AIGetQuickSuggestions)
+		authorized.GET("/api/ai/models", controllers.AIGetModels)
 		
 		// Metrics Dashboard (защищённый)
 		authorized.GET("/metrics/dashboard", controllers.NewMetricsController(healthService).Dashboard)
@@ -182,6 +208,8 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 		webhookGroup.Any("/test", controllers.TestEndpoint) // Test webhook endpoint
 		webhookGroup.Any("/test/:token", controllers.HandleWebhookTest) // Test webhook with token
 	}
+
+
 
 	// Error pages - должны быть в конце
 	r.NoRoute(controllers.NotFoundPage)

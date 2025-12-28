@@ -1,0 +1,16 @@
+{
+  "name": "MailChimp",
+  "description": "Добавление подписчика в MailChimp",
+  "type": "json",
+  "category": "email",
+  "template": {
+    "email_address": "{{user.email}}",
+    "status": "subscribed",
+    "merge_fields": {
+      "FNAME": "{{user.first_name}}",
+      "LNAME": "{{user.last_name}}",
+      "PHONE": "{{user.phone}}"
+    },
+    "tags": ["webhook", "new-subscriber"]
+  }
+}

@@ -394,7 +394,7 @@
             const urlElement = document.getElementById('webhook-url');
             const fullUrl = appURL + appPath + urlElement.textContent;
             navigator.clipboard.writeText(fullUrl).then(() => {
-                alert('URL скопирован: ' + fullUrl);
+                window.showNotification('URL скопирован: ' + fullUrl, 'success');
             }).catch(err => {
                 console.error('Failed to copy:', err);
             });
@@ -591,4 +591,7 @@
     </script>
     
     {{ template "partials/scripts.html" . }}
+    
+    <!-- AI Assistant -->
+    {{ template "partials/ai_chat.html" . }}
 {{ end }}

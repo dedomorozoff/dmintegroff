@@ -13,8 +13,22 @@
                         data-lucide="layout-dashboard"></i> Панель управления</a></li>
             <li><a href="/projects" {{ if eq .CurrentPage "projects" }}class="active" {{ end }}><i
                         data-lucide="folder-kanban"></i> Проекты</a></li>
-            <li><a href="/integrations" {{ if eq .CurrentPage "integrations" }}class="active" {{ end }}><i
-                        data-lucide="webhook"></i> Интеграции</a></li>
+            <li class="sidebar-submenu">
+                <a href="/integrations" {{ if or (eq .CurrentPage "integrations") (eq .CurrentPage "integration_create") (eq .CurrentPage "integration_create_ai") }}class="active" {{ end }}>
+                    <i data-lucide="webhook"></i> Интеграции
+                </a>
+                <ul class="submenu">
+                    <li><a href="/integrations" {{ if eq .CurrentPage "integrations" }}class="active" {{ end }}>
+                        <i data-lucide="list"></i> Все интеграции
+                    </a></li>
+                    <li><a href="/integrations/create-with-ai" {{ if eq .CurrentPage "integration_create_ai" }}class="active" {{ end }}>
+                        <i data-lucide="sparkles"></i> Создать с AI
+                    </a></li>
+                    <li><a href="/integrations/create" {{ if eq .CurrentPage "integration_create" }}class="active" {{ end }}>
+                        <i data-lucide="plus"></i> Создать вручную
+                    </a></li>
+                </ul>
+            </li>
 
             <li><a href="/analytics" {{ if eq .CurrentPage "analytics" }}class="active" {{ end }}><i
                         data-lucide="bar-chart-3"></i> Аналитика</a></li>
@@ -22,6 +36,8 @@
                         data-lucide="history"></i> История запросов</a></li>
             <li><a href="/logs" {{ if eq .CurrentPage "logs" }}class="active" {{ end }}><i
                         data-lucide="flask-conical"></i> Тесты интеграций</a></li>
+            <li><a href="/webhook-test-simple" {{ if eq .CurrentPage "webhook-test-simple" }}class="active" {{ end }}><i
+                        data-lucide="send"></i> Отправка запросов</a></li>
         </ul>
     </nav>
 
@@ -45,4 +61,30 @@
         </div>
     </div>
 </aside>
+
+<!-- Global AI Assistant Script -->
+<script>
+    // Глобальная функция для открытия AI ассистента (обновлена для нового чата)
+    window.openAIAssistant = function(context = null) {
+        // Проверяем есть ли AI виджет на странице
+        const aiWidget = document.getElementById('aiChatWidget');
+        if (!aiWidget) {
+            // Если AI виджета нет, показываем сообщение
+            window.showNotification('AI Ассистент доступен на страницах с интеграциями', 'info');
+            return;
+        }
+
+        // Если есть AI ассистент, используем его
+        if (window.aiAssistant) {
+            if (context) {
+                window.aiAssistant.setIntegrationContext(context);
+            }
+            window.aiAssistant.openChat();
+        } else {
+            // Если AI ассистент не загружен, показываем уведомление
+            window.showNotification('AI Ассистент загружается... Попробуйте через несколько секунд.', 'warning');
+        }
+    };
+</script>
+
 {{ end }}

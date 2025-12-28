@@ -136,6 +136,23 @@
         </form>
     </div>
 
+    <!-- AI Chat Widget -->
+    {{ template "partials/ai_chat.html" . }}
+
+    <script src="/static/js/ai-assistant.js"></script>
+    <script>
+        // Инициализируем AI ассистент для создания выхода
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.aiAssistant) {
+                window.aiAssistant.setIntegrationContext({
+                    source: 'output_create',
+                    integration_id: {{ .integration.ID }},
+                    integration_name: '{{ .integration.Name }}'
+                });
+            }
+        });
+    </script>
+
     <script>
     function toggleAuthFields() {
         const authType = document.getElementById('auth_type').value;

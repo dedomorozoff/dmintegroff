@@ -353,4 +353,30 @@ func ProjectDelete(c *gin.Context) {
 	c.Redirect(http.StatusFound, "/projects")
 }
 
+// ProjectsAPI возвращает список проектов в JSON формате
+func ProjectsAPI(c *gin.Context) {
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
+	
+	var projects []models.Project
+	query := database.DB.Select("id, name, description")
+	
+	// Specialist видит только свои проекты, admin видит все
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+	
+	if err := query.Find(&projects).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Ошибка получения проектов",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"projects": projects,
+	})
+}
+
 

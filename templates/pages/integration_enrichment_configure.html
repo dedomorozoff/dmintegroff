@@ -197,11 +197,27 @@ query GetUserDetails($userId: ID!) {
         </div>
     </main>
 
+    <!-- AI Chat Widget -->
+    {{ template "partials/ai_chat.html" . }}
+
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="/static/js/ai-assistant.js"></script>
     <script>
         lucide.createIcons();
 
         const integrationId = {{ .integration.ID }};
+
+        // Инициализируем AI ассистент для настройки обогащения
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.aiAssistant) {
+                window.aiAssistant.setIntegrationContext({
+                    source: 'enrichment_configure',
+                    integration_id: integrationId,
+                    integration_name: '{{ .integration.Name }}',
+                    feature: 'enrichment'
+                });
+            }
+        });
 
         function toggleEnrichmentFields() {
             const enabled = document.getElementById('enrichment_enabled').checked;
@@ -304,18 +320,18 @@ query GetUserDetails($userId: ID!) {
                 try {
                     JSON.parse(variables);
                 } catch (e) {
-                    alert('Ошибка в JSON маппинга переменных: ' + e.message);
+                    window.showNotification('Ошибка в JSON маппинга переменных: ' + e.message, 'error');
                     return;
                 }
             }
 
             if (enabled && !endpoint) {
-                alert('GraphQL Endpoint обязателен');
+                window.showNotification('GraphQL Endpoint обязателен', 'error');
                 return;
             }
 
             if (enabled && !query) {
-                alert('GraphQL Query обязателен');
+                window.showNotification('GraphQL Query обязателен', 'error');
                 return;
             }
 
@@ -333,14 +349,14 @@ query GetUserDetails($userId: ID!) {
                 });
 
                 if (response.ok) {
-                    alert('✅ Настройки сохранены!');
+                    window.showNotification('Настройки сохранены!', 'success');
                     window.location.href = `/integrations/${integrationId}/edit`;
                 } else {
                     const data = await response.json();
-                    alert('❌ Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+                    window.showNotification('Ошибка: ' + (data.error || 'Неизвестная ошибка'), 'error');
                 }
             } catch (error) {
-                alert('❌ Ошибка: ' + error.message);
+                window.showNotification('Ошибка: ' + error.message, 'error');
             }
         }
 
@@ -348,9 +364,9 @@ query GetUserDetails($userId: ID!) {
             const field = document.getElementById(fieldId);
             try {
                 JSON.parse(field.value);
-                alert('✅ JSON валиден!');
+                window.showNotification('JSON валиден!', 'success');
             } catch (e) {
-                alert('❌ Ошибка JSON: ' + e.message);
+                window.showNotification('Ошибка JSON: ' + e.message, 'error');
             }
         }
 
@@ -360,7 +376,7 @@ query GetUserDetails($userId: ID!) {
                 const obj = JSON.parse(field.value);
                 field.value = JSON.stringify(obj, null, 2);
             } catch (e) {
-                alert('❌ Ошибка JSON: ' + e.message);
+                window.showNotification('Ошибка JSON: ' + e.message, 'error');
             }
         }
     </script>

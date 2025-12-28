@@ -5,10 +5,13 @@ import (
 	"dmintegroff/internal/database"
 	"dmintegroff/internal/models"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -186,10 +189,24 @@ func LogsAPI(c *gin.Context) {
 	userID := session.Get("user_id")
 	role := session.Get("role")
 	
-	query := database.DB.Order("request_logs.created_at desc").Limit(100)
+	// Получаем параметры
+	limitStr := c.DefaultQuery("limit", "100")
+	logType := c.Query("type")
 	
-	// Specialist видит только логи своих интеграций
-	if role != "admin" {
+	limit, _ := strconv.Atoi(limitStr)
+	if limit > 100 {
+		limit = 100
+	}
+	
+	query := database.DB.Order("request_logs.created_at desc").Limit(limit)
+	
+	// Фильтр по типу лога
+	if logType != "" {
+		query = query.Where("log_type = ?", logType)
+	}
+	
+	// Specialist видит только логи своих интеграций (кроме тестовых)
+	if role != "admin" && logType != "test" {
 		query = query.Joins("JOIN integrations ON integrations.id = request_logs.integration_id").
 			Where("integrations.created_by_id = ?", userID)
 	}
@@ -199,6 +216,154 @@ func LogsAPI(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"logs": logs,
+	})
+}
+
+// WebhookTestSimplePage - страница для тестирования произвольных вебхуков
+func WebhookTestSimplePage(c *gin.Context) {
+	session := sessions.Default(c)
+	username := session.Get("username")
+	role := session.Get("role")
+
+	// Получаем базовый URL
+	baseURL := os.Getenv("BASE_URL")
+	if baseURL == "" {
+		baseURL = "http://localhost:8080"
+	}
+	testURL := fmt.Sprintf("%s/webhook/test", baseURL)
+
+	c.HTML(http.StatusOK, "pages/webhook_test_simple.html", gin.H{
+		"title":        "Отправка запросов",
+		"username":     username,
+		"role":         role,
+		"CurrentPage":  "webhook-test-simple",
+		"test_url":     testURL,
+		"current_time": time.Now().Format("2006-01-02T15:04:05Z07:00"),
+	})
+}
+
+// HTTPProxyRequest - прокси для HTTP запросов (обход CORS)
+func HTTPProxyRequest(c *gin.Context) {
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	if userID == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var requestData struct {
+		URL     string            `json:"url" binding:"required"`
+		Method  string            `json:"method" binding:"required"`
+		Headers map[string]string `json:"headers"`
+		Body    string            `json:"body"`
+	}
+
+	if err := c.ShouldBindJSON(&requestData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
+		return
+	}
+
+	// Создаем HTTP клиент с таймаутом
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	// Создаем запрос
+	var bodyReader io.Reader
+	if requestData.Body != "" {
+		bodyReader = strings.NewReader(requestData.Body)
+	}
+
+	req, err := http.NewRequest(requestData.Method, requestData.URL, bodyReader)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid URL or method"})
+		return
+	}
+
+	// Добавляем заголовки
+	for key, value := range requestData.Headers {
+		req.Header.Set(key, value)
+	}
+
+	// Добавляем User-Agent если не указан
+	if req.Header.Get("User-Agent") == "" {
+		req.Header.Set("User-Agent", "dmIntegroff-Proxy/1.0")
+	}
+
+	// Выполняем запрос
+	startTime := time.Now()
+	resp, err := client.Do(req)
+	duration := time.Since(startTime)
+
+	if err != nil {
+		// Сохраняем лог ошибки
+		log := models.RequestLog{
+			Method:       requestData.Method,
+			URL:          requestData.URL,
+			RequestBody:  requestData.Body,
+			LogType:      "test",
+			ErrorMessage: err.Error(),
+			StatusCode:   502,
+		}
+		CreateLogWithLimit(&log)
+
+		c.JSON(http.StatusBadGateway, gin.H{
+			"error":    "Request failed",
+			"details":  err.Error(),
+			"duration": duration.Milliseconds(),
+		})
+		return
+	}
+	defer resp.Body.Close()
+
+	// Читаем ответ
+	responseBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{
+			"error":    "Failed to read response",
+			"details":  err.Error(),
+			"duration": duration.Milliseconds(),
+		})
+		return
+	}
+
+	// Собираем заголовки ответа
+	responseHeaders := make(map[string]string)
+	for key, values := range resp.Header {
+		if len(values) > 0 {
+			responseHeaders[key] = values[0]
+		}
+	}
+
+	// Сохраняем успешный лог
+	reqHeadersJSON, _ := json.Marshal(requestData.Headers)
+	respHeadersJSON, _ := json.Marshal(responseHeaders)
+	log := models.RequestLog{
+		Method:          requestData.Method,
+		URL:             requestData.URL,
+		RequestBody:     requestData.Body,
+		RequestHeaders:  string(reqHeadersJSON),
+		ResponseBody:    string(responseBody),
+		ResponseHeaders: string(respHeadersJSON),
+		StatusCode:      resp.StatusCode,
+		LogType:         "test",
+		ResponseTime:    duration.Milliseconds(),
+		RequestSize:     len(requestData.Body),
+		ResponseSize:    len(responseBody),
+	}
+	CreateLogWithLimit(&log)
+
+	// Возвращаем результат
+	c.JSON(http.StatusOK, gin.H{
+		"status":           resp.StatusCode,
+		"statusText":       resp.Status,
+		"headers":          responseHeaders,
+		"body":             string(responseBody),
+		"duration":         duration.Milliseconds(),
+		"contentLength":    len(responseBody),
+		"url":              requestData.URL,
+		"method":           requestData.Method,
+		"success":          resp.StatusCode >= 200 && resp.StatusCode < 400,
 	})
 }
 

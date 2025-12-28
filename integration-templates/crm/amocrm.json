@@ -1,0 +1,28 @@
+{
+  "name": "amoCRM",
+  "description": "Создание сделки с контактом в amoCRM",
+  "type": "json",
+  "category": "crm",
+  "template": [{
+    "name": "{{lead.name}}",
+    "price": "{{lead.price}}",
+    "responsible_user_id": 504141,
+    "status_id": 142,
+    "_embedded": {
+      "contacts": [{
+        "name": "{{user.name}}",
+        "custom_fields_values": [{
+          "field_code": "EMAIL",
+          "values": [{
+            "value": "{{user.email}}"
+          }]
+        }, {
+          "field_code": "PHONE",
+          "values": [{
+            "value": "{{user.phone}}"
+          }]
+        }]
+      }]
+    }
+  }]
+}

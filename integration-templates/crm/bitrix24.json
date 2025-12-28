@@ -1,0 +1,21 @@
+{
+  "name": "Bitrix24",
+  "description": "Создание лида в Bitrix24 через REST API",
+  "type": "json",
+  "category": "crm",
+  "template": {
+    "fields": {
+      "TITLE": "{{lead.name}}",
+      "NAME": "{{user.first_name}}",
+      "LAST_NAME": "{{user.last_name}}",
+      "EMAIL": [{"VALUE": "{{user.email}}", "VALUE_TYPE": "WORK"}],
+      "PHONE": [{"VALUE": "{{user.phone}}", "VALUE_TYPE": "WORK"}],
+      "COMPANY_TITLE": "{{company.name}}",
+      "SOURCE_ID": "WEB",
+      "STATUS_ID": "NEW",
+      "OPPORTUNITY": "{{lead.price}}",
+      "CURRENCY_ID": "RUB",
+      "COMMENTS": "Заявка с сайта: {{message.text}}"
+    }
+  }
+}

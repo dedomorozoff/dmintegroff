@@ -1,751 +1,499 @@
 {{ define "pages/analytics.html" }}
 {{ template "partials/head.html" . }}
-
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-
 {{ template "partials/sidebar.html" . }}
 
-<!-- Main Content -->
 <main class="main-content">
-    <!-- Breadcrumbs -->
-    <nav class="breadcrumbs">
-        <div class="breadcrumb-item">
-            <a href="/dashboard">
-                <i data-lucide="home"></i>
-                Главная
-            </a>
+    <div class="page-header">
+        <div>
+            <h1>Аналитика</h1>
+            <p>Обзор активности и производительности интеграций</p>
         </div>
-        <span class="breadcrumb-separator">
-            <i data-lucide="chevron-right"></i>
-        </span>
-        <div class="breadcrumb-item active">
-            <i data-lucide="bar-chart-3"></i>
-            Аналитика
-        </div>
-    </nav>
-
-    <!-- Page Header -->
-    <div class="page-header-enhanced">
-        <div class="page-header-content">
-            <h1>Аналитика и статистика</h1>
-            <p class="page-subtitle">Детальная аналитика работы интеграций и webhook запросов</p>
-        </div>
-        <div class="page-header-actions">
-            <select id="periodSelect" class="form-control" style="width: auto;">
-                <option value="1d">Последний день</option>
-                <option value="7d" selected>Последние 7 дней</option>
-                <option value="30d">Последние 30 дней</option>
-                <option value="90d">Последние 90 дней</option>
-            </select>
-            <select id="integrationSelect" class="form-control" style="width: auto;">
-                <option value="">Все интеграции</option>
-            </select>
-            <button onclick="refreshAnalytics()" class="btn btn-secondary">
+        <button onclick="loadAnalytics()" class="btn btn-secondary hide-on-mobile" style="display: flex; align-items: center; gap: 0.5rem;">
+            <i data-lucide="refresh-cw"></i>
+            <span>Обновить</span>
+        </button>
+    </div>
+    
+    <!-- Mobile Header -->
+    <div class="page-header-mobile">
+        <div class="mobile-header-actions">
+            <button onclick="loadAnalytics()" class="btn btn-secondary" aria-label="Обновить аналитику">
                 <i data-lucide="refresh-cw"></i>
-                Обновить
             </button>
-            <button onclick="exportAnalytics()" class="btn btn-primary">
-                <i data-lucide="download"></i>
-                Экспорт
+            <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Меню">
+                <i data-lucide="menu"></i>
             </button>
+        </div>
+        <a href="/dashboard">
+            <img src="/static/img/logo.png" alt="dmIntegroff" class="page-header-logo">
+        </a>
+        <h1 class="page-header-title">Аналитика</h1>
+    </div>
+    
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i data-lucide="filter"></i>
+                Фильтры
+            </h2>
+        </div>
+        <div class="analytics-filters">
+            <form id="analytics-form" class="filter-form">
+                <div class="filter-row">
+                    <div class="form-group">
+                        <label for="integration-select">Интеграция</label>
+                        <select id="integration-select" name="integration_id" class="form-control">
+                            <option value="">Все интеграции</option>
+                            {{ range .integrations }}
+                            <option value="{{ .ID }}" {{ if eq .ID $.integrationID }}selected{{ end }}>{{ .Name }}</option>
+                            {{ end }}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="period-select">Период</label>
+                        <select id="period-select" name="period" class="form-control">
+                            <option value="24h" {{ if eq $.period "24h" }}selected{{ end }}>Последние 24 часа</option>
+                            <option value="7d" {{ if eq $.period "7d" }}selected{{ end }}>Последние 7 дней</option>
+                            <option value="30d" {{ if eq $.period "30d" }}selected{{ end }}>Последние 30 дней</option>
+                            <option value="all" {{ if eq $.period "all" }}selected{{ end }}>За все время</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button type="submit" class="btn btn-primary">
+                            <i data-lucide="search"></i>
+                            Применить
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 
-    <!-- Loading State -->
-    <div id="analyticsLoading" class="card" style="display: none;">
-        <div style="padding: 3rem; text-align: center; color: var(--text-secondary);">
-            <i data-lucide="loader-2" style="animation: spin 1s linear infinite; width: 32px; height: 32px;"></i>
-            <p style="margin: 1rem 0 0 0; font-size: 1.1rem;">Загрузка аналитики...</p>
-        </div>
+    <div class="stats-grid" id="stats-container">
+        <!-- Статистика будет загружена здесь -->
     </div>
 
-    <!-- Analytics Content -->
-    <div id="analyticsContent">
-        <!-- Overview Stats -->
-        <div class="stats-grid" style="margin-bottom: 2rem;">
-            <div class="stat-card">
-                <div class="stat-card-header">
-                    <div>
-                        <p class="stat-card-title">Всего запросов</p>
-                        <p class="stat-card-value" id="totalRequests">-</p>
-                        <p class="stat-card-change" id="totalRequestsChange">За выбранный период</p>
-                    </div>
-                    <div class="stat-card-icon" style="background: color-mix(in srgb, var(--primary) 10%, transparent);">
-                        <i data-lucide="activity" style="color: var(--primary);"></i>
-                    </div>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-card-header">
-                    <div>
-                        <p class="stat-card-title">Успешных</p>
-                        <p class="stat-card-value" id="successfulRequests">-</p>
-                        <p class="stat-card-change" id="successRate">-% успешность</p>
-                    </div>
-                    <div class="stat-card-icon" style="background: color-mix(in srgb, var(--success) 10%, transparent);">
-                        <i data-lucide="check-circle" style="color: var(--success);"></i>
-                    </div>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-card-header">
-                    <div>
-                        <p class="stat-card-title">Ошибок</p>
-                        <p class="stat-card-value" id="failedRequests">-</p>
-                        <p class="stat-card-change" id="errorRate">-% от общего числа</p>
-                    </div>
-                    <div class="stat-card-icon" style="background: color-mix(in srgb, var(--destructive) 10%, transparent);">
-                        <i data-lucide="alert-triangle" style="color: var(--destructive);"></i>
-                    </div>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-card-header">
-                    <div>
-                        <p class="stat-card-title">Среднее время</p>
-                        <p class="stat-card-value" id="averageResponseTime">-</p>
-                        <p class="stat-card-change">Время ответа</p>
-                    </div>
-                    <div class="stat-card-icon" style="background: color-mix(in srgb, var(--warning) 10%, transparent);">
-                        <i data-lucide="clock" style="color: var(--warning);"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Charts Grid -->
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; margin-bottom: 2rem;">
-            <!-- Requests Over Time Chart -->
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">
-                        <i data-lucide="trending-up"></i>
-                        Запросы по времени
-                    </h2>
-                </div>
-                <div style="padding: 1.5rem; height: 400px;">
-                    <canvas id="requestsChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Success Rate Pie Chart -->
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">
-                        <i data-lucide="pie-chart"></i>
-                        Соотношение успех/ошибки
-                    </h2>
-                </div>
-                <div style="padding: 1.5rem; height: 400px;">
-                    <canvas id="successRateChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Second Row Charts -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
-            <!-- HTTP Methods Chart -->
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">
-                        <i data-lucide="globe"></i>
-                        HTTP методы
-                    </h2>
-                </div>
-                <div style="padding: 1.5rem; height: 300px;">
-                    <canvas id="methodsChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Content Types Chart -->
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">
-                        <i data-lucide="file-type"></i>
-                        Типы контента
-                    </h2>
-                </div>
-                <div style="padding: 1.5rem; height: 300px;">
-                    <canvas id="contentTypesChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tables Grid -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
-            <!-- Top Integrations -->
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">
-                        <i data-lucide="webhook"></i>
-                        Топ интеграций
-                    </h2>
-                </div>
-                <div class="table-container">
-                    <table class="table-enhanced">
-                        <thead>
-                            <tr>
-                                <th>Интеграция</th>
-                                <th>Запросы</th>
-                                <th>Успешность</th>
-                                <th>Последний запрос</th>
-                            </tr>
-                        </thead>
-                        <tbody id="topIntegrationsTable">
-                            <tr>
-                                <td colspan="4" style="text-align: center; color: var(--text-secondary);">
-                                    Загрузка данных...
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Error Types -->
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">
-                        <i data-lucide="alert-circle"></i>
-                        Типы ошибок
-                    </h2>
-                </div>
-                <div class="table-container">
-                    <table class="table-enhanced">
-                        <thead>
-                            <tr>
-                                <th>HTTP код</th>
-                                <th>Количество</th>
-                                <th>Процент</th>
-                                <th>Описание</th>
-                            </tr>
-                        </thead>
-                        <tbody id="errorTypesTable">
-                            <tr>
-                                <td colspan="4" style="text-align: center; color: var(--text-secondary);">
-                                    Загрузка данных...
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Hourly Activity (only for 1d and 7d periods) -->
-        <div id="hourlyActivityCard" class="card" style="display: none; margin-bottom: 2rem;">
+    <div class="charts-grid">
+        <div class="card">
             <div class="card-header">
                 <h2 class="card-title">
-                    <i data-lucide="clock"></i>
+                    <i data-lucide="bar-chart-3"></i>
                     Активность по часам
                 </h2>
             </div>
-            <div style="padding: 1.5rem; height: 300px;">
-                <canvas id="hourlyChart"></canvas>
+            <div class="chart-container">
+                <canvas id="activity-chart"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i data-lucide="pie-chart"></i>
+                    Статусы ответов
+                </h2>
+            </div>
+            <div class="chart-container">
+                <canvas id="status-chart"></canvas>
             </div>
         </div>
     </div>
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    let charts = {};
-    let currentPeriod = '7d';
-    let currentIntegration = '';
-
-    // Initialize page
     document.addEventListener('DOMContentLoaded', function() {
-        loadIntegrations();
+        const form = document.getElementById('analytics-form');
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            loadAnalytics();
+        });
+
         loadAnalytics();
-        
-        // Event listeners
-        document.getElementById('periodSelect').addEventListener('change', function() {
-            currentPeriod = this.value;
-            loadAnalytics();
-        });
-        
-        document.getElementById('integrationSelect').addEventListener('change', function() {
-            currentIntegration = this.value;
-            loadAnalytics();
-        });
-        
-        // Initialize Lucide icons
-        if (window.lucide) {
-            window.lucide.createIcons();
-        }
     });
 
-    // Load integrations for filter
-    function loadIntegrations() {
-        fetch('/api/integrations')
-            .then(response => response.json())
-            .then(data => {
-                const select = document.getElementById('integrationSelect');
-                select.innerHTML = '<option value="">Все интеграции</option>';
-                
-                if (data.integrations) {
-                    data.integrations.forEach(integration => {
-                        const option = document.createElement('option');
-                        option.value = integration.id;
-                        option.textContent = integration.name;
-                        select.appendChild(option);
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Error loading integrations:', error);
-            });
-    }
+    let activityChart, statusChart;
 
-    // Load analytics data
     function loadAnalytics() {
-        showLoading();
-        
-        const params = new URLSearchParams({
-            period: currentPeriod
-        });
-        
-        if (currentIntegration) {
-            params.append('integration_id', currentIntegration);
-        }
-        
-        fetch(`/api/analytics?${params}`)
-            .then(response => response.json())
+        const integrationId = document.getElementById('integration-select').value;
+        const period = document.getElementById('period-select').value;
+
+        const url = `/api/analytics?period=${period}${integrationId ? '&integration_id=' + integrationId : ''}`;
+
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
-                hideLoading();
-                updateOverviewStats(data);
-                updateCharts(data);
-                updateTables(data);
+                console.log('Analytics data received:', data);
+                updateStats(data.stats || {});
+                updateActivityChart(data.activity_by_hour || {});
+                updateStatusChart(data.status_distribution || {});
+                if (window.showNotification) {
+                    window.showNotification('Аналитика обновлена', 'success', { duration: 2000 });
+                }
             })
             .catch(error => {
-                hideLoading();
                 console.error('Error loading analytics:', error);
-                showNotification('Ошибка загрузки аналитики', 'error');
+                if (window.showNotification) {
+                    window.showNotification('Ошибка загрузки аналитики', 'error');
+                }
+                // Показываем пустую статистику при ошибке
+                updateStats({});
             });
     }
 
-    function showLoading() {
-        document.getElementById('analyticsLoading').style.display = 'block';
-        document.getElementById('analyticsContent').style.opacity = '0.5';
-    }
-
-    function hideLoading() {
-        document.getElementById('analyticsLoading').style.display = 'none';
-        document.getElementById('analyticsContent').style.opacity = '1';
-    }
-
-    // Update overview statistics
-    function updateOverviewStats(data) {
-        document.getElementById('totalRequests').textContent = data.total_requests || 0;
-        document.getElementById('successfulRequests').textContent = data.successful_requests || 0;
-        document.getElementById('failedRequests').textContent = data.failed_requests || 0;
-        document.getElementById('successRate').textContent = (data.success_rate || 0).toFixed(1) + '% успешность';
-        document.getElementById('errorRate').textContent = 
-            data.total_requests > 0 ? ((data.failed_requests / data.total_requests) * 100).toFixed(1) + '% от общего числа' : '0% от общего числа';
-        document.getElementById('averageResponseTime').textContent = 
-            data.average_response_time ? data.average_response_time.toFixed(0) + 'мс' : 'N/A';
-    }
-
-    // Update all charts
-    function updateCharts(data) {
-        updateRequestsChart(data.requests_by_day || []);
-        updateSuccessRateChart(data);
-        updateMethodsChart(data.requests_by_method || []);
-        updateContentTypesChart(data.requests_by_content_type || []);
-        
-        // Show hourly chart only for short periods
-        if (currentPeriod === '1d' || currentPeriod === '7d') {
-            document.getElementById('hourlyActivityCard').style.display = 'block';
-            updateHourlyChart(data.requests_by_hour || []);
-        } else {
-            document.getElementById('hourlyActivityCard').style.display = 'none';
-        }
-    }
-
-    // Requests over time chart
-    function updateRequestsChart(data) {
-        const ctx = document.getElementById('requestsChart').getContext('2d');
-        
-        if (charts.requests) {
-            charts.requests.destroy();
-        }
-        
-        charts.requests = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: data.map(d => d.date),
-                datasets: [{
-                    label: 'Всего запросов',
-                    data: data.map(d => d.requests),
-                    borderColor: 'rgb(99, 179, 237)',
-                    backgroundColor: 'rgba(99, 179, 237, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }, {
-                    label: 'Успешные',
-                    data: data.map(d => d.success),
-                    borderColor: 'rgb(16, 185, 129)',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    tension: 0.4
-                }, {
-                    label: 'Ошибки',
-                    data: data.map(d => d.errors),
-                    borderColor: 'rgb(239, 68, 68)',
-                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        labels: {
-                            color: 'rgb(171, 178, 191)'
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: {
-                            color: 'rgb(171, 178, 191)'
-                        },
-                        grid: {
-                            color: 'rgba(171, 178, 191, 0.1)'
-                        }
-                    },
-                    y: {
-                        ticks: {
-                            color: 'rgb(171, 178, 191)'
-                        },
-                        grid: {
-                            color: 'rgba(171, 178, 191, 0.1)'
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    // Success rate pie chart
-    function updateSuccessRateChart(data) {
-        const ctx = document.getElementById('successRateChart').getContext('2d');
-        
-        if (charts.successRate) {
-            charts.successRate.destroy();
-        }
-        
-        charts.successRate = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Успешные', 'Ошибки'],
-                datasets: [{
-                    data: [data.successful_requests || 0, data.failed_requests || 0],
-                    backgroundColor: [
-                        'rgb(16, 185, 129)',
-                        'rgb(239, 68, 68)'
-                    ],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            color: 'rgb(171, 178, 191)',
-                            padding: 20
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    // HTTP methods chart
-    function updateMethodsChart(data) {
-        const ctx = document.getElementById('methodsChart').getContext('2d');
-        
-        if (charts.methods) {
-            charts.methods.destroy();
-        }
-        
-        const colors = [
-            'rgb(99, 179, 237)',
-            'rgb(16, 185, 129)',
-            'rgb(245, 158, 11)',
-            'rgb(239, 68, 68)',
-            'rgb(168, 85, 247)'
-        ];
-        
-        charts.methods = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: data.map(d => d.method),
-                datasets: [{
-                    label: 'Запросы',
-                    data: data.map(d => d.count),
-                    backgroundColor: colors.slice(0, data.length),
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: {
-                            color: 'rgb(171, 178, 191)'
-                        },
-                        grid: {
-                            display: false
-                        }
-                    },
-                    y: {
-                        ticks: {
-                            color: 'rgb(171, 178, 191)'
-                        },
-                        grid: {
-                            color: 'rgba(171, 178, 191, 0.1)'
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    // Content types chart
-    function updateContentTypesChart(data) {
-        const ctx = document.getElementById('contentTypesChart').getContext('2d');
-        
-        if (charts.contentTypes) {
-            charts.contentTypes.destroy();
-        }
-        
-        const colors = [
-            'rgb(99, 179, 237)',
-            'rgb(16, 185, 129)',
-            'rgb(245, 158, 11)',
-            'rgb(239, 68, 68)',
-            'rgb(168, 85, 247)',
-            'rgb(236, 72, 153)'
-        ];
-        
-        charts.contentTypes = new Chart(ctx, {
-            type: 'pie',
-            data: {
-                labels: data.map(d => d.content_type),
-                datasets: [{
-                    data: data.map(d => d.count),
-                    backgroundColor: colors.slice(0, data.length),
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            color: 'rgb(171, 178, 191)',
-                            padding: 15
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    // Hourly activity chart
-    function updateHourlyChart(data) {
-        const ctx = document.getElementById('hourlyChart').getContext('2d');
-        
-        if (charts.hourly) {
-            charts.hourly.destroy();
-        }
-        
-        // Fill missing hours with 0
-        const hourlyData = Array.from({length: 24}, (_, i) => {
-            const hourData = data.find(d => d.hour === i);
-            return {
-                hour: i,
-                requests: hourData ? hourData.requests : 0,
-                errors: hourData ? hourData.errors : 0
-            };
-        });
-        
-        charts.hourly = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: hourlyData.map(d => d.hour + ':00'),
-                datasets: [{
-                    label: 'Запросы',
-                    data: hourlyData.map(d => d.requests),
-                    backgroundColor: 'rgba(99, 179, 237, 0.8)',
-                    borderWidth: 0
-                }, {
-                    label: 'Ошибки',
-                    data: hourlyData.map(d => d.errors),
-                    backgroundColor: 'rgba(239, 68, 68, 0.8)',
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        labels: {
-                            color: 'rgb(171, 178, 191)'
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: {
-                            color: 'rgb(171, 178, 191)'
-                        },
-                        grid: {
-                            display: false
-                        }
-                    },
-                    y: {
-                        ticks: {
-                            color: 'rgb(171, 178, 191)'
-                        },
-                        grid: {
-                            color: 'rgba(171, 178, 191, 0.1)'
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    // Update tables
-    function updateTables(data) {
-        updateTopIntegrationsTable(data.top_integrations || []);
-        updateErrorTypesTable(data.errors_by_type || []);
-    }
-
-    // Top integrations table
-    function updateTopIntegrationsTable(data) {
-        const tbody = document.getElementById('topIntegrationsTable');
-        
-        if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-secondary);">Нет данных</td></tr>';
+    function updateStats(stats) {
+        const container = document.getElementById('stats-container');
+        if (!container) {
+            console.error('Stats container not found');
             return;
         }
+
+        // Безопасное извлечение данных
+        const safeStats = stats || {};
+        const totalRequests = safeStats.total_requests || 0;
+        const successfulRequests = safeStats.successful_requests || 0;
+        const failedRequests = safeStats.failed_requests || 0;
+        const avgResponseTime = safeStats.avg_response_time_ms || 0;
+
+        container.innerHTML = `
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <h3 class="stat-card-title">Всего запросов</h3>
+                    <i data-lucide="bar-chart-2"></i>
+                </div>
+                <p class="stat-card-value">${totalRequests}</p>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <h3 class="stat-card-title">Успешных запросов</h3>
+                    <i data-lucide="check-circle"></i>
+                </div>
+                <p class="stat-card-value">${successfulRequests}</p>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <h3 class="stat-card-title">Ошибок</h3>
+                    <i data-lucide="alert-circle"></i>
+                </div>
+                <p class="stat-card-value">${failedRequests}</p>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <h3 class="stat-card-title">Среднее время ответа</h3>
+                    <i data-lucide="timer"></i>
+                </div>
+                <p class="stat-card-value">${avgResponseTime} мс</p>
+            </div>
+        `;
         
-        tbody.innerHTML = data.map(integration => `
-            <tr>
-                <td>
-                    <strong>${integration.integration_name}</strong>
-                </td>
-                <td>${integration.requests}</td>
-                <td>
-                    <span class="status-badge ${integration.success_rate >= 95 ? 'active' : integration.success_rate >= 80 ? 'warning' : 'error'}">
-                        ${integration.success_rate.toFixed(1)}%
-                    </span>
-                </td>
-                <td>
-                    ${integration.last_request ? new Date(integration.last_request).toLocaleString('ru-RU') : 'Никогда'}
-                </td>
-            </tr>
-        `).join('');
+        // Безопасная инициализация иконок
+        try {
+            if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                window.lucide.createIcons();
+            }
+        } catch (error) {
+            console.warn('Failed to create Lucide icons:', error);
+        }
     }
 
-    // Error types table
-    function updateErrorTypesTable(data) {
-        const tbody = document.getElementById('errorTypesTable');
-        
-        if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-secondary);">Нет ошибок</td></tr>';
+    function updateActivityChart(data) {
+        const canvas = document.getElementById('activity-chart');
+        if (!canvas) {
+            console.error('Activity chart canvas not found');
             return;
         }
-        
-        const statusDescriptions = {
-            400: 'Bad Request',
-            401: 'Unauthorized',
-            403: 'Forbidden',
-            404: 'Not Found',
-            405: 'Method Not Allowed',
-            413: 'Payload Too Large',
-            429: 'Too Many Requests',
-            500: 'Internal Server Error',
-            502: 'Bad Gateway',
-            503: 'Service Unavailable',
-            504: 'Gateway Timeout'
-        };
-        
-        tbody.innerHTML = data.map(error => `
-            <tr>
-                <td>
-                    <span class="status-badge error">${error.status_code}</span>
-                </td>
-                <td>${error.count}</td>
-                <td>${error.percentage.toFixed(1)}%</td>
-                <td>${statusDescriptions[error.status_code] || 'Unknown'}</td>
-            </tr>
-        `).join('');
-    }
 
-    // Refresh analytics
-    function refreshAnalytics() {
-        loadAnalytics();
-        showNotification('Аналитика обновлена', 'success', { duration: 2000 });
-    }
+        const ctx = canvas.getContext('2d');
+        const safeData = data || {};
+        const labels = Object.keys(safeData).sort();
+        const values = labels.map(label => safeData[label] || 0);
 
-    // Export analytics
-    function exportAnalytics() {
-        const params = new URLSearchParams({
-            period: currentPeriod,
-            format: 'csv'
-        });
-        
-        if (currentIntegration) {
-            params.append('integration_id', currentIntegration);
+        if (activityChart) {
+            activityChart.destroy();
         }
-        
-        window.open(`/api/analytics/export?${params}`, '_blank');
+
+        try {
+            activityChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels.length > 0 ? labels : ['Нет данных'],
+                    datasets: [{
+                        label: 'Запросы в час',
+                        data: values.length > 0 ? values : [0],
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Failed to create activity chart:', error);
+        }
     }
+
+    function updateStatusChart(data) {
+        const canvas = document.getElementById('status-chart');
+        if (!canvas) {
+            console.error('Status chart canvas not found');
+            return;
+        }
+
+        const ctx = canvas.getContext('2d');
+        const safeData = data || {};
+        const labels = Object.keys(safeData);
+        const values = Object.values(safeData);
+        
+        const backgroundColors = labels.map(label => {
+            if (label.startsWith('2')) return 'rgba(75, 192, 192, 0.5)';
+            if (label.startsWith('4')) return 'rgba(255, 159, 64, 0.5)';
+            if (label.startsWith('5')) return 'rgba(255, 99, 132, 0.5)';
+            return 'rgba(201, 203, 207, 0.5)';
+        });
+
+        if (statusChart) {
+            statusChart.destroy();
+        }
+
+        try {
+            statusChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels.length > 0 ? labels : ['Нет данных'],
+                    datasets: [{
+                        label: 'Статусы ответов',
+                        data: values.length > 0 ? values : [1],
+                        backgroundColor: backgroundColors.length > 0 ? backgroundColors : ['rgba(201, 203, 207, 0.5)'],
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        } catch (error) {
+            console.error('Failed to create status chart:', error);
+        }
+    }
+
+    // Mobile Sidebar Toggle
+    function toggleMobileSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.querySelector('.sidebar-overlay');
+        sidebar.classList.toggle('mobile-open');
+        overlay.classList.toggle('active');
+    }
+    
+    function closeMobileSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.querySelector('.sidebar-overlay');
+        sidebar.classList.remove('mobile-open');
+        overlay.classList.remove('active');
+    }
+    
+    // Закрытие sidebar при клике на ссылку
+    document.querySelectorAll('.sidebar a').forEach(link => {
+        link.addEventListener('click', closeMobileSidebar);
+    });
 </script>
 
 <style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-bottom: 2rem;
+    }
+
+    .page-header > div {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .card-title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-title i {
+        color: var(--primary);
+    }
+
+    .analytics-filters {
+        padding: 1.5rem;
+    }
+
+    .filter-form {
+        width: 100%;
+    }
+
+    .filter-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto;
+        gap: 1rem;
+        align-items: end;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .form-group label {
+        font-weight: 500;
+        color: var(--foreground);
+        font-size: 0.875rem;
+    }
+
+    .form-control {
+        padding: 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--input);
+        color: var(--foreground);
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(var(--primary), 0.1);
+    }
+
+    .charts-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .chart-container {
+        padding: 1.5rem;
+        position: relative;
+        height: 400px;
+    }
+
+    .chart-container canvas {
+        max-height: 100%;
+    }
+
     .stats-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1.5rem;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
     }
-    
+
+    .stat-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+        transition: all 0.2s ease;
+    }
+
+    .stat-card:hover {
+        border-color: var(--primary);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .stat-card-title {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--muted-foreground);
+        margin: 0;
+    }
+
+    .stat-card-header i {
+        color: var(--primary);
+        width: 20px;
+        height: 20px;
+    }
+
+    .stat-card-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--foreground);
+        margin: 0;
+    }
+
+    /* Мобильная адаптивность */
     @media (max-width: 768px) {
-        .page-header-enhanced {
+        .page-header {
             flex-direction: column;
-            align-items: stretch;
+            align-items: flex-start;
         }
-        
-        .page-header-actions {
-            flex-direction: column;
+
+        .filter-row {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        .charts-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        .chart-container {
+            height: 300px;
+            padding: 1rem;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 0.75rem;
         }
+
+        .stat-card {
+            padding: 1rem;
+        }
+
+        .stat-card-value {
+            font-size: 1.5rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
         
-        main > div[style*="grid-template-columns"] {
-            grid-template-columns: 1fr !important;
+        .chart-container {
+            height: 250px;
+            padding: 0.75rem;
         }
     }
 </style>
 
+{{ template "partials/scripts.html" . }}
 {{ end }}

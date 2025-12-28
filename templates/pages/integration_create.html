@@ -349,6 +349,9 @@
 
                 <div style="display: flex; gap: 1rem; margin-top: 2rem;">
                     <button type="submit" class="btn btn-success">✅ Создать интеграцию</button>
+                    <a href="/integrations/create-with-ai" class="btn btn-primary">
+                        <i data-lucide="sparkles"></i> Создать с AI
+                    </a>
                     <a href="/integrations" class="btn btn-secondary">Отмена</a>
                 </div>
             </form>
@@ -517,6 +520,23 @@
             collectWebhookMethodsCreate();
         });
 
+    </script>
+
+    <!-- AI Assistant -->
+    {{ template "partials/ai_chat.html" . }}
+
+    <!-- AI Assistant Script -->
+    <script src="/static/js/ai-assistant.js"></script>
+    <script>
+        // Инициализируем AI ассистент для страницы создания интеграции
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.aiAssistant) {
+                window.aiAssistant.setIntegrationContext({
+                    source: 'integration_create',
+                    projects_count: {{ len .projects }}
+                });
+            }
+        });
     </script>
 </body>
 </html>

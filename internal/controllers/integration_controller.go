@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"context"
+	"dmintegroff/internal/ai"
 	"dmintegroff/internal/database"
 	"dmintegroff/internal/logger"
 	"dmintegroff/internal/models"
@@ -16,6 +18,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -157,6 +160,55 @@ func IntegrationCreate(c *gin.Context) {
 	c.HTML(http.StatusOK, "pages/integration_create.html", gin.H{
 		"title":              "Создание интеграции",
 		"CurrentPage":        "integration_create",
+		"projects":           projects,
+		"username":           session.Get("username"),
+		"role":               session.Get("role"),
+		"isDemo":             isDemo,
+		"appURL":             getAppURL(c),
+		"appPath":            getAppPath(),
+		"isFirstIntegration": isFirstIntegration,
+	})
+}
+
+func IntegrationCreateWithAI(c *gin.Context) {
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	role := session.Get("role")
+	
+	var projects []models.Project
+	query := database.DB
+	
+	// Specialist видит только свои проекты
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+	
+	query.Find(&projects)
+
+	// Получаем информацию о пользователе для проверки демо-режима
+	userIDInterface := session.Get("user_id")
+	isDemo := false
+	if userIDInterface != nil {
+		if userID, ok := userIDInterface.(uint); ok {
+			var user models.User
+			if err := database.DB.First(&user, userID).Error; err == nil {
+				isDemo = user.IsDemo
+			}
+		}
+	}
+
+	// Проверяем, есть ли уже интеграции у пользователя
+	var integrationCount int64
+	countQuery := database.DB.Model(&models.Integration{})
+	if role != "admin" {
+		countQuery = countQuery.Where("created_by_id = ?", userID)
+	}
+	countQuery.Count(&integrationCount)
+	isFirstIntegration := integrationCount == 0
+
+	c.HTML(http.StatusOK, "pages/integration_create_ai.html", gin.H{
+		"title":              "Создание интеграции с AI",
+		"CurrentPage":        "integration_create_ai",
 		"projects":           projects,
 		"username":           session.Get("username"),
 		"role":               session.Get("role"),
@@ -1003,15 +1055,55 @@ func IntegrationTestMapping(c *gin.Context) {
 		return
 	}
 
+	// Parse optional request body for overrides
+	var req struct {
+		MappingConfig  string `json:"mapping_config"`
+		OutputTemplate string `json:"output_template"`
+		TemplateType   string `json:"template_type"`
+		SamplePayload  string `json:"sample_payload"`
+	}
+	
+	// Start with DB values
+	samplePayload := integration.SamplePayload
+	outputTemplate := integration.OutputTemplate
+	mappingConfig := integration.MappingConfig
+	templateType := integration.TemplateType
+	if templateType == "" {
+		templateType = "json"
+	}
+
+	// Override if provided in request
+	if err := c.ShouldBindJSON(&req); err == nil {
+		if req.SamplePayload != "" {
+			samplePayload = req.SamplePayload
+		}
+		
+		// If explicit template provided
+		if req.OutputTemplate != "" {
+			outputTemplate = req.OutputTemplate
+			mappingConfig = "" // Force template mode
+			if req.TemplateType != "" {
+				templateType = req.TemplateType
+			}
+		} else if req.MappingConfig != "" {
+			// If explicit mapping config provided
+			mappingConfig = req.MappingConfig
+			outputTemplate = "" // Force mapping mode
+		} else if req.TemplateType != "" && integration.OutputTemplate != "" {
+			// Only changing template type for existing template
+			templateType = req.TemplateType
+		}
+	}
+
 	// Check if sample payload exists
-	if integration.SamplePayload == "" {
+	if samplePayload == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "No sample payload available"})
 		return
 	}
 
 	// Parse sample payload
 	var payload map[string]interface{}
-	if err := json.Unmarshal([]byte(integration.SamplePayload), &payload); err != nil {
+	if err := json.Unmarshal([]byte(samplePayload), &payload); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid sample payload JSON"})
 		return
 	}
@@ -1021,16 +1113,12 @@ func IntegrationTestMapping(c *gin.Context) {
 	var transformedString string
 	var isStringTemplate bool
 
-	if integration.OutputTemplate != "" {
+	if outputTemplate != "" {
 		processor := utils.NewTemplateProcessor()
-		templateType := integration.TemplateType
-		if templateType == "" {
-			templateType = "json"
-		}
 
 		if templateType == "json" {
 			var err error
-			transformed, err = processor.ProcessTemplate(integration.OutputTemplate, payload)
+			transformed, err = processor.ProcessTemplate(outputTemplate, payload)
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
 					"error": "Template processing failed: " + err.Error(),
@@ -1039,7 +1127,7 @@ func IntegrationTestMapping(c *gin.Context) {
 			}
 		} else {
 			var err error
-			transformedString, err = processor.ProcessTemplateString(integration.OutputTemplate, payload)
+			transformedString, err = processor.ProcessTemplateString(outputTemplate, payload)
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
 					"error": "Template processing failed: " + err.Error(),
@@ -1048,9 +1136,9 @@ func IntegrationTestMapping(c *gin.Context) {
 			}
 			isStringTemplate = true
 		}
-	} else if integration.MappingConfig != "" {
+	} else if mappingConfig != "" {
 		var mapping map[string]string
-		if err := json.Unmarshal([]byte(integration.MappingConfig), &mapping); err != nil {
+		if err := json.Unmarshal([]byte(mappingConfig), &mapping); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid mapping config"})
 			return
 		}
@@ -1082,7 +1170,7 @@ func IntegrationTestMapping(c *gin.Context) {
 		"output":      transformedOutput,
 		"target_api":  integration.TargetAPI,
 		"http_method": integration.HTTPMethod,
-		"template_type": integration.TemplateType,
+		"template_type": templateType,
 	})
 }
 
@@ -1354,4 +1442,190 @@ func IntegrationEnrichmentConfigureSave(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"success": true})
+}
+// IntegrationAIGenerateMapping генерирует маппинг с помощью AI
+func IntegrationAIGenerateMapping(c *gin.Context) {
+	startTime := time.Now()
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	username := session.Get("username")
+	role := session.Get("role")
+	
+	integrationIDStr := c.Param("id")
+	integrationID, err := strconv.Atoi(integrationIDStr)
+	if err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"action":        "ai_generate_mapping",
+			"user_id":       userID,
+			"username":      username,
+			"error":         "invalid_integration_id",
+			"integration_id": integrationIDStr,
+			"ip":            c.ClientIP(),
+		}).Error("AI Mapping Generation: Invalid integration ID")
+		
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "error",
+			"error":  "Неверный ID интеграции",
+		})
+		return
+	}
+
+	logger.Log.WithFields(map[string]interface{}{
+		"action":        "ai_generate_mapping_start",
+		"user_id":       userID,
+		"username":      username,
+		"integration_id": integrationID,
+		"ip":            c.ClientIP(),
+	}).Info("AI Mapping Generation: Starting AI mapping generation")
+
+	// Получаем интеграцию из базы данных
+	var integration models.Integration
+	query := database.DB
+	if role != "admin" {
+		query = query.Where("created_by_id = ?", userID)
+	}
+	
+	if err := query.First(&integration, integrationID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"status": "error",
+			"error":  "Интеграция не найдена",
+		})
+		return
+	}
+
+	// Парсим запрос
+	var req struct {
+		SamplePayload   string `json:"sample_payload" binding:"required"`
+		TargetSystem    string `json:"target_system" binding:"required"`
+		Description     string `json:"description"`
+		Mode            string `json:"mode"`
+		RequestedFormat string `json:"requested_format"`
+	}
+	
+	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"action":        "ai_generate_mapping",
+			"user_id":       userID,
+			"username":      username,
+			"integration_id": integrationID,
+			"error":         "invalid_request_format",
+			"details":       err.Error(),
+		}).Error("AI Mapping Generation: Invalid request format")
+		
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "error",
+			"error":  "Неверный формат запроса: " + err.Error(),
+		})
+		return
+	}
+
+	logger.Log.WithFields(map[string]interface{}{
+		"action":           "ai_generate_mapping",
+		"user_id":          userID,
+		"username":         username,
+		"integration_id":   integrationID,
+		"target_system":    req.TargetSystem,
+		"description":      req.Description,
+		"mode":             req.Mode,
+		"requested_format": req.RequestedFormat,
+		"sample_size":      len(req.SamplePayload),
+	}).Info("AI Mapping Generation: Processing mapping generation request")
+
+	// Используем AI wrapper для генерации маппинга
+	aiController := getAIController()
+	if aiController == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"status": "error",
+			"error":  "AI сервис недоступен",
+		})
+		return
+	}
+
+	// Парсим sample payload
+	var sampleData map[string]interface{}
+	if err := json.Unmarshal([]byte(req.SamplePayload), &sampleData); err != nil {
+		// Если не JSON, создаем простую структуру
+		sampleData = map[string]interface{}{
+			"data": req.SamplePayload,
+		}
+	}
+
+	// Создаем контекст для AI
+	ctx := context.Background()
+	
+	// Создаем запрос для генерации маппинга
+	mappingReq := &ai.MappingGenerationRequest{
+		SourceData:      sampleData,
+		TargetAPI:       req.TargetSystem,
+		Task:            req.Description,
+		UserPrompt:      req.Description,
+		RequestedFormat: req.RequestedFormat,
+	}
+
+	var mapping *ai.GeneratedMapping
+	var errGen error
+
+	if req.Mode == "template_only" {
+		mapping, errGen = aiController.generator.GenerateTemplate(ctx, mappingReq)
+	} else {
+		mapping, errGen = aiController.generator.GenerateMapping(ctx, mappingReq)
+	}
+
+	if errGen != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"action":         "ai_generate_mapping",
+			"user_id":        userID,
+			"username":       username,
+			"integration_id": integrationID,
+			"target_system":  req.TargetSystem,
+			"error":          "mapping_generation_failed",
+			"details":        errGen.Error(),
+			"duration":       time.Since(startTime).String(),
+		}).Error("AI Mapping Generation: Failed to generate mapping")
+		
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": "error",
+			"error":  "Ошибка генерации маппинга: " + errGen.Error(),
+		})
+		return
+	}
+
+	// Создаем маппинг полей из исходных данных
+	fieldMapping := make(map[string]string)
+	for key := range sampleData {
+		fieldMapping[key] = key // простой маппинг 1:1
+	}
+
+	logger.Log.WithFields(map[string]interface{}{
+		"action":         "ai_generate_mapping_success",
+		"user_id":        userID,
+		"username":       username,
+		"integration_id": integrationID,
+		"target_system":  req.TargetSystem,
+		"template_type":  mapping.Type,
+		"field_count":    len(fieldMapping),
+		"template_size":  len(mapping.GetTemplateString()),
+		"duration":       time.Since(startTime).String(),
+		"template_preview": func() string {
+			template := mapping.GetTemplateString()
+			if len(template) > 100 {
+				return template[:100] + "..."
+			}
+			return template
+		}(),
+	}).Info("AI Mapping Generation: Mapping generated successfully")
+
+	// Возвращаем результат
+	c.JSON(http.StatusOK, gin.H{
+		"status":       "success",
+		"mapping":      fieldMapping,
+		"template":     mapping.GetTemplateString(),
+		"template_type": mapping.Type,
+		"explanation":  mapping.Description,
+		"suggestions":  []string{
+			"Проверьте сгенерированный маппинг",
+			"Настройте аутентификацию если необходимо",
+			"Протестируйте интеграцию перед активацией",
+		},
+	})
 }

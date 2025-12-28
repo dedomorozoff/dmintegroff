@@ -406,8 +406,25 @@
         </div>
     </div>
 
+    <!-- AI Chat Widget -->
+    {{ template "partials/ai_chat.html" . }}
+
     <script src="/static/js/common.js"></script>
     <script src="/static/js/json-highlight.js"></script>
+    <script src="/static/js/ai-assistant.js"></script>
+    <script>
+        // Инициализируем AI ассистент для списка выходов
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.aiAssistant) {
+                window.aiAssistant.setIntegrationContext({
+                    source: 'outputs_list',
+                    integration_id: {{ .integration.ID }},
+                    integration_name: '{{ .integration.Name }}'
+                });
+            }
+        });
+    </script>
+
     <script>
     // Dropdown menu functions
     function toggleDropdown(event, id, button) {

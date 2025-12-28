@@ -1,0 +1,24 @@
+{
+  "name": "Jira",
+  "description": "Создание задачи в Jira",
+  "type": "json",
+  "category": "other",
+  "template": {
+    "fields": {
+      "project": {
+        "key": "PROJ"
+      },
+      "summary": "{{issue.title}}",
+      "description": "{{issue.description}}\n\nОт пользователя: {{user.name}} ({{user.email}})",
+      "issuetype": {
+        "name": "Task"
+      },
+      "priority": {
+        "name": "Medium"
+      },
+      "reporter": {
+        "name": "webhook-user"
+      }
+    }
+  }
+}
