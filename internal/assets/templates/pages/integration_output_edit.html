@@ -1,0 +1,189 @@
+{{ define "pages/integration_output_edit.html" }}
+{{ template "partials/head.html" . }}
+    {{ template "partials/sidebar.html" . }}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <h1>Редактирование дополнительного выхода: {{ .output.Name }}</h1>
+            <a href="/integrations/{{ .integration.ID }}/outputs" class="btn btn-secondary">
+                <i class="icon">←</i> Назад к выходам
+            </a>
+        </div>
+
+        <form method="POST" action="/integrations/{{ .integration.ID }}/outputs/{{ .output.ID }}/update" class="form">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Основная информация</h3>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="name">Название выхода *</label>
+                        <input type="text" id="name" name="name" class="form-control" required 
+                               value="{{ .output.Name }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">Описание</label>
+                        <textarea id="description" name="description" class="form-control" rows="2">{{ .output.Description }}</textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="priority">Приоритет</label>
+                        <input type="number" id="priority" name="priority" class="form-control" 
+                               value="{{ .output.Priority }}" min="0">
+                        <small class="form-text">Порядок выполнения (меньше = раньше)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="condition">Условие выполнения (опционально)</label>
+                        <textarea id="condition" name="condition" class="form-control" rows="2" 
+                                  placeholder='Например: {{`{{event_type}}`}} == "user.created"'>{{ .output.Condition }}</textarea>
+                        <small class="form-text">Выход будет выполнен только если условие истинно</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h3>Target API</h3>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="target_api">Target API URL *</label>
+                        <input type="text" id="target_api" name="target_api" class="form-control" required 
+                               value="{{ .output.TargetAPI }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="http_method">HTTP метод</label>
+                        <select id="http_method" name="http_method" class="form-control">
+                            <option value="POST" {{ if eq .output.HTTPMethod "POST" }}selected{{ end }}>POST</option>
+                            <option value="PUT" {{ if eq .output.HTTPMethod "PUT" }}selected{{ end }}>PUT</option>
+                            <option value="PATCH" {{ if eq .output.HTTPMethod "PATCH" }}selected{{ end }}>PATCH</option>
+                            <option value="GET" {{ if eq .output.HTTPMethod "GET" }}selected{{ end }}>GET</option>
+                            <option value="DELETE" {{ if eq .output.HTTPMethod "DELETE" }}selected{{ end }}>DELETE</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h3>Аутентификация</h3>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="auth_type">Тип аутентификации</label>
+                        <select id="auth_type" name="auth_type" class="form-control" onchange="toggleAuthFields()">
+                            <option value="none" {{ if eq .output.AuthType "none" }}selected{{ end }}>Без аутентификации</option>
+                            <option value="bearer" {{ if eq .output.AuthType "bearer" }}selected{{ end }}>Bearer Token</option>
+                            <option value="basic" {{ if eq .output.AuthType "basic" }}selected{{ end }}>Basic Auth</option>
+                            <option value="oauth2" {{ if eq .output.AuthType "oauth2" }}selected{{ end }}>OAuth 2.0</option>
+                        </select>
+                    </div>
+
+                    <!-- Bearer Token -->
+                    <div id="bearer_fields" style="display:{{ if eq .output.AuthType "bearer" }}block{{ else }}none{{ end }};">
+                        <div class="form-group">
+                            <label for="bearer_token">Bearer Token</label>
+                            <input type="password" id="bearer_token" name="bearer_token" class="form-control" 
+                                   placeholder="Оставьте пустым, чтобы не изменять">
+                        </div>
+                    </div>
+
+                    <!-- Basic Auth -->
+                    <div id="basic_fields" style="display:{{ if eq .output.AuthType "basic" }}block{{ else }}none{{ end }};">
+                        <div class="form-group">
+                            <label for="basic_auth_user">Username</label>
+                            <input type="text" id="basic_auth_user" name="basic_auth_user" class="form-control" 
+                                   value="{{ .output.BasicAuthUser }}">
+                        </div>
+                        <div class="form-group">
+                            <label for="basic_auth_pass">Password</label>
+                            <input type="password" id="basic_auth_pass" name="basic_auth_pass" class="form-control" 
+                                   placeholder="Оставьте пустым, чтобы не изменять">
+                        </div>
+                    </div>
+
+                    <!-- OAuth 2.0 -->
+                    <div id="oauth2_fields" style="display:{{ if eq .output.AuthType "oauth2" }}block{{ else }}none{{ end }};">
+                        <div class="form-group">
+                            <label for="oauth2_token_url">Token URL</label>
+                            <input type="text" id="oauth2_token_url" name="oauth2_token_url" class="form-control" 
+                                   value="{{ .output.OAuth2TokenURL }}">
+                        </div>
+                        <div class="form-group">
+                            <label for="oauth2_client_id">Client ID</label>
+                            <input type="text" id="oauth2_client_id" name="oauth2_client_id" class="form-control" 
+                                   value="{{ .output.OAuth2ClientID }}">
+                        </div>
+                        <div class="form-group">
+                            <label for="oauth2_client_secret">Client Secret</label>
+                            <input type="password" id="oauth2_client_secret" name="oauth2_client_secret" class="form-control" 
+                                   placeholder="Оставьте пустым, чтобы не изменять">
+                        </div>
+                        <div class="form-group">
+                            <label for="oauth2_scope">Scope (опционально)</label>
+                            <input type="text" id="oauth2_scope" name="oauth2_scope" class="form-control" 
+                                   value="{{ .output.OAuth2Scope }}">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="custom_headers">Дополнительные заголовки (JSON)</label>
+                        <textarea id="custom_headers" name="custom_headers" class="form-control" rows="3">{{ .output.CustomHeaders }}</textarea>
+                        <small class="form-text">JSON объект с дополнительными HTTP заголовками</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="icon">💾</i> Сохранить изменения
+                </button>
+                <a href="/integrations/{{ .integration.ID }}/outputs" class="btn btn-secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- AI Chat Widget -->
+    {{ template "partials/ai_chat.html" . }}
+
+    <script src="/static/js/ai-assistant.js"></script>
+    <script>
+        // Инициализируем AI ассистент для редактирования выхода
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.aiAssistant) {
+                window.aiAssistant.setIntegrationContext({
+                    source: 'output_edit',
+                    integration_id: {{ .integration.ID }},
+                    integration_name: '{{ .integration.Name }}',
+                    output_id: {{ .output.ID }},
+                    output_name: '{{ .output.Name }}'
+                });
+            }
+        });
+    </script>
+
+    <script>
+    function toggleAuthFields() {
+        const authType = document.getElementById('auth_type').value;
+        
+        document.getElementById('bearer_fields').style.display = 'none';
+        document.getElementById('basic_fields').style.display = 'none';
+        document.getElementById('oauth2_fields').style.display = 'none';
+        
+        if (authType === 'bearer') {
+            document.getElementById('bearer_fields').style.display = 'block';
+        } else if (authType === 'basic') {
+            document.getElementById('basic_fields').style.display = 'block';
+        } else if (authType === 'oauth2') {
+            document.getElementById('oauth2_fields').style.display = 'block';
+        }
+    }
+    </script>
+    </main>
+
+{{ template "partials/scripts.html" . }}
+{{ end }}

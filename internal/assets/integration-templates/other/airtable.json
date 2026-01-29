@@ -1,0 +1,19 @@
+{
+  "name": "Airtable",
+  "description": "Создание записи в Airtable",
+  "type": "json",
+  "category": "other",
+  "template": {
+    "records": [{
+      "fields": {
+        "Name": "{{user.name}}",
+        "Email": "{{user.email}}",
+        "Phone": "{{user.phone}}",
+        "Message": "{{message.text}}",
+        "Status": "New",
+        "Created": "{{timestamp}}",
+        "Source": "Webhook"
+      }
+    }]
+  }
+}

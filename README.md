@@ -48,8 +48,12 @@ go mod tidy
 # Скопируйте конфигурацию
 cp .env.example .env
 
-# Запустите сервер
+# Запустите сервер (режим разработки)
 go run cmd/server/main.go
+
+# Или соберите production версию с встроенными файлами
+.\build-embedded.bat
+.\dmintegroff.exe
 ```
 
 ### Первый вход
@@ -82,7 +86,7 @@ go run cmd/server/main.go
 
 ## 🛠 Технологический стек
 
-- **Backend**: Go 1.25+, Gin Web Framework
+- **Backend**: Go 1.25+, Gin Web Framework, go:embed для встраивания ресурсов
 - **Database**: GORM (SQLite/MySQL)
 - **Frontend**: Go HTML Templates, Modern CSS, Vanilla JavaScript
 - **Cache**: Redis (опционально)
@@ -117,6 +121,36 @@ dmIntegroff/
 3. Commit изменения (`git commit -m 'Add amazing feature'`)
 4. Push в branch (`git push origin feature/amazing-feature`)
 5. Откройте Pull Request
+
+## 🔧 Сборка и деплой
+
+### Режимы сборки
+
+**Development режим** (быстрая разработка):
+```bash
+# Запуск с файловой системой (изменения шаблонов видны сразу)
+.\run-dev.bat
+# или
+set USE_EMBEDDED_FILES=false
+go run cmd/server/main.go
+```
+
+**Production режим** (встроенные файлы):
+```bash
+# Сборка с go:embed (все ресурсы встроены в .exe)
+.\build-embedded.bat
+
+# Запуск автономного исполняемого файла
+.\dmintegroff.exe
+```
+
+### Преимущества go:embed
+- ✅ **Единый файл** - все статические ресурсы встроены в бинарник
+- ✅ **Простой деплой** - нужно скопировать только dmintegroff.exe  
+- ✅ **Безопасность** - файлы не могут быть изменены извне
+- ✅ **Производительность** - быстрая загрузка из памяти
+
+Подробнее: [docs/GO_EMBED_GUIDE.md](docs/GO_EMBED_GUIDE.md)
 
 ## 📄 Лицензия
 

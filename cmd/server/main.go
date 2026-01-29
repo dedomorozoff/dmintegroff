@@ -1,6 +1,7 @@
 package main
 
 import (
+	"dmintegroff/internal/assets"
 	"dmintegroff/internal/cache"
 	"dmintegroff/internal/config"
 	"dmintegroff/internal/controllers"
@@ -11,6 +12,8 @@ import (
 	"dmintegroff/internal/routes"
 	"dmintegroff/internal/services"
 	"fmt"
+	"html/template"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -86,7 +89,30 @@ func main() {
 	// Создание сервисов метрик и здоровья
 	healthService := services.NewHealthService(sqlDB, "1.0.0")
 
-	r := routes.SetupRouter(healthService)
+	// Подготовка встроенных файлов или обычных в зависимости от режима
+	useEmbedded := os.Getenv("USE_EMBEDDED_FILES")
+	if useEmbedded == "" {
+		useEmbedded = "true" // По умолчанию используем встроенные файлы
+	}
+
+	var staticFS fs.FS
+	var integrationTemplatesFS fs.FS
+	var htmlTemplates *template.Template
+
+	if useEmbedded == "true" {
+		logger.Log.Info("Using embedded files")
+		staticFS = assets.GetStaticFS()
+		integrationTemplatesFS = assets.GetIntegrationTemplatesFS()
+		htmlTemplates = assets.LoadHTMLTemplates()
+	} else {
+		logger.Log.Info("Using filesystem files (development mode)")
+		staticFS = os.DirFS("static")
+		integrationTemplatesFS = os.DirFS("integration-templates")
+		// Для dev режима используем обычную загрузку шаблонов
+		htmlTemplates = nil // routes.go будет использовать LoadHTMLGlob
+	}
+
+	r := routes.SetupRouter(healthService, staticFS, integrationTemplatesFS, htmlTemplates)
 
 	host := os.Getenv("HOST")
 	if host == "" {

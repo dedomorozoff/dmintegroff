@@ -1,0 +1,21 @@
+{
+  "name": "Robokassa",
+  "description": "Создание платежа в Robokassa",
+  "type": "json",
+  "category": "payments",
+  "template": {
+    "MerchantLogin": "YOUR_MERCHANT_LOGIN",
+    "OutSum": "{{payment.amount}}",
+    "InvId": "{{order.id}}",
+    "Description": "{{payment.description}}",
+    "SignatureValue": "SIGNATURE_HASH",
+    "Culture": "ru",
+    "Encoding": "utf-8",
+    "Email": "{{user.email}}",
+    "ExpirationDate": "{{expiration_date}}",
+    "OutSumCurrency": "RUB",
+    "UserIp": "{{user.ip}}",
+    "IncCurrLabel": "",
+    "Shp_user_id": "{{user.id}}"
+  }
+}

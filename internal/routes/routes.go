@@ -6,6 +6,8 @@ import (
 	"dmintegroff/internal/middleware"
 	"dmintegroff/internal/models"
 	"dmintegroff/internal/services"
+	"html/template"
+	"io/fs"
 	"net/http"
 	"os"
 
@@ -17,7 +19,7 @@ import (
 
 
 
-func SetupRouter(healthService *services.HealthService) *gin.Engine {
+func SetupRouter(healthService *services.HealthService, staticFS fs.FS, integrationTemplatesFS fs.FS, htmlTemplates *template.Template) *gin.Engine {
 	r := gin.Default()
 
 	// Настройка доверенных прокси (только localhost для разработки)
@@ -35,12 +37,31 @@ func SetupRouter(healthService *services.HealthService) *gin.Engine {
 	r.Use(sessions.Sessions("mysession", store))
 
 	// Serve static files
-	r.Static("/static", "./static")
+	if staticFS != nil {
+		// Embedded mode
+		r.StaticFS("/static", http.FS(staticFS))
+	} else {
+		// Development mode
+		r.Static("/static", "./static")
+	}
 	
 	// Serve integration templates
-	r.Static("/integration-templates", "./integration-templates")
+	if integrationTemplatesFS != nil {
+		// Embedded mode
+		r.StaticFS("/integration-templates", http.FS(integrationTemplatesFS))
+	} else {
+		// Development mode
+		r.Static("/integration-templates", "./integration-templates")
+	}
 
-	r.LoadHTMLGlob("templates/*/*")
+	// Load HTML templates
+	if htmlTemplates != nil {
+		// Embedded mode
+		r.SetHTMLTemplate(htmlTemplates)
+	} else {
+		// Development mode
+		r.LoadHTMLGlob("templates/*/*")
+	}
 
 	// Get custom app path from env
 	appPath := os.Getenv("APP_PATH")

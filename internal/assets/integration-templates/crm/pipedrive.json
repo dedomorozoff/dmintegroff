@@ -1,0 +1,20 @@
+{
+  "name": "Pipedrive",
+  "description": "Создание сделки в Pipedrive",
+  "type": "json",
+  "category": "crm",
+  "template": {
+    "title": "{{deal.title}}",
+    "value": "{{deal.value}}",
+    "currency": "RUB",
+    "user_id": 1,
+    "person_id": {
+      "name": "{{user.name}}",
+      "email": "{{user.email}}",
+      "phone": "{{user.phone}}"
+    },
+    "org_id": {
+      "name": "{{company.name}}"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "name": "Slack",
+  "description": "Отправка сообщения в Slack",
+  "type": "json",
+  "category": "messengers",
+  "template": {
+    "channel": "#general",
+    "username": "WebhookBot",
+    "icon_emoji": ":bell:",
+    "attachments": [{
+      "color": "good",
+      "title": "Новое уведомление",
+      "fields": [{
+        "title": "Пользователь",
+        "value": "{{user.name}}",
+        "short": true
+      }, {
+        "title": "Email",
+        "value": "{{user.email}}",
+        "short": true
+      }, {
+        "title": "Сообщение",
+        "value": "{{message.text}}",
+        "short": false
+      }],
+      "footer": "Webhook Integration",
+      "ts": "{{timestamp}}"
+    }]
+  }
+}

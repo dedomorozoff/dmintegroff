@@ -1,0 +1,597 @@
+{{ define "pages/integration_edit.html" }}
+{{ template "partials/head.html" . }}
+    {{ template "partials/sidebar.html" . }}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+                <div>
+                    <h1>Редактирование интеграции</h1>
+                    <p>Изменение параметров интеграции</p>
+                </div>
+                {{ if ne .integration.Mode "listening" }}
+                <a href="/integrations/{{ .integration.ID }}/configure" class="btn btn-secondary" style="white-space: nowrap;">
+                    <i data-lucide="shuffle"></i> Настроить маппинг
+                </a>
+                {{ end }}
+            </div>
+        </div>
+        
+        <div class="page-header-mobile">
+            <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Меню">
+                <i data-lucide="menu"></i>
+            </button>
+            <a href="/dashboard">
+                <img src="/static/img/logo.png" alt="dmIntegroff" class="page-header-logo">
+            </a>
+            <h1 class="page-header-title">Редактирование интеграции</h1>
+        </div>
+        <div class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
+        <div class="warning-box">
+            <i data-lucide="alert-triangle"></i> <strong>Внимание:</strong> Изменение Target API может нарушить работу активной интеграции
+        </div>
+
+        <div class="info-box">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <strong>Webhook URL:</strong> 
+                    <code id="webhook-url">/webhook/{{ .integration.WebhookToken }}</code>
+                    <button onclick="copyWebhookUrl()" 
+                            class="btn btn-secondary btn-sm" 
+                            style="padding: 0.25rem 0.5rem; font-size: 0.85rem;"
+                            title="Копировать URL">
+                        <i data-lucide="copy"></i>
+                    </button>
+                </div>
+                <form method="POST" action="/integrations/{{ .integration.ID }}/regenerate-token" 
+                      style="display: inline;"
+                      onsubmit="return confirm('⚠️ Внимание! Генерация нового URL сделает старый URL недействительным. Продолжить?');">
+                    <button type="submit" class="btn btn-secondary btn-sm"><i data-lucide="refresh-cw"></i> Сгенерировать новый URL</button>
+                </form>
+            </div>
+            <small style="display: block; margin-top: 0.5rem;">После генерации нового URL старый URL перестанет работать</small>
+        </div>
+
+        <div class="card">
+            <form method="POST" action="/integrations/{{ .integration.ID }}/update" onsubmit="return handleFormSubmit(event)">
+                <div class="form-group">
+                    <label>Название интеграции *</label>
+                    <input type="text" name="name" value="{{ .integration.Name }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Source API (опционально)</label>
+                    <input type="text" name="source_api" value="{{ .integration.SourceAPI }}">
+                    <small>Для документации, откуда ожидаются данные</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Разрешенные HTTP методы (входящий webhook)</label>
+                    <div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 0.5rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" name="webhook_methods" value="*" id="webhook_all_methods" 
+                                   onchange="toggleAllMethods(this)" 
+                                   {{ if or (eq .integration.WebhookHTTPMethods "*") (eq .integration.WebhookHTTPMethods "") }}checked{{ end }}
+                                   style="width: auto; margin: 0;">
+                            <span>Все методы</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" name="webhook_methods" value="GET" class="method-checkbox"
+                                   data-method="GET"
+                                   style="width: auto; margin: 0;">
+                            <span>GET</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" name="webhook_methods" value="POST" class="method-checkbox"
+                                   data-method="POST"
+                                   style="width: auto; margin: 0;">
+                            <span>POST</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" name="webhook_methods" value="PUT" class="method-checkbox"
+                                   data-method="PUT"
+                                   style="width: auto; margin: 0;">
+                            <span>PUT</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" name="webhook_methods" value="PATCH" class="method-checkbox"
+                                   data-method="PATCH"
+                                   style="width: auto; margin: 0;">
+                            <span>PATCH</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" name="webhook_methods" value="DELETE" class="method-checkbox"
+                                   data-method="DELETE"
+                                   style="width: auto; margin: 0;">
+                            <span>DELETE</span>
+                        </label>
+                    </div>
+                    <input type="hidden" name="webhook_http_methods" id="webhook_http_methods_input" value="{{ .integration.WebhookHTTPMethods }}">
+                    <small>Какие HTTP методы разрешены для входящего webhook (по умолчанию: все)</small>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin-bottom: 0;">
+                        <input type="checkbox" name="hide_in_logs" value="true" 
+                               {{ if .integration.HideInLogs }}checked{{ end }}
+                               style="width: auto; margin: 0;">
+                        <span>Скрывать логи этой интеграции в разделе "Тесты интеграций"</span>
+                    </label>
+                    <small style="margin-top: 0.5rem; display: block;">Полезно для служебных интеграций, чтобы не загромождать список логов</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Target API URL *</label>
+                    {{ if .isDemo }}
+                    <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
+                        <input type="text" name="target_api" value="{{ .appURL }}{{ .appPath }}/webhook/test" required style="flex: 1; background: #2d3748; cursor: not-allowed; opacity: 0.6;" readonly onfocus="this.blur()" onkeydown="return false" onpaste="return false" oncut="return false" oncopy="return false">
+                    </div>
+                    <small style="color: #f59e0b;">В демо-режиме используется только тестовый URL.</small>
+                    {{ else }}
+                    <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
+                        <input type="text" id="target_api" name="target_api" value="{{ .integration.TargetAPI }}" required style="flex: 1;">
+                        <button type="button" class="btn btn-secondary" onclick="fillTestUrl()" style="white-space: nowrap;"><i data-lucide="flask-conical"></i> Тестовый URL</button>
+                    </div>
+                    <small>Куда будут отправляться преобразованные данные</small>
+                    {{ end }}
+                </div>
+
+                <div class="form-group">
+                    <label>HTTP метод (исходящий) *</label>
+                    <select name="http_method" required>
+                        <option value="POST" {{ if eq .integration.HTTPMethod "POST" }}selected{{ end }}>POST</option>
+                        <option value="GET" {{ if eq .integration.HTTPMethod "GET" }}selected{{ end }}>GET</option>
+                        <option value="PUT" {{ if eq .integration.HTTPMethod "PUT" }}selected{{ end }}>PUT</option>
+                        <option value="PATCH" {{ if eq .integration.HTTPMethod "PATCH" }}selected{{ end }}>PATCH</option>
+                        <option value="DELETE" {{ if eq .integration.HTTPMethod "DELETE" }}selected{{ end }}>DELETE</option>
+                    </select>
+                    <small>Метод HTTP запроса к Target API (исходящий)</small>
+                </div>
+
+                <!-- Authentication Section -->
+                <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #374151;">
+                    <h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i data-lucide="shield-check"></i> Аутентификация Target API
+                    </h3>
+                    
+                    <div class="form-group">
+                        <label>Тип аутентификации</label>
+                        <select name="auth_type" id="auth_type" onchange="toggleAuthFields()">
+                            <option value="none" {{ if eq .integration.AuthType "none" }}selected{{ end }}>Без аутентификации</option>
+                            <option value="oauth2" {{ if eq .integration.AuthType "oauth2" }}selected{{ end }}>OAuth 2.0</option>
+                            <option value="bearer" {{ if eq .integration.AuthType "bearer" }}selected{{ end }}>Bearer Token</option>
+                            <option value="basic" {{ if eq .integration.AuthType "basic" }}selected{{ end }}>Basic Auth</option>
+                        </select>
+                    </div>
+
+                    <!-- OAuth 2.0 Fields -->
+                    <div id="oauth2-fields" style="display: none;">
+                        <div class="form-group">
+                            <label>Token URL *</label>
+                            <input type="text" name="oauth2_token_url" value="{{ .integration.OAuth2TokenURL }}" placeholder="https://api.example.com/oauth/token">
+                            <small>Endpoint для получения access token</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Client ID *</label>
+                            <input type="text" name="oauth2_client_id" value="{{ .integration.OAuth2ClientID }}">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Client Secret *</label>
+                            <input type="password" name="oauth2_client_secret" placeholder="Оставьте пустым, чтобы не менять">
+                            <small>Оставьте пустым, если не хотите менять текущий секрет</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Scope (опционально)</label>
+                            <input type="text" name="oauth2_scope" value="{{ .integration.OAuth2Scope }}" placeholder="read write">
+                            <small>Области доступа через пробел</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Grant Type</label>
+                            <select name="oauth2_grant_type">
+                                <option value="client_credentials" {{ if eq .integration.OAuth2GrantType "client_credentials" }}selected{{ end }}>client_credentials</option>
+                                <option value="password" {{ if eq .integration.OAuth2GrantType "password" }}selected{{ end }}>password</option>
+                            </select>
+                        </div>
+
+                        <button type="button" class="btn btn-secondary" onclick="testOAuth()">
+                            <i data-lucide="flask-conical"></i> Тест OAuth
+                        </button>
+                        <div id="oauth-test-result" style="margin-top: 1rem;"></div>
+                    </div>
+
+                    <!-- Bearer Token Fields -->
+                    <div id="bearer-fields" style="display: none;">
+                        <div class="form-group">
+                            <label>Bearer Token *</label>
+                            <input type="password" name="bearer_token" placeholder="Оставьте пустым, чтобы не менять">
+                            <small>Статический токен для Authorization: Bearer</small>
+                        </div>
+                    </div>
+
+                    <!-- Basic Auth Fields -->
+                    <div id="basic-fields" style="display: none;">
+                        <div class="form-group">
+                            <label>Username *</label>
+                            <input type="text" name="basic_auth_user" value="{{ .integration.BasicAuthUser }}">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Password *</label>
+                            <input type="password" name="basic_auth_pass" placeholder="Оставьте пустым, чтобы не менять">
+                            <small>Оставьте пустым, если не хотите менять текущий пароль</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom Headers Section -->
+                <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #374151;">
+                    <h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i data-lucide="list"></i> Произвольные заголовки
+                    </h3>
+                    
+                    <div class="info-box" style="margin-bottom: 1rem;">
+                        <i data-lucide="info"></i>
+                        <div>
+                            <strong>Дополнительные HTTP заголовки</strong>
+                            <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">
+                                Добавьте произвольные HTTP заголовки, которые будут отправляться с каждым запросом к Target API.
+                                Например: Content-Type, X-Custom-Header, Accept и т.д.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div id="custom-headers-container">
+                        <!-- Headers will be populated by JavaScript -->
+                        <div class="custom-header-row" style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: flex-start;">
+                            <input type="text" placeholder="Имя заголовка" class="header-name" style="flex: 1;">
+                            <input type="text" placeholder="Значение" class="header-value" style="flex: 2;">
+                            <button type="button" onclick="removeHeaderRow(this)" class="btn btn-secondary" style="padding: 0.5rem;">
+                                <i data-lucide="x"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button type="button" onclick="addHeaderRow()" class="btn btn-secondary" style="margin-top: 0.5rem;">
+                        <i data-lucide="plus"></i> Добавить заголовок
+                    </button>
+                    
+                    <input type="hidden" name="custom_headers" id="custom_headers_input">
+                </div>
+
+                <!-- Webhook Signature Section -->
+                <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #374151;">
+                    <h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i data-lucide="key"></i> Webhook подписи (HMAC)
+                    </h3>
+                    
+                    <div class="info-box" style="margin-bottom: 1rem;">
+                        <i data-lucide="info"></i>
+                        <div>
+                            <strong>Защита webhook запросов</strong>
+                            <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">
+                                HMAC подписи обеспечивают аутентичность и целостность данных. 
+                                Получатель может проверить, что запрос действительно от вас и не был изменен.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" name="webhook_signature_enabled" id="webhook_signature_enabled" 
+                                   value="true" {{ if .integration.WebhookSignatureEnabled }}checked{{ end }}
+                                   onchange="toggleSignatureFields()" style="width: auto; margin: 0;">
+                            Включить webhook подписи
+                        </label>
+                        <small>Добавлять HMAC подпись к каждому исходящему webhook</small>
+                    </div>
+
+                    <div id="signature-fields" style="display: none;">
+                        <div class="form-group">
+                            <label>Секретный ключ *</label>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <input type="text" name="webhook_signature_secret" id="webhook_signature_secret" 
+                                       value="{{ .integration.WebhookSignatureSecret }}" 
+                                       placeholder="Введите секретный ключ или сгенерируйте" style="flex: 1;">
+                                <button type="button" class="btn btn-secondary" onclick="generateSecret()" 
+                                        style="white-space: nowrap;">
+                                    <i data-lucide="refresh-cw"></i> Сгенерировать
+                                </button>
+                            </div>
+                            <small>Минимум 16 символов. Используется для генерации HMAC подписи</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Имя заголовка</label>
+                            <input type="text" name="webhook_signature_header" 
+                                   value="{{ if .integration.WebhookSignatureHeader }}{{ .integration.WebhookSignatureHeader }}{{ else }}X-Webhook-Signature{{ end }}" 
+                                   placeholder="X-Webhook-Signature">
+                            <small>Имя HTTP заголовка для подписи (по умолчанию: X-Webhook-Signature)</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Алгоритм хеширования</label>
+                            <select name="webhook_signature_algorithm">
+                                <option value="sha256" {{ if or (eq .integration.WebhookSignatureAlgorithm "sha256") (eq .integration.WebhookSignatureAlgorithm "") }}selected{{ end }}>SHA-256 (рекомендуется)</option>
+                                <option value="sha512" {{ if eq .integration.WebhookSignatureAlgorithm "sha512" }}selected{{ end }}>SHA-512 (максимальная безопасность)</option>
+                                <option value="sha1" {{ if eq .integration.WebhookSignatureAlgorithm "sha1" }}selected{{ end }}>SHA-1 (устаревший)</option>
+                            </select>
+                            <small>SHA-256 рекомендуется для большинства случаев</small>
+                        </div>
+
+                        <div class="info-box">
+                            <i data-lucide="lightbulb"></i>
+                            <div>
+                                <strong>Формат подписи:</strong>
+                                <code style="display: block; margin-top: 0.5rem; padding: 0.5rem; background: #1f2937; border-radius: 4px;">
+                                    X-Webhook-Signature: sha256=5d41402abc4b2a76b9719d911017c592...
+                                </code>
+                                <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">
+                                    Совместимо с GitHub, Stripe, Slack форматами
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-top: 2rem; flex-wrap: wrap;">
+                    <button type="submit" class="btn btn-success"><i data-lucide="save"></i> Сохранить изменения</button>
+                    
+                    {{ if eq .integration.APIType "graphql" }}
+                    <a href="/integrations/{{ .integration.ID }}/graphql-configure" class="btn btn-primary">
+                        <i data-lucide="code"></i> Настроить GraphQL
+                    </a>
+                    {{ else if .enrichmentEnabled }}
+                    <a href="/integrations/{{ .integration.ID }}/enrichment-configure" class="btn btn-primary">
+                        <i data-lucide="sparkles"></i> Обогащение данных
+                    </a>
+                    {{ end }}
+                    
+                    {{ if ne .integration.Mode "listening" }}
+                    <a href="/integrations/{{ .integration.ID }}/configure" class="btn btn-primary">
+                        <i data-lucide="shuffle"></i> Настроить маппинг
+                    </a>
+                    {{ end }}
+                    
+                    <a href="/integrations" class="btn btn-secondary">Отмена</a>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        function handleFormSubmit(event) {
+            console.log('handleFormSubmit called');
+            const headers = collectCustomHeaders();
+            console.log('Collected headers:', headers);
+            console.log('Hidden field value:', document.getElementById('custom_headers_input').value);
+            
+            // Собираем webhook методы перед отправкой
+            collectWebhookMethods();
+            console.log('Webhook methods:', document.getElementById('webhook_http_methods_input').value);
+            
+            return true; // Разрешаем отправку
+        }
+        
+        function fillTestUrl() {
+            const input = document.getElementById('target_api');
+            const testUrl = window.location.protocol + '//' + window.location.host + '/webhook/test';
+            // Снимаем readonly временно для изменения значения
+            input.removeAttribute('readonly');
+            input.value = testUrl;
+            input.setAttribute('readonly', 'readonly');
+            input.focus();
+        }
+
+        function copyWebhookUrl() {
+            const appURL = "{{ .appURL }}";
+            const appPath = "{{ .appPath }}";
+            const urlElement = document.getElementById('webhook-url');
+            const fullUrl = appURL + appPath + urlElement.textContent;
+            navigator.clipboard.writeText(fullUrl).then(() => {
+                window.showNotification('URL скопирован: ' + fullUrl, 'success');
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
+        }
+
+        function toggleAuthFields() {
+            const authType = document.getElementById('auth_type').value;
+            document.getElementById('oauth2-fields').style.display = authType === 'oauth2' ? 'block' : 'none';
+            document.getElementById('bearer-fields').style.display = authType === 'bearer' ? 'block' : 'none';
+            document.getElementById('basic-fields').style.display = authType === 'basic' ? 'block' : 'none';
+        }
+
+        async function testOAuth() {
+            const resultDiv = document.getElementById('oauth-test-result');
+            resultDiv.innerHTML = '<div class="info-box"><i data-lucide="loader"></i> Тестирование OAuth...</div>';
+            lucide.createIcons();
+
+            try {
+                const response = await fetch('/api/integrations/{{ .integration.ID }}/test-oauth', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.innerHTML = '<div class="success-box"><i data-lucide="check-circle"></i> ' + data.message + '</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="error-box"><i data-lucide="x-circle"></i> Ошибка: ' + data.error + '</div>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<div class="error-box"><i data-lucide="x-circle"></i> Ошибка: ' + error.message + '</div>';
+            }
+            lucide.createIcons();
+        }
+
+        function toggleSignatureFields() {
+            const enabled = document.getElementById('webhook_signature_enabled').checked;
+            document.getElementById('signature-fields').style.display = enabled ? 'block' : 'none';
+        }
+
+        function generateSecret() {
+            // Генерируем криптографически безопасный случайный ключ (32 байта = 64 hex символа)
+            const array = new Uint8Array(32);
+            crypto.getRandomValues(array);
+            const secret = Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+            document.getElementById('webhook_signature_secret').value = secret;
+        }
+
+        function addHeaderRow(name = '', value = '') {
+            const container = document.getElementById('custom-headers-container');
+            const row = document.createElement('div');
+            row.className = 'custom-header-row';
+            row.style.cssText = 'display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: flex-start;';
+            row.innerHTML = `
+                <input type="text" placeholder="Имя заголовка" class="header-name" value="${name}" style="flex: 1;">
+                <input type="text" placeholder="Значение" class="header-value" value="${value}" style="flex: 2;">
+                <button type="button" onclick="removeHeaderRow(this)" class="btn btn-secondary" style="padding: 0.5rem;">
+                    <i data-lucide="x"></i>
+                </button>
+            `;
+            container.appendChild(row);
+            lucide.createIcons();
+        }
+
+        function removeHeaderRow(button) {
+            button.closest('.custom-header-row').remove();
+        }
+
+        function collectCustomHeaders() {
+            const rows = document.querySelectorAll('.custom-header-row');
+            const headers = {};
+            
+            console.log('Collecting headers from', rows.length, 'rows');
+            
+            rows.forEach(row => {
+                const name = row.querySelector('.header-name').value.trim();
+                const value = row.querySelector('.header-value').value.trim();
+                console.log('Header:', name, '=', value);
+                if (name && value) {
+                    headers[name] = value;
+                }
+            });
+            
+            const json = JSON.stringify(headers);
+            console.log('Final JSON:', json);
+            document.getElementById('custom_headers_input').value = json;
+            return headers;
+        }
+
+        function loadExistingHeaders() {
+            const customHeadersJson = '{{ .integration.CustomHeaders }}';
+            if (customHeadersJson) {
+                try {
+                    const headers = JSON.parse(customHeadersJson);
+                    const container = document.getElementById('custom-headers-container');
+                    // Очищаем контейнер перед загрузкой
+                    container.innerHTML = '';
+                    // Добавляем существующие заголовки
+                    for (const [name, value] of Object.entries(headers)) {
+                        addHeaderRow(name, value);
+                    }
+                    // Если заголовков нет, добавляем пустую строку
+                    if (Object.keys(headers).length === 0) {
+                        addHeaderRow();
+                    }
+                } catch (e) {
+                    console.error('Failed to parse custom headers:', e);
+                }
+            }
+        }
+
+        function toggleAllMethods(checkbox) {
+            const methodCheckboxes = document.querySelectorAll('.method-checkbox');
+            if (checkbox.checked) {
+                // Если выбрано "Все методы", снимаем все остальные галочки
+                methodCheckboxes.forEach(cb => {
+                    cb.checked = false;
+                    cb.disabled = true;
+                });
+            } else {
+                // Если снято "Все методы", разрешаем выбор отдельных методов
+                methodCheckboxes.forEach(cb => {
+                    cb.disabled = false;
+                });
+            }
+            collectWebhookMethods();
+        }
+
+        function collectWebhookMethods() {
+            const allMethodsCheckbox = document.getElementById('webhook_all_methods');
+            const methodCheckboxes = document.querySelectorAll('.method-checkbox');
+            
+            if (allMethodsCheckbox.checked) {
+                // Если выбрано "Все методы"
+                document.getElementById('webhook_http_methods_input').value = '*';
+            } else {
+                // Собираем выбранные методы
+                const selectedMethods = [];
+                methodCheckboxes.forEach(cb => {
+                    if (cb.checked) {
+                        selectedMethods.push(cb.value);
+                    }
+                });
+                
+                // Если ничего не выбрано, по умолчанию все методы
+                if (selectedMethods.length === 0) {
+                    document.getElementById('webhook_http_methods_input').value = '*';
+                } else {
+                    document.getElementById('webhook_http_methods_input').value = selectedMethods.join(',');
+                }
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleAuthFields();
+            toggleSignatureFields();
+            loadExistingHeaders();
+            
+            // Инициализируем состояние чекбоксов методов
+            const allMethodsCheckbox = document.getElementById('webhook_all_methods');
+            const methodCheckboxes = document.querySelectorAll('.method-checkbox');
+            const savedMethods = '{{ .integration.WebhookHTTPMethods }}';
+            
+            // Устанавливаем состояние чекбоксов на основе сохраненного значения
+            if (savedMethods === '*' || savedMethods === '') {
+                allMethodsCheckbox.checked = true;
+                methodCheckboxes.forEach(cb => {
+                    cb.checked = false;
+                    cb.disabled = true;
+                });
+            } else {
+                allMethodsCheckbox.checked = false;
+                const methods = savedMethods.split(',');
+                methodCheckboxes.forEach(cb => {
+                    const method = cb.getAttribute('data-method');
+                    cb.checked = methods.includes(method);
+                    cb.disabled = false;
+                });
+            }
+            
+            // Добавляем обработчики для отдельных методов
+            methodCheckboxes.forEach(cb => {
+                cb.addEventListener('change', collectWebhookMethods);
+            });
+            
+            // Инициализируем скрытое поле
+            collectWebhookMethods();
+            
+            // Инициализируем иконки Lucide после загрузки заголовков
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+    </script>
+    
+    {{ template "partials/scripts.html" . }}
+    
+    <!-- AI Assistant -->
+    {{ template "partials/ai_chat.html" . }}
+{{ end }}

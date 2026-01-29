@@ -1,0 +1,608 @@
+{{ define "pages/integration_outputs.html" }}
+{{ template "partials/head.html" . }}
+<link rel="stylesheet" href="/static/css/json-highlight.css">
+<style>
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        overflow-y: auto;
+        padding: 2rem;
+    }
+
+    .modal-content {
+        background: var(--background);
+        border-radius: 12px;
+        width: 90%;
+        max-width: 800px;
+        max-height: 90vh;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 1.25rem;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--muted-foreground);
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+        overflow-y: auto;
+    }
+
+    .test-result h3 {
+        margin-top: 0;
+        color: var(--success);
+    }
+
+    .result-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .result-section h4 {
+        margin-bottom: 0.5rem;
+        color: var(--muted-foreground);
+        font-size: 0.875rem;
+        text-transform: uppercase;
+    }
+
+    .result-section pre {
+        background: var(--secondary);
+        padding: 1rem;
+        border-radius: 8px;
+        overflow-x: auto;
+    }
+
+    .result-section code {
+        font-family: 'Courier New', monospace;
+    }
+
+    .result-section ul {
+        list-style: none;
+        padding: 0;
+        background: var(--secondary);
+        padding: 1rem;
+        border-radius: 8px;
+    }
+
+    .result-section li {
+        margin-bottom: 0.5rem;
+    }
+
+    .dropdown {
+        position: relative;
+        display: inline-block;
+    }
+
+    .dropdown-menu {
+        display: none;
+        position: fixed;
+        background-color: var(--card);
+        min-width: 180px;
+        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        z-index: 9999;
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        overflow: hidden;
+    }
+
+    .dropdown-menu.show {
+        display: block;
+    }
+
+    .dropdown-item {
+        color: var(--foreground);
+        padding: 12px 16px;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: none;
+        border: none;
+        width: 100%;
+        text-align: left;
+        cursor: pointer;
+    }
+
+    .dropdown-item:hover {
+        background-color: var(--secondary);
+    }
+
+    .dropdown-item:focus {
+        outline: none;
+        background-color: var(--secondary);
+    }
+
+    .dropdown-divider {
+        height: 1px;
+        margin: .5rem 0;
+        overflow: hidden;
+        background-color: var(--border);
+    }
+
+    .dropdown-form {
+        margin: 0;
+        padding: 0;
+    }
+
+    .dropdown-form .dropdown-item {
+        border: none;
+        font-family: inherit;
+        font-size: inherit;
+    }
+
+    .dropdown-item-danger {
+        color: var(--destructive);
+    }
+
+    .dropdown-item-danger:hover {
+        background-color: var(--destructive);
+        color: var(--destructive-foreground);
+    }
+
+    /* Стили иконок в dropdown - следуем стандарту сайта */
+    .dropdown-item i[data-lucide] {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+    }
+
+    /* Стили иконок в кнопках - следуем стандарту сайта */
+    .btn i[data-lucide] {
+        width: 16px;
+        height: 16px;
+    }
+
+    .btn-sm i[data-lucide] {
+        width: 14px;
+        height: 14px;
+    }
+
+    /* Стили иконок в заголовках */
+    h3 i[data-lucide] {
+        width: 18px;
+        height: 18px;
+        margin-right: 0.5rem;
+        vertical-align: middle;
+    }
+
+    /* Цвета для статусных иконок */
+    .test-result h3 i[data-lucide="check-circle"] {
+        color: var(--success);
+    }
+
+    .alert-danger h3 i[data-lucide="x-circle"] {
+        color: var(--destructive);
+    }
+
+    .card-header h3 i[data-lucide="info"] {
+        color: var(--primary);
+    }
+
+    /* Общие стили для иконок в заголовках */
+    h3 i[data-lucide] {
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .dropdown-toggle {
+        position: relative;
+        padding: 0.5rem 0.75rem;
+    }
+
+    .dropdown-toggle:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(139, 142, 255, 0.2);
+    }
+
+    /* Улучшенные стили для таблицы */
+    .table td {
+        vertical-align: middle;
+    }
+
+    .table .dropdown {
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-end;
+    }
+
+    .table-responsive {
+        overflow: visible; /* Позволяем dropdown выходить за границы таблицы */
+    }
+
+    .card {
+        overflow: visible; /* Позволяем dropdown выходить за границы карточки */
+    }
+
+    /* Мобильная адаптация */
+    @media (max-width: 768px) {
+        .dropdown-menu {
+            min-width: 200px;
+            max-width: calc(100vw - 20px);
+        }
+        
+        .table-responsive {
+            font-size: 0.875rem;
+        }
+        
+        .page-actions {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .page-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+    {{ template "partials/sidebar.html" . }}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <div>
+                <h1>Дополнительные выходы интеграции: {{ .integration.Name }}</h1>
+                <p class="text-muted">Настройте несколько выходов для отправки данных на разные Target API</p>
+            </div><br>
+            <div class="page-actions">
+                <a href="/integrations/{{ .integration.ID }}/outputs/create" class="btn btn-primary">
+                    <i data-lucide="plus"></i> Добавить выход
+                </a>
+                <a href="/integrations" class="btn btn-secondary">
+                    <i data-lucide="arrow-left"></i> К списку интеграций
+                </a>
+            </div>
+        </div>
+
+        {{ if .outputs }}
+        <div class="card">
+            <div class="card-header">
+                <h3>Список выходов ({{ len .outputs }})</h3>
+            </div>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Приоритет</th>
+                            <th>Название</th>
+                            <th>Target API</th>
+                            <th>Метод</th>
+                            <th>Маппинг</th>
+                            <th>Статус</th>
+                            <th style="text-align: right;">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range .outputs }}
+                        <tr>
+                            <td>
+                                <span class="badge badge-info">{{ .Priority }}</span>
+                            </td>
+                            <td>
+                                <strong>{{ .Name }}</strong>
+                                {{ if .Description }}
+                                <br><small class="text-muted">{{ .Description }}</small>
+                                {{ end }}
+                            </td>
+                            <td>
+                                <code>{{ .TargetAPI }}</code>
+                            </td>
+                            <td>
+                                <span class="badge badge-primary">{{ .HTTPMethod }}</span>
+                            </td>
+                            <td>
+                                {{ if .OutputTemplate }}
+                                <span class="badge badge-success">Шаблон ({{ .TemplateType }})</span>
+                                {{ else if .MappingConfig }}
+                                <span class="badge badge-success">Маппинг</span>
+                                {{ else }}
+                                <span class="badge badge-warning">Не настроен</span>
+                                {{ end }}
+                            </td>
+                            <td>
+                                {{ if .Enabled }}
+                                <span class="badge badge-success">Включен</span>
+                                {{ else }}
+                                <span class="badge badge-secondary">Выключен</span>
+                                {{ end }}
+                            </td>
+                            <td style="text-align: right;">
+                                <div class="dropdown">
+                                    <button class="btn btn-secondary btn-sm dropdown-toggle" onclick="toggleDropdown(event, '{{ .ID }}', this)" type="button" aria-expanded="false">
+                                        <i data-lucide="more-vertical"></i>
+                                    </button>
+                                    <div class="dropdown-menu" id="dropdown-{{ .ID }}">
+                                        <a href="/integrations/{{ $.integration.ID }}/outputs/{{ .ID }}/configure" class="dropdown-item">
+                                            <i data-lucide="settings"></i> Настроить маппинг
+                                        </a>
+                                        <button onclick="testOutput({{ $.integration.ID }}, {{ .ID }}); closeDropdown('{{ .ID }}');" class="dropdown-item" type="button">
+                                            <i data-lucide="flask-conical"></i> Тестировать
+                                        </button>
+                                        <div class="dropdown-divider"></div>
+                                        <a href="/integrations/{{ $.integration.ID }}/outputs/{{ .ID }}/edit" class="dropdown-item">
+                                            <i data-lucide="pencil"></i> Редактировать
+                                        </a>
+                                        <form method="POST" action="/integrations/{{ $.integration.ID }}/outputs/{{ .ID }}/toggle" class="dropdown-form">
+                                            <button type="submit" class="dropdown-item">
+                                                <i data-lucide="{{ if .Enabled }}pause{{ else }}play{{ end }}"></i> {{ if .Enabled }}Выключить{{ else }}Включить{{ end }}
+                                            </button>
+                                        </form>
+                                        <form method="POST" action="/integrations/{{ $.integration.ID }}/outputs/{{ .ID }}/delete" class="dropdown-form" onsubmit="return confirm('Удалить этот выход?');">
+                                            <button type="submit" class="dropdown-item dropdown-item-danger">
+                                                <i data-lucide="trash-2"></i> Удалить
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {{ else }}
+        <div class="alert alert-info">
+            <h3>Выходы не настроены</h3>
+            <p>Создайте первый выход для отправки данных на Target API.</p>
+            <a href="/integrations/{{ .integration.ID }}/outputs/create" class="btn btn-primary">
+                <i data-lucide="plus"></i> Создать первый выход
+            </a>
+        </div>
+        {{ end }}
+
+        <div class="card mt-4">
+            <div class="card-header">
+                <h3><i data-lucide="info"></i> Информация о выходах</h3>
+            </div>
+            <div class="card-body">
+                <p><strong>Множественные выходы</strong> позволяют одному webhook отправлять данные на несколько Target API с разными маппингами.</p>
+                <ul>
+                    <li><strong>Приоритет:</strong> Определяет порядок выполнения (меньше = раньше)</li>
+                    <li><strong>Условия:</strong> Можно настроить условия выполнения для каждого выхода</li>
+                    <li><strong>Независимость:</strong> Ошибка в одном выходе не влияет на другие</li>
+                    <li><strong>Общий образец:</strong> Все выходы используют один SamplePayload из интеграции</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal для результатов теста -->
+    <div id="testModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Результат тестирования выхода</h2>
+                <button class="modal-close" onclick="closeTestModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="testModalBody">
+                <!-- Результаты будут загружены через JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Chat Widget -->
+    {{ template "partials/ai_chat.html" . }}
+
+    <script src="/static/js/common.js"></script>
+    <script src="/static/js/json-highlight.js"></script>
+    <script src="/static/js/ai-assistant.js"></script>
+    <script>
+        // Инициализируем AI ассистент для списка выходов
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.aiAssistant) {
+                window.aiAssistant.setIntegrationContext({
+                    source: 'outputs_list',
+                    integration_id: {{ .integration.ID }},
+                    integration_name: '{{ .integration.Name }}'
+                });
+            }
+        });
+    </script>
+
+    <script>
+    // Dropdown menu functions
+    function toggleDropdown(event, id, button) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        const dropdown = document.getElementById('dropdown-' + id);
+        if (!dropdown) {
+            console.error('Dropdown not found:', 'dropdown-' + id);
+            return;
+        }
+        
+        // Закрываем все другие dropdown'ы
+        const allDropdowns = document.querySelectorAll('.dropdown-menu');
+        allDropdowns.forEach(d => {
+            if (d !== dropdown) {
+                d.classList.remove('show');
+            }
+        });
+        
+        // Если dropdown уже открыт, закрываем его
+        if (dropdown.classList.contains('show')) {
+            dropdown.classList.remove('show');
+            return;
+        }
+        
+        // Позиционируем dropdown относительно кнопки
+        const rect = button.getBoundingClientRect();
+        const dropdownWidth = 180; // min-width из CSS
+        const viewportWidth = window.innerWidth;
+        
+        // Позиционируем справа от кнопки, но проверяем, не выходит ли за экран
+        let left = rect.right - dropdownWidth;
+        
+        // Если dropdown выходит за левый край экрана
+        if (left < 10) {
+            left = rect.left;
+        }
+        
+        // Если dropdown выходит за правый край экрана
+        if (left + dropdownWidth > viewportWidth - 10) {
+            left = viewportWidth - dropdownWidth - 10;
+        }
+        
+        // Убеждаемся, что left не отрицательный
+        left = Math.max(10, left);
+        
+        dropdown.style.left = left + 'px';
+        dropdown.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+        
+        // Показываем dropdown
+        dropdown.classList.add('show');
+    }
+
+    function closeDropdown(id) {
+        const dropdown = document.getElementById('dropdown-' + id);
+        if (dropdown) {
+            dropdown.classList.remove('show');
+        }
+    }
+
+    function closeAllDropdowns() {
+        document.querySelectorAll('.dropdown-menu').forEach(d => {
+            d.classList.remove('show');
+        });
+    }
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('.dropdown')) {
+            closeAllDropdowns();
+        }
+    });
+
+    // Close dropdowns on escape key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeAllDropdowns();
+        }
+    });
+
+    // Close dropdowns on scroll
+    window.addEventListener('scroll', function() {
+        closeAllDropdowns();
+    });
+
+    // Close dropdowns on window resize
+    window.addEventListener('resize', function() {
+        closeAllDropdowns();
+    });
+
+    function testOutput(integrationId, outputId) {
+        fetch(`/integrations/${integrationId}/outputs/${outputId}/test`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                document.getElementById('testModalBody').innerHTML = `
+                    <div class="test-result">
+                        <h3><i data-lucide="check-circle"></i> Тестирование успешно</h3>
+                        
+                        <div class="result-section">
+                            <h4>Входные данные (SamplePayload):</h4>
+                            <pre><code>${data.input}</code></pre>
+                        </div>
+                        
+                        <div class="result-section">
+                            <h4>Результат трансформации:</h4>
+                            <pre><code>${data.output}</code></pre>
+                        </div>
+                        
+                        <div class="result-section">
+                            <h4>Информация о запросе:</h4>
+                            <ul>
+                                <li><strong>Target API:</strong> <code>${data.target_api}</code></li>
+                                <li><strong>HTTP метод:</strong> <span class="badge badge-primary">${data.http_method}</span></li>
+                                <li><strong>Тип шаблона:</strong> ${data.template_type || 'json'}</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            } else {
+                document.getElementById('testModalBody').innerHTML = `
+                    <div class="alert alert-danger">
+                        <h3><i data-lucide="x-circle"></i> Ошибка тестирования</h3>
+                        <p>${data.error}</p>
+                    </div>
+                `;
+            }
+            
+            // Инициализируем иконки после добавления HTML
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+            
+            document.getElementById('testModal').style.display = 'flex';
+        })
+        .catch(error => {
+            document.getElementById('testModalBody').innerHTML = `
+                <div class="alert alert-danger">
+                    <h3><i data-lucide="x-circle"></i> Ошибка</h3>
+                    <p>${error.message}</p>
+                </div>
+            `;
+            
+            // Инициализируем иконки после добавления HTML
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+            
+            document.getElementById('testModal').style.display = 'flex';
+        });
+    }
+
+    function closeTestModal() {
+        document.getElementById('testModal').style.display = 'none';
+    }
+
+    // Закрытие модального окна при клике вне его
+    window.onclick = function(event) {
+        const modal = document.getElementById('testModal');
+        if (event.target === modal) {
+            closeTestModal();
+        }
+    }
+
+    // Инициализация иконок после загрузки страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    });
+    </script>
+    </main>
+
+{{ template "partials/scripts.html" . }}
+{{ end }}

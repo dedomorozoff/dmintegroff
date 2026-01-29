@@ -1,0 +1,17 @@
+{
+  "name": "Google Sheets",
+  "description": "Добавление строки в Google Sheets",
+  "type": "json",
+  "category": "other",
+  "template": {
+    "range": "Sheet1!A:E",
+    "majorDimension": "ROWS",
+    "values": [[
+      "{{user.name}}",
+      "{{user.email}}",
+      "{{user.phone}}",
+      "{{message.text}}",
+      "{{timestamp}}"
+    ]]
+  }
+}

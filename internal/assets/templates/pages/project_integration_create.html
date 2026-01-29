@@ -1,0 +1,93 @@
+{{ define "pages/project_integration_create.html" }}
+{{ template "partials/head.html" . }}
+{{ template "partials/sidebar.html" . }}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <h1>Создание интеграции</h1>
+            <p>Проект: <strong>{{ .project.Name }}</strong></p>
+        </div>
+        
+        <div class="page-header-mobile">
+            <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Меню">
+                <i data-lucide="menu"></i>
+            </button>
+            <a href="/dashboard">
+                <img src="/static/img/logo.png" alt="dmIntegroff" class="page-header-logo">
+            </a>
+            <h1 class="page-header-title">Создание интеграции</h1>
+        </div>
+        <div class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
+        <div class="info-box">
+            <strong><i data-lucide="info"></i> Как это работает:</strong><br>
+            1. Создайте интеграцию и получите уникальный webhook URL<br>
+            2. Отправьте тестовый запрос на этот URL<br>
+            3. Настройте маппинг полей<br>
+            4. Активируйте интеграцию
+        </div>
+
+        <div class="card">
+            <form method="POST" action="/projects/{{ .project.ID }}/integrations">
+                <div class="form-group">
+                    <label>Название интеграции *</label>
+                    <input type="text" name="name" required placeholder="Например: Интеграция CRM → Email">
+                </div>
+
+                <div class="form-group">
+                    <label>Target API URL *</label>
+                    {{ if .isDemo }}
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" name="target_api" value="{{ .appURL }}{{ .appPath }}/webhook/test" required style="flex: 1; background: #2d3748; cursor: not-allowed; opacity: 0.6;" readonly onfocus="this.blur()" onkeydown="return false" onpaste="return false" oncut="return false" oncopy="return false">
+                    </div>
+                    <small style="color: #f59e0b;">В демо-режиме используется только тестовый URL.</small>
+                    {{ else }}
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="target_api" name="target_api" required placeholder="https://api.example.com/endpoint" style="flex: 1;">
+                        <button type="button" onclick="fillTestUrl()" class="btn btn-secondary" style="white-space: nowrap;"><i data-lucide="flask-conical"></i> Тестовый URL</button>
+                    </div>
+                    <small>Куда будут отправляться преобразованные данные</small>
+                    {{ end }}
+                </div>
+
+                <div class="form-group">
+                    <label>HTTP метод *</label>
+                    <select name="http_method" required>
+                        <option value="POST" selected>POST</option>
+                        <option value="GET">GET</option>
+                        <option value="PUT">PUT</option>
+                        <option value="PATCH">PATCH</option>
+                        <option value="DELETE">DELETE</option>
+                    </select>
+                    <small>Метод HTTP запроса к Target API</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Source API (опционально)</label>
+                    <input type="text" name="source_api" placeholder="https://source.example.com">
+                    <small>Для документации, откуда ожидаются данные</small>
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button type="submit" class="btn btn-success">✅ Создать интеграцию</button>
+                    <a href="/projects/{{ .project.ID }}" class="btn btn-secondary">Отмена</a>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        lucide.createIcons();
+        
+        function fillTestUrl() {
+            const input = document.getElementById('target_api');
+            const testUrl = window.location.protocol + '//' + window.location.host + '/webhook/test';
+            input.value = testUrl;
+            input.focus();
+        }
+    </script>
+</body>
+</html>
+{{ end }}

@@ -1,0 +1,22 @@
+{
+  "name": "Zapier",
+  "description": "Универсальный формат для Zapier Webhook",
+  "type": "json",
+  "category": "other",
+  "template": {
+    "user": {
+      "name": "{{user.name}}",
+      "email": "{{user.email}}",
+      "phone": "{{user.phone}}"
+    },
+    "event": {
+      "type": "{{event.type}}",
+      "timestamp": "{{timestamp}}",
+      "data": "{{event.data}}"
+    },
+    "metadata": {
+      "source": "webhook",
+      "integration": "dmintegroff"
+    }
+  }
+}

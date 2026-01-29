@@ -1,0 +1,385 @@
+{{ define "pages/integration_enrichment_configure.html" }}
+{{ template "partials/head.html" . }}
+    {{ template "partials/sidebar.html" . }}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <h1>🔄 Обогащение данных через GraphQL</h1>
+            <p>Настройка обогащения REST данных через GraphQL запрос</p>
+        </div>
+
+        <div class="info-box">
+            <i data-lucide="info"></i>
+            <div>
+                <strong>Как это работает:</strong><br>
+                1. Webhook приходит с базовыми данными<br>
+                2. Система выполняет GraphQL запрос для получения дополнительных данных<br>
+                3. Данные объединяются согласно выбранному режиму<br>
+                4. Обогащенные данные отправляются в Target API
+            </div>
+        </div>
+
+        <!-- Enable Enrichment -->
+        <div class="card">
+            <h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i data-lucide="toggle-left"></i> Включить обогащение
+            </h3>
+
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                    <input type="checkbox" id="enrichment_enabled" 
+                           {{ if .integration.EnrichmentEnabled }}checked{{ end }}
+                           onchange="toggleEnrichmentFields()" 
+                           style="width: auto; margin: 0;">
+                    Обогащать данные через GraphQL перед отправкой в Target API
+                </label>
+            </div>
+        </div>
+
+        <div id="enrichment-fields" style="display: {{ if .integration.EnrichmentEnabled }}block{{ else }}none{{ end }};">
+            <!-- GraphQL Endpoint -->
+            <div class="card">
+                <h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i data-lucide="link"></i> GraphQL Endpoint
+                </h3>
+
+                <div class="form-group">
+                    <label>GraphQL Endpoint *</label>
+                    <input type="text" id="enrichment_endpoint" 
+                           value="{{ .integration.EnrichmentEndpoint }}"
+                           placeholder="https://api.example.com/graphql">
+                    <small>URL GraphQL API для получения дополнительных данных</small>
+                </div>
+
+                <button type="button" class="btn btn-secondary" onclick="testEnrichmentConnection()">
+                    <i data-lucide="zap"></i> Тест подключения
+                </button>
+
+                <div id="connection-result" style="margin-top: 1rem; display: none;"></div>
+            </div>
+
+            <!-- GraphQL Query -->
+            <div class="card">
+                <h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i data-lucide="code"></i> GraphQL Query
+                </h3>
+
+                <div class="form-group">
+                    <label>GraphQL Query *</label>
+                    <textarea id="enrichment_query" rows="12" 
+                              style="font-family: 'Courier New', monospace; font-size: 0.9rem;">{{ .integration.EnrichmentQuery }}</textarea>
+                    <small>GraphQL запрос для получения дополнительных данных</small>
+                </div>
+
+                <div class="info-box">
+                    <i data-lucide="lightbulb"></i>
+                    <div>
+                        <strong>Пример:</strong>
+                        <pre style="margin-top: 0.5rem; padding: 0.5rem; background: #1f2937; border-radius: 4px; overflow-x: auto;">
+query GetUserDetails($userId: ID!) {
+  user(id: $userId) {
+    name
+    email
+    phone
+    company
+    address {
+      city
+      country
+    }
+  }
+}</pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Variable Mapping -->
+            <div class="card">
+                <h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i data-lucide="git-branch"></i> Маппинг переменных
+                </h3>
+
+                <div class="form-group">
+                    <label>Variable Mapping (JSON)</label>
+                    <textarea id="enrichment_variables" rows="8" 
+                              style="font-family: 'Courier New', monospace; font-size: 0.9rem;">{{ .integration.EnrichmentVariables }}</textarea>
+                    <small>Соответствие между GraphQL переменными и полями webhook</small>
+                </div>
+
+                <div class="info-box">
+                    <i data-lucide="lightbulb"></i>
+                    <div>
+                        <strong>Пример:</strong>
+                        <pre style="margin-top: 0.5rem; padding: 0.5rem; background: #1f2937; border-radius: 4px;">
+{
+  "userId": "user_id",
+  "orderId": "order.id"
+}</pre>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem;">
+                    <button type="button" class="btn btn-secondary" onclick="validateJSON('enrichment_variables')">
+                        <i data-lucide="check-circle"></i> Проверить JSON
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="formatJSON('enrichment_variables')">
+                        <i data-lucide="align-left"></i> Форматировать
+                    </button>
+                </div>
+            </div>
+
+            <!-- Merge Mode -->
+            <div class="card">
+                <h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i data-lucide="git-merge"></i> Режим объединения данных
+                </h3>
+
+                <div class="form-group">
+                    <label>Режим объединения</label>
+                    <select id="enrichment_merge_mode">
+                        <option value="merge" {{ if eq .integration.EnrichmentMergeMode "merge" }}selected{{ end }}>
+                            Merge - Объединить (GraphQL данные добавляются к webhook данным)
+                        </option>
+                        <option value="replace" {{ if eq .integration.EnrichmentMergeMode "replace" }}selected{{ end }}>
+                            Replace - Заменить (использовать только GraphQL данные)
+                        </option>
+                        <option value="append" {{ if eq .integration.EnrichmentMergeMode "append" }}selected{{ end }}>
+                            Append - Добавить (GraphQL данные в поле "enrichment")
+                        </option>
+                    </select>
+                </div>
+
+                <div class="info-box">
+                    <i data-lucide="info"></i>
+                    <div>
+                        <strong>Режимы объединения:</strong><br><br>
+                        <strong>Merge:</strong> Webhook данные + GraphQL данные (GraphQL перезаписывает совпадающие ключи)<br>
+                        <strong>Replace:</strong> Только GraphQL данные (webhook данные игнорируются)<br>
+                        <strong>Append:</strong> Webhook данные + {"enrichment": GraphQL данные}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Enrichment -->
+            <div class="card">
+                <h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i data-lucide="flask-conical"></i> Тестирование обогащения
+                </h3>
+
+                <div class="form-group">
+                    <label>Тестовый Webhook Payload</label>
+                    <textarea id="test_payload" rows="10" 
+                              style="font-family: 'Courier New', monospace; font-size: 0.9rem;">{
+  "user_id": "123",
+  "action": "signup"
+}</textarea>
+                    <small>Пример webhook payload для тестирования</small>
+                </div>
+
+                <button type="button" class="btn btn-primary" onclick="testEnrichment()">
+                    <i data-lucide="play"></i> Тест обогащения
+                </button>
+
+                <div id="test-result" style="margin-top: 1rem; display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Save Configuration -->
+        <div class="card">
+            <div style="display: flex; gap: 1rem;">
+                <button type="button" class="btn btn-success" onclick="saveEnrichmentConfig()">
+                    <i data-lucide="save"></i> Сохранить настройки
+                </button>
+                <a href="/integrations/{{ .integration.ID }}/edit" class="btn btn-secondary">
+                    <i data-lucide="arrow-left"></i> Назад
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <!-- AI Chat Widget -->
+    {{ template "partials/ai_chat.html" . }}
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="/static/js/ai-assistant.js"></script>
+    <script>
+        lucide.createIcons();
+
+        const integrationId = {{ .integration.ID }};
+
+        // Инициализируем AI ассистент для настройки обогащения
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.aiAssistant) {
+                window.aiAssistant.setIntegrationContext({
+                    source: 'enrichment_configure',
+                    integration_id: integrationId,
+                    integration_name: '{{ .integration.Name }}',
+                    feature: 'enrichment'
+                });
+            }
+        });
+
+        function toggleEnrichmentFields() {
+            const enabled = document.getElementById('enrichment_enabled').checked;
+            document.getElementById('enrichment-fields').style.display = enabled ? 'block' : 'none';
+        }
+
+        async function testEnrichmentConnection() {
+            const endpoint = document.getElementById('enrichment_endpoint').value;
+            const resultDiv = document.getElementById('connection-result');
+            
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="info-box"><i data-lucide="loader"></i> Тестирование...</div>';
+            lucide.createIcons();
+
+            try {
+                const response = await fetch('/api/graphql/test-connection', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ endpoint: endpoint })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.innerHTML = '<div class="info-box" style="background: #d1fae5; border-color: #10b981; color: #065f46;"><i data-lucide="check-circle"></i> ✅ Подключение успешно!</div>';
+                } else {
+                    resultDiv.innerHTML = `<div class="info-box" style="background: #fee2e2; border-color: #ef4444; color: #991b1b;"><i data-lucide="x-circle"></i> ❌ Ошибка: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="info-box" style="background: #fee2e2; border-color: #ef4444; color: #991b1b;"><i data-lucide="x-circle"></i> ❌ Ошибка: ${error.message}</div>`;
+            }
+
+            lucide.createIcons();
+        }
+
+        async function testEnrichment() {
+            const query = document.getElementById('enrichment_query').value;
+            const variables = document.getElementById('enrichment_variables').value;
+            const testPayload = document.getElementById('test_payload').value;
+            const resultDiv = document.getElementById('test-result');
+
+            // Validate JSON
+            try {
+                if (variables) JSON.parse(variables);
+                JSON.parse(testPayload);
+            } catch (e) {
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `<div class="info-box" style="background: #fee2e2; border-color: #ef4444; color: #991b1b;"><i data-lucide="x-circle"></i> ❌ Ошибка JSON: ${e.message}</div>`;
+                lucide.createIcons();
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="info-box"><i data-lucide="loader"></i> Выполнение...</div>';
+            lucide.createIcons();
+
+            try {
+                const response = await fetch('/api/graphql/test-query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        integration_id: integrationId,
+                        query: query,
+                        variables: variables ? JSON.parse(variables) : {},
+                        test_payload: JSON.parse(testPayload)
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="info-box" style="background: #d1fae5; border-color: #10b981; color: #065f46;">
+                            <i data-lucide="check-circle"></i> ✅ Обогащение выполнено успешно!
+                        </div>
+                        <div style="margin-top: 1rem;">
+                            <strong>Результат GraphQL:</strong>
+                            <pre style="margin-top: 0.5rem; padding: 1rem; background: #1f2937; border-radius: 4px; overflow-x: auto; color: #10b981;">${JSON.stringify(data.data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="info-box" style="background: #fee2e2; border-color: #ef4444; color: #991b1b;"><i data-lucide="x-circle"></i> ❌ Ошибка: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="info-box" style="background: #fee2e2; border-color: #ef4444; color: #991b1b;"><i data-lucide="x-circle"></i> ❌ Ошибка: ${error.message}</div>`;
+            }
+
+            lucide.createIcons();
+        }
+
+        async function saveEnrichmentConfig() {
+            const enabled = document.getElementById('enrichment_enabled').checked;
+            const endpoint = document.getElementById('enrichment_endpoint').value;
+            const query = document.getElementById('enrichment_query').value;
+            const variables = document.getElementById('enrichment_variables').value;
+            const mergeMode = document.getElementById('enrichment_merge_mode').value;
+
+            // Validate JSON
+            if (enabled && variables) {
+                try {
+                    JSON.parse(variables);
+                } catch (e) {
+                    window.showNotification('Ошибка в JSON маппинга переменных: ' + e.message, 'error');
+                    return;
+                }
+            }
+
+            if (enabled && !endpoint) {
+                window.showNotification('GraphQL Endpoint обязателен', 'error');
+                return;
+            }
+
+            if (enabled && !query) {
+                window.showNotification('GraphQL Query обязателен', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/integrations/${integrationId}/enrichment-configure`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        enrichment_enabled: enabled,
+                        enrichment_endpoint: endpoint,
+                        enrichment_query: query,
+                        enrichment_variables: variables,
+                        enrichment_merge_mode: mergeMode
+                    })
+                });
+
+                if (response.ok) {
+                    window.showNotification('Настройки сохранены!', 'success');
+                    window.location.href = `/integrations/${integrationId}/edit`;
+                } else {
+                    const data = await response.json();
+                    window.showNotification('Ошибка: ' + (data.error || 'Неизвестная ошибка'), 'error');
+                }
+            } catch (error) {
+                window.showNotification('Ошибка: ' + error.message, 'error');
+            }
+        }
+
+        function validateJSON(fieldId) {
+            const field = document.getElementById(fieldId);
+            try {
+                JSON.parse(field.value);
+                window.showNotification('JSON валиден!', 'success');
+            } catch (e) {
+                window.showNotification('Ошибка JSON: ' + e.message, 'error');
+            }
+        }
+
+        function formatJSON(fieldId) {
+            const field = document.getElementById(fieldId);
+            try {
+                const obj = JSON.parse(field.value);
+                field.value = JSON.stringify(obj, null, 2);
+            } catch (e) {
+                window.showNotification('Ошибка JSON: ' + e.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>
+{{ end }}

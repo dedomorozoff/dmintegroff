@@ -1,0 +1,145 @@
+{{ define "pages/projects.html" }}
+{{ template "partials/head.html" . }}
+    {{ template "partials/sidebar.html" . }}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1>Проекты</h1>
+                    <p>Группировка интеграций по проектам</p>
+                </div>
+                <a href="/projects/create" class="btn btn-success">
+                    <i data-lucide="plus"></i>
+                    Создать проект
+                </a>
+            </div>
+        </div>
+        
+        <div class="page-header-mobile">
+            <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Меню">
+                <i data-lucide="menu"></i>
+            </button>
+            <a href="/dashboard">
+                <img src="/static/img/logo.png" alt="dmIntegroff" class="page-header-logo">
+            </a>
+            <h1 class="page-header-title">Проекты</h1>
+        </div>
+        <div class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
+        <div class="card">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Название</th>
+                            <th>Описание</th>
+                            <th>Интеграций</th>
+                            <th>Создатель</th>
+                            <th style="text-align: right;">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ if .projects }}
+                        {{ range .projects }}
+                        <tr>
+                            <td><strong><a href="/projects/{{ .ID }}" style="color: var(--primary);">{{ .Name }}</a></strong></td>
+                            <td>{{ if .Description }}{{ .Description }}{{ else }}<span style="color: var(--muted-foreground);">-</span>{{ end }}</td>
+                            <td><span class="badge badge-info">{{ len .Integrations }}</span></td>
+                            <td>{{ .CreatedBy.Username }}</td>
+                            <td style="text-align: right;">
+                                <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                    <a href="/projects/{{ .ID }}" class="btn btn-sm" title="Просмотр">
+                                        <i data-lucide="eye"></i>
+                                    </a>
+                                    <a href="/projects/{{ .ID }}/edit" class="btn btn-secondary btn-sm" title="Редактировать">
+                                        <i data-lucide="pencil"></i>
+                                    </a>
+                                    <form method="POST" action="/projects/{{ .ID }}/delete" style="display: inline;"
+                                        onsubmit="return confirm('⚠️ ВНИМАНИЕ!\n\nУдалить проект {{ .Name }}?\n\nВсе интеграции проекта ({{ len .Integrations }}) также будут безвозвратно удалены!\n\nЭто действие нельзя отменить.');">
+                                        <button type="submit" class="btn btn-danger btn-sm" title="Удалить проект и все его интеграции">
+                                            <i data-lucide="trash-2"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {{ end }}
+                        {{ else }}
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 3rem; color: var(--muted-foreground);">
+                                <div style="font-size: 3rem; margin-bottom: 1rem;"><i data-lucide="folder"></i></div>
+                                <h3 style="margin-bottom: 0.5rem;">Проектов пока нет</h3>
+                                <p style="margin-top: 0.5rem; margin-bottom: 1rem;">Создайте первый проект для группировки интеграций</p>
+                                <a href="/projects/create" class="btn">
+                                    <i data-lucide="plus"></i>
+                                    Создать проект
+                                </a>
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Mobile Cards -->
+            <div class="mobile-card-list">
+                {{ if .projects }}
+                {{ range .projects }}
+                <div class="mobile-card">
+                    <div class="mobile-card-header">
+                        <a href="/projects/{{ .ID }}" class="mobile-card-title">{{ .Name }}</a>
+                        <div class="mobile-card-actions">
+                            <a href="/projects/{{ .ID }}" class="btn btn-sm" title="Просмотр">
+                                <i data-lucide="eye"></i>
+                            </a>
+                            <a href="/projects/{{ .ID }}/edit" class="btn btn-secondary btn-sm" title="Редактировать">
+                                <i data-lucide="pencil"></i>
+                            </a>
+                            <form method="POST" action="/projects/{{ .ID }}/delete" style="display: inline;"
+                                onsubmit="return confirm('⚠️ ВНИМАНИЕ!\n\nУдалить проект {{ .Name }}?\n\nВсе интеграции проекта ({{ len .Integrations }}) также будут безвозвратно удалены!\n\nЭто действие нельзя отменить.');">
+                                <button type="submit" class="btn btn-danger btn-sm" title="Удалить">
+                                    <i data-lucide="trash-2"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="mobile-card-body">
+                        {{ if .Description }}
+                        <div class="mobile-card-row">
+                            <span class="mobile-card-label">Описание</span>
+                            <span class="mobile-card-value">{{ .Description }}</span>
+                        </div>
+                        {{ end }}
+                        <div class="mobile-card-row">
+                            <span class="mobile-card-label">Интеграций</span>
+                            <span class="mobile-card-value"><span class="badge badge-info">{{ len .Integrations }}</span></span>
+                        </div>
+                        <div class="mobile-card-row">
+                            <span class="mobile-card-label">Создатель</span>
+                            <span class="mobile-card-value">{{ .CreatedBy.Username }}</span>
+                        </div>
+                    </div>
+                </div>
+                {{ end }}
+                {{ else }}
+                <div style="text-align: center; padding: 3rem; color: var(--muted-foreground);">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;"><i data-lucide="folder"></i></div>
+                    <h3 style="margin-bottom: 0.5rem;">Проектов пока нет</h3>
+                    <p style="margin-top: 0.5rem; margin-bottom: 1rem;">Создайте первый проект для группировки интеграций</p>
+                    <a href="/projects/create" class="btn">
+                        <i data-lucide="plus"></i>
+                        Создать проект
+                    </a>
+                </div>
+                {{ end }}
+            </div>
+        </div>
+    </main>
+
+    {{ template "partials/scripts.html" . }}
+    
+    <!-- AI Assistant -->
+    {{ template "partials/ai_chat.html" . }}
+{{ end }}

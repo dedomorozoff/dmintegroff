@@ -1,0 +1,360 @@
+{{ define "pages/logs.html" }}
+{{ template "partials/head.html" . }}
+    {{ template "partials/sidebar.html" . }}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>Тесты интеграций</h1>
+                    <p>История тестовых запросов и ответов интеграций</p>
+                </div>
+                {{ if .logs }}
+                <form method="POST" action="/logs/clear" style="margin: 0;" onsubmit="return confirm('Вы уверены, что хотите удалить все тесты?')">
+                    <button type="submit" class="btn btn-danger">
+                        <i data-lucide="trash-2"></i>
+                        Очистить все
+                    </button>
+                </form>
+                {{ end }}
+            </div>
+        </div>
+        
+        <div class="page-header-mobile">
+            <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Меню">
+                <i data-lucide="menu"></i>
+            </button>
+            <a href="/dashboard">
+                <img src="/static/img/logo.png" alt="dmIntegroff" class="page-header-logo">
+            </a>
+            <h1 class="page-header-title">Тесты интеграций</h1>
+        </div>
+        <div class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
+        <!-- Filters -->
+        <div class="card">
+            <form method="GET" action="/logs" class="filter-form">
+                <input type="text" name="search" placeholder="Поиск по ID или названию интеграции" value="{{ .filter_search }}" style="flex: 2;">
+                <select name="project_id" style="flex: 1;">
+                    <option value="">Все проекты</option>
+                    {{ range .projects }}
+                    <option value="{{ .ID }}" {{ if eq $.filter_project (printf "%d" .ID) }}selected{{ end }}>{{ .Name }}</option>
+                    {{ end }}
+                </select>
+                <select name="status" style="flex: 1;">
+                    <option value="">Все статусы</option>
+                    <option value="success" {{ if eq .filter_status "success" }}selected{{ end }}>Успешные</option>
+                    <option value="error" {{ if eq .filter_status "error" }}selected{{ end }}>Ошибки</option>
+                </select>
+                <button type="submit" class="btn">
+                    <i data-lucide="filter"></i>
+                    Фильтровать
+                </button>
+                <a href="/logs" class="btn btn-secondary">
+                    <i data-lucide="x"></i>
+                    Сбросить
+                </a>
+            </form>
+        </div>
+
+        <!-- Logs -->
+        {{ if .logs }}
+        {{ range .logs }}
+        <div class="log-entry {{ if .ErrorMessage }}error-log{{ end }}">
+            <div class="log-header">
+                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    {{ if eq .LogType "incoming" }}
+                    <span style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; background: #10b981; color: white; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">
+                        <i data-lucide="arrow-down-circle" style="width: 14px; height: 14px;"></i>
+                        ВХОДЯЩИЙ
+                    </span>
+                    {{ else if eq .LogType "webhook" }}
+                    <span style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; background: #3b82f6; color: white; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">
+                        <i data-lucide="arrow-up-circle" style="width: 14px; height: 14px;"></i>
+                        ИСХОДЯЩИЙ
+                    </span>
+                    {{ else if eq .LogType "graphql" }}
+                    <span style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; background: #8b5cf6; color: white; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">
+                        <i data-lucide="database" style="width: 14px; height: 14px;"></i>
+                        GRAPHQL
+                    </span>
+                    {{ else if eq .LogType "test" }}
+                    <span style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; background: #f59e0b; color: white; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">
+                        <i data-lucide="flask-conical" style="width: 14px; height: 14px;"></i>
+                        ТЕСТ
+                    </span>
+                    {{ else if eq .LogType "error" }}
+                    <span style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; background: #ef4444; color: white; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">
+                        <i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i>
+                        ОШИБКА
+                    </span>
+                    {{ end }}
+                    
+                    <span class="log-method {{ .Method }}">{{ .Method }}</span>
+                    <span class="log-status {{ if .ErrorMessage }}error{{ else }}success{{ end }}">
+                        {{ if .ErrorMessage }}Ошибка{{ else }}Успешно{{ end }}
+                    </span>
+                    <span class="log-meta">
+                        <i data-lucide="calendar" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+                        {{ .CreatedAt.Format "02.01.2006 15:04:05" }}
+                    </span>
+                </div>
+                <div class="log-meta">
+                    {{ if .Integration }}
+                    <i data-lucide="webhook" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+                    <strong>{{ .Integration.Name }}</strong>
+                    {{ if .Integration.Project }}
+                    <span style="margin: 0 8px;">•</span>
+                    <i data-lucide="folder-kanban" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+                    {{ .Integration.Project.Name }}
+                    {{ end }}
+                    {{ if eq .LogType "webhook" }}
+                    <span style="margin: 0 8px;">•</span>
+                    {{ if .OutputName }}
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; background: #3b82f6; color: white; border-radius: 4px; font-size: 0.85rem; font-weight: 600;">
+                        <i data-lucide="git-branch" style="width: 12px; height: 12px;"></i>
+                        {{ .OutputName }}
+                    </span>
+                    <span style="margin: 0 8px;">•</span>
+                    {{ end }}
+                    <span style="color: var(--muted-foreground);">Target:</span>
+                    <code style="font-size: 0.9em; background: var(--muted); padding: 2px 6px; border-radius: 4px;">{{ .URL }}</code>
+                    {{ end }}
+                    {{ else }}
+                    <i data-lucide="webhook" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+                    Интеграция #{{ .IntegrationID }}
+                    {{ end }}
+                </div>
+            </div>
+
+            {{ if .ErrorMessage }}
+            <div class="log-section">
+                <div class="log-section-title">
+                    <i data-lucide="alert-circle" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+                    Ошибка
+                </div>
+                <div class="error-message">{{ .ErrorMessage }}</div>
+            </div>
+            {{ end }}
+
+            {{ if .RequestHeaders }}
+            <div class="log-section">
+                <div class="log-section-title" style="cursor: pointer;" onclick="toggleSection(this)">
+                    <i data-lucide="list" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+                    Заголовки запроса
+                    <span class="content-type-badge" data-headers="{{ .RequestHeaders }}" style="margin-left: 8px; font-size: 11px; padding: 2px 8px; border-radius: 4px; background: var(--muted); color: var(--muted-foreground); font-weight: normal;"></span>
+                    <i data-lucide="chevron-down" class="toggle-icon" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-left: auto;"></i>
+                </div>
+                <div class="log-section-content headers-content" style="display: none;" data-headers="{{ .RequestHeaders }}"></div>
+            </div>
+            {{ end }}
+
+            <div class="log-section">
+                <div class="log-section-title">
+                    <i data-lucide="file-text" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+                    {{ if eq .LogType "incoming" }}
+                    Тело входящего запроса
+                    {{ else if eq .LogType "webhook" }}
+                    Тело исходящего запроса
+                    {{ else if eq .LogType "graphql" }}
+                    GraphQL запрос
+                    {{ else if eq .LogType "test" }}
+                    Тело тестового запроса
+                    {{ else }}
+                    Тело запроса
+                    {{ end }}
+                </div>
+                <pre class="log-code syntax-highlight" data-headers="{{ .RequestHeaders }}"><code class="log-body">{{ .RequestBody }}</code></pre>
+            </div>
+
+            {{ if .ResponseBody }}
+            <div class="log-section">
+                <div class="log-section-title">
+                    <i data-lucide="check-circle" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+                    {{ if .OutputName }}
+                    Ответ от Target API ({{ .OutputName }})
+                    {{ else }}
+                    Ответ от Target API
+                    {{ end }}
+                </div>
+                <pre class="log-code syntax-highlight" data-headers="{{ .RequestHeaders }}"><code class="log-body">{{ .ResponseBody }}</code></pre>
+            </div>
+            {{ end }}
+        </div>
+        {{ end }}
+        {{ else }}
+        <div class="card" style="text-align: center; padding: 3rem; color: var(--muted-foreground);">
+            <div style="margin-bottom: 1rem;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2"></path>
+                    <path d="M6.453 15h11.094"></path>
+                    <path d="M8.5 2h7"></path>
+                </svg>
+            </div>
+            <h3 style="margin-bottom: 0.5rem;">Тестов пока нет</h3>
+            <p>Тесты появятся после первых запросов к интеграциям</p>
+        </div>
+        {{ end }}
+    </main>
+
+    {{ template "partials/scripts.html" . }}
+    <script>
+        // Подсветка синтаксиса (JSON/XML)
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.syntax-highlight code.log-body').forEach(function(block) {
+                // Получаем текст напрямую из textContent (Go template уже экранировал HTML)
+                let text = block.textContent.trim();
+                
+                // Базовое форматирование для всех типов
+                block.style.whiteSpace = 'pre-wrap';
+                block.style.wordBreak = 'break-word';
+                
+                // Если нет текста, показываем placeholder
+                if (!text || text.length === 0) {
+                    block.innerHTML = '<span style="color: var(--muted-foreground); font-style: italic;">Тело запроса пустое</span>';
+                    return;
+                }
+                
+                // Определяем тип по содержимому
+                // Применяем подсветку только для JSON и XML
+                if (text.startsWith('{') || text.startsWith('[')) {
+                    // JSON подсветка
+                    try {
+                        const json = JSON.parse(text);
+                        block.innerHTML = syntaxHighlight(JSON.stringify(json, null, 2));
+                    } catch(e) {
+                        // Если не удалось распарсить, оставляем как есть
+                        // Это нормально для plain text который начинается с { или [
+                        console.log('Failed to parse as JSON, displaying as plain text');
+                    }
+                } else if (text.trim().startsWith('<?xml') || (text.trim().startsWith('<') && text.includes('>'))) {
+                    // XML подсветка (базовая)
+                    block.innerHTML = syntaxHighlightXML(text);
+                }
+                // Для остального (plain text, CSV и т.д.) - оставляем как есть
+            });
+
+            // Отображение Content-Type в бейдже (только в заголовках)
+            document.querySelectorAll('.content-type-badge').forEach(function(badge) {
+                const headersJson = badge.getAttribute('data-headers');
+                if (!headersJson || !headersJson.trim() || headersJson === '""' || headersJson === "''") {
+                    badge.style.display = 'none';
+                    return;
+                }
+                
+                try {
+                    const headers = JSON.parse(headersJson);
+                    const contentType = headers['Content-Type'] || headers['content-type'];
+                    if (contentType) {
+                        const displayType = Array.isArray(contentType) ? contentType[0] : contentType;
+                        badge.textContent = displayType;
+                        
+                        // Цветовая индикация типа
+                        if (displayType.includes('json')) {
+                            badge.style.background = 'rgba(59, 130, 246, 0.15)';
+                            badge.style.color = '#3b82f6';
+                        } else if (displayType.includes('xml')) {
+                            badge.style.background = 'rgba(245, 158, 11, 0.15)';
+                            badge.style.color = '#f59e0b';
+                        } else if (displayType.includes('text')) {
+                            badge.style.background = 'rgba(16, 185, 129, 0.15)';
+                            badge.style.color = '#10b981';
+                        }
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                } catch(e) {
+                    // Скрываем бейдж если не удалось распарсить
+                    badge.style.display = 'none';
+                }
+            });
+
+            // Форматирование заголовков
+            document.querySelectorAll('.headers-content').forEach(function(container) {
+                const headersJson = container.getAttribute('data-headers');
+                if (!headersJson || !headersJson.trim() || headersJson === '""' || headersJson === "''") {
+                    container.innerHTML = '<p style="color: var(--muted-foreground); padding: 1rem;">Заголовки отсутствуют</p>';
+                    return;
+                }
+                
+                try {
+                    const headers = JSON.parse(headersJson);
+                    let html = '<div style="display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; font-size: 13px; line-height: 1.6;">';
+                    
+                    for (const [key, value] of Object.entries(headers)) {
+                        const displayValue = Array.isArray(value) ? value.join(', ') : value;
+                        
+                        // Выделяем Content-Type
+                        const isContentType = key.toLowerCase() === 'content-type';
+                        const keyStyle = isContentType ? 'font-weight: 600; color: var(--primary);' : '';
+                        
+                        html += `
+                            <div style="color: var(--muted-foreground); font-weight: 500; white-space: nowrap; background: var(--muted); padding: 4px 8px; border-radius: 4px; ${keyStyle}">${escapeHtml(key)}:</div>
+                            <div style="color: var(--foreground); word-break: break-all; background: var(--muted); padding: 4px 8px; border-radius: 4px; ${keyStyle}">${escapeHtml(displayValue)}</div>
+                        `;
+                    }
+                    
+                    html += '</div>';
+                    container.innerHTML = html;
+                } catch(e) {
+                    container.innerHTML = '<pre class="log-code">' + escapeHtml(headersJson) + '</pre>';
+                }
+            });
+        });
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function syntaxHighlight(json) {
+            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                var cls = 'json-number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'json-key';
+                    } else {
+                        cls = 'json-string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'json-boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'json-null';
+                }
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+        }
+
+        function syntaxHighlightXML(xml) {
+            // Экранируем HTML
+            xml = xml.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            
+            // Подсвечиваем XML теги
+            xml = xml.replace(/(&lt;\?xml[^?]*\?&gt;)/g, '<span style="color: #c678dd;">$1</span>'); // XML declaration
+            xml = xml.replace(/(&lt;\/?)([a-zA-Z0-9_:-]+)/g, '$1<span style="color: #e06c75;">$2</span>'); // Tag names
+            xml = xml.replace(/([a-zA-Z0-9_:-]+)(=)/g, '<span style="color: #d19a66;">$1</span>$2'); // Attributes
+            xml = xml.replace(/=(&quot;[^&]*&quot;|'[^']*')/g, '=<span style="color: #98c379;">$1</span>'); // Attribute values
+            xml = xml.replace(/(&lt;!--.*?--&gt;)/g, '<span style="color: #5c6370;">$1</span>'); // Comments
+            
+            return xml;
+        }
+
+        function toggleSection(element) {
+            const content = element.nextElementSibling;
+            const icon = element.querySelector('.toggle-icon');
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                icon.setAttribute('data-lucide', 'chevron-up');
+            } else {
+                content.style.display = 'none';
+                icon.setAttribute('data-lucide', 'chevron-down');
+            }
+            
+            lucide.createIcons();
+        }
+    </script>
+{{ end }}

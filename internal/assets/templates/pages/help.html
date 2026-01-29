@@ -1,0 +1,315 @@
+{{ define "pages/help.html" }}
+{{ template "partials/head.html" . }}
+    {{ template "partials/sidebar.html" . }}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <h1>Помощь</h1>
+            <p>Справка по работе с системой dmIntegroff</p>
+        </div>
+        
+        <div class="page-header-mobile">
+            <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Меню">
+                <i data-lucide="menu"></i>
+            </button>
+            <a href="/dashboard">
+                <img src="/static/img/logo.png" alt="dmIntegroff" class="page-header-logo">
+            </a>
+            <h1 class="page-header-title">Помощь</h1>
+        </div>
+        <div class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
+        <!-- Быстрый старт -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title"><i data-lucide="rocket"></i> Быстрый старт</h2>
+            </div>
+            <div style="padding: 1.5rem;">
+                <div class="help-section">
+                    <h3>Как начать работу с dmIntegroff</h3>
+                    <ol class="help-list">
+                        <li><strong>Создайте проект</strong> - перейдите в раздел "Проекты" и создайте новый проект для группировки ваших интеграций</li>
+                        <li><strong>Добавьте интеграцию</strong> - в проекте создайте новую интеграцию, выбрав тип (Bitrix24, amoCRM и т.д.)</li>
+                        <li><strong>Получите webhook URL</strong> - после создания интеграции скопируйте уникальный URL для приема данных</li>
+                        <li><strong>Отправьте тестовый запрос</strong> - используйте webhook URL для отправки тестовых данных</li>
+                        <li><strong>Настройте маппинг</strong> - сопоставьте поля входящих данных с полями целевой системы</li>
+                        <li><strong>Активируйте интеграцию</strong> - включите интеграцию для начала обработки реальных данных</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- Работа с проектами -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title"><i data-lucide="folder"></i> Работа с проектами</h2>
+            </div>
+            <div style="padding: 1.5rem;">
+                <div class="help-section">
+                    <h3>Что такое проект?</h3>
+                    <p>Проект - это контейнер для группировки связанных интеграций. Используйте проекты для организации интеграций по клиентам, отделам или функциональным областям.</p>
+                    
+                    <h3>Создание проекта</h3>
+                    <ol class="help-list">
+                        <li>Перейдите в раздел "Проекты"</li>
+                        <li>Нажмите кнопку "Создать проект"</li>
+                        <li>Заполните название и описание</li>
+                        <li>Сохраните проект</li>
+                    </ol>
+
+                    <h3>Управление проектом</h3>
+                    <ul class="help-list">
+                        <li>Просмотр всех интеграций проекта</li>
+                        <li>Добавление новых интеграций</li>
+                        <li>Редактирование информации о проекте</li>
+                        <li>Удаление проекта (только если нет активных интеграций)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Работа с интеграциями -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title"><i data-lucide="link"></i> Работа с интеграциями</h2>
+            </div>
+            <div style="padding: 1.5rem;">
+                <div class="help-section">
+                    <h3>Создание интеграции</h3>
+                    <ol class="help-list">
+                        <li>Выберите проект или создайте новый</li>
+                        <li>Нажмите "Добавить интеграцию"</li>
+                        <li>Укажите название и выберите тип (Bitrix24, amoCRM, Custom)</li>
+                        <li>Введите параметры подключения к целевой системе</li>
+                        <li>Сохраните интеграцию</li>
+                    </ol>
+
+                    <h3>Настройка маппинга полей</h3>
+                    <p>Маппинг позволяет сопоставить поля входящих данных с полями целевой системы:</p>
+                    <ol class="help-list">
+                        <li>Отправьте тестовый запрос на webhook URL интеграции</li>
+                        <li>Система автоматически определит структуру данных</li>
+                        <li>В разделе "Настроить" сопоставьте поля источника с полями назначения</li>
+                        <li>Сохраните маппинг</li>
+                    </ol>
+
+                    <h3>Активация интеграции</h3>
+                    <p>После настройки маппинга активируйте интеграцию переключателем. Активная интеграция будет автоматически обрабатывать входящие запросы.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Webhook URL -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title"><i data-lucide="globe"></i> Работа с Webhook URL</h2>
+            </div>
+            <div style="padding: 1.5rem;">
+                <div class="help-section">
+                    <h3>Что такое Webhook URL?</h3>
+                    <p><code>Webhook URL</code> - это уникальный адрес для приема данных от внешних систем. Каждая интеграция имеет свой уникальный URL.</p>
+
+                    <h3>Как использовать Webhook URL</h3>
+                    <ol class="help-list">
+                        <li>Скопируйте <code>URL</code> из карточки интеграции</li>
+                        <li>Настройте внешнюю систему для отправки данных на этот <code>URL</code></li>
+                        <li>Данные будут автоматически обрабатываться согласно настроенному маппингу</li>
+                    </ol>
+
+                    <h3>Безопасность</h3>
+                    <p><code>Webhook URL</code> содержит уникальный токен для защиты от несанкционированного доступа. Не передавайте <code>URL</code> третьим лицам. При необходимости можно сгенерировать новый токен.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Логи и мониторинг -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title"><i data-lucide="bar-chart"></i> Логи и мониторинг</h2>
+            </div>
+            <div style="padding: 1.5rem;">
+                <div class="help-section">
+                    <h3>Просмотр логов</h3>
+                    <p>В разделе "Логи" вы можете просматривать историю всех запросов:</p>
+                    <ul class="help-list">
+                        <li>Входящие данные (Request)</li>
+                        <li>Исходящие данные (Response)</li>
+                        <li>Статус обработки</li>
+                        <li>Время выполнения</li>
+                        <li>Ошибки при обработке</li>
+                    </ul>
+
+                    <h3>Фильтрация логов</h3>
+                    <p>Используйте фильтры для поиска нужных записей:</p>
+                    <ul class="help-list">
+                        <li>По интеграции</li>
+                        <li>По типу (успех/ошибка)</li>
+                        <li>По дате</li>
+                        <li>По методу запроса</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Устранение проблем -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title"><i data-lucide="wrench"></i> Устранение проблем</h2>
+            </div>
+            <div style="padding: 1.5rem;">
+                <div class="help-section">
+                    <h3>Интеграция не работает</h3>
+                    <ul class="help-list">
+                        <li>Проверьте, что интеграция активирована</li>
+                        <li>Убедитесь, что маппинг полей настроен</li>
+                        <li>Проверьте правильность параметров подключения к целевой системе</li>
+                        <li>Просмотрите логи для выявления ошибок</li>
+                    </ul>
+
+                    <h3>Ошибки в логах</h3>
+                    <ul class="help-list">
+                        <li><strong><code>401/403</code></strong> - проверьте токен доступа к целевой системе</li>
+                        <li><strong><code>404</code></strong> - проверьте URL целевой системы</li>
+                        <li><strong><code>500</code></strong> - ошибка на стороне целевой системы, проверьте её доступность</li>
+                        <li><strong>Ошибка маппинга</strong> - проверьте соответствие полей</li>
+                    </ul>
+
+                    <h3>Данные не передаются</h3>
+                    <ol class="help-list">
+                        <li>Убедитесь, что webhook URL настроен в источнике данных</li>
+                        <li>Проверьте, что интеграция активна</li>
+                        <li>Отправьте тестовый запрос для проверки</li>
+                        <li>Проверьте логи на наличие входящих запросов</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- Дополнительная информация -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title"><i data-lucide="info"></i> Дополнительная информация</h2>
+            </div>
+            <div style="padding: 1.5rem;">
+                <div class="help-section">
+                    <h3>Поддерживаемые системы</h3>
+                    <ul class="help-list">
+                        <li><strong>Bitrix24</strong> - CRM и корпоративный портал</li>
+                        <li><strong>amoCRM</strong> - система управления продажами</li>
+                        <li><strong>Custom</strong> - любая система с REST API</li>
+                    </ul>
+
+                    <h3>Ограничения</h3>
+                    <ul class="help-list">
+                        <li>Максимальный размер запроса: 10 МБ</li>
+                        <li>Таймаут обработки: 30 секунд</li>
+                        <li>Хранение логов: 30 дней</li>
+                    </ul>
+
+                    <h3>Нужна помощь?</h3>
+                    <p>Если у вас возникли вопросы или проблемы, обратитесь к администратору системы или в техническую поддержку.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <style>
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-title i,
+        .card-title svg {
+            display: inline-flex;
+            vertical-align: middle;
+            color: var(--primary);
+        }
+
+        .help-section {
+            line-height: 1.6;
+        }
+
+        .help-section h3 {
+            color: var(--foreground);
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            border-left: 3px solid var(--primary);
+            padding-left: 0.75rem;
+        }
+
+        .help-section h3:first-child {
+            margin-top: 0;
+        }
+
+        .help-section p {
+            color: var(--muted-foreground);
+            margin-bottom: 1rem;
+            line-height: 1.7;
+        }
+
+        .help-list {
+            color: var(--muted-foreground);
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+            line-height: 1.7;
+        }
+
+        .help-list li {
+            margin-bottom: 0.75rem;
+            position: relative;
+        }
+
+        .help-list li::marker {
+            color: var(--primary);
+        }
+
+        .help-list strong {
+            color: var(--foreground);
+            font-weight: 600;
+        }
+
+        /* Улучшенная типографика для мобильных устройств */
+        @media (max-width: 768px) {
+            .help-section h3 {
+                font-size: 1rem;
+                margin-top: 1.25rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .help-list {
+                margin-left: 1rem;
+            }
+
+            .help-section p {
+                font-size: 0.9rem;
+            }
+        }
+
+        /* Hover эффекты для карточек */
+        .card {
+            transition: all 0.2s ease;
+        }
+
+        .card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Стили для кода и технических терминов */
+        .help-section code {
+            background: var(--muted);
+            color: var(--accent-foreground);
+            padding: 0.125rem 0.375rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
+        }
+    </style>
+
+    {{ template "partials/scripts.html" . }}
+{{ end }}

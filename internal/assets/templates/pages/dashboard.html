@@ -1,0 +1,1043 @@
+{{ define "pages/dashboard.html" }}
+{{ template "partials/head.html" . }}
+{{ template "partials/sidebar.html" . }}
+
+<!-- Main Content -->
+<main class="main-content">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div>
+            <h1>Панель управления</h1>
+            <p>Обзор всех интеграций и статистики</p>
+        </div>
+        <button onclick="createWebhookTest()" class="btn btn-primary hide-on-mobile"
+            style="display: flex; align-items: center; gap: 0.5rem;">
+            <i data-lucide="flask-conical"></i>
+            <span>Создать тестовый вебхук</span>
+        </button>
+    </div>
+
+    <!-- Mobile Header -->
+    <div class="page-header-mobile">
+        <div class="mobile-header-actions">
+            <button onclick="createWebhookTest()" class="btn btn-primary mobile-webhook-test-btn"
+                aria-label="Создать тестовый вебхук">
+                <i data-lucide="flask-conical"></i>
+            </button>
+            <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Меню">
+                <i data-lucide="menu"></i>
+            </button>
+        </div>
+        <a href="/dashboard">
+            <img src="/static/img/logo.png" alt="dmIntegroff" class="page-header-logo">
+        </a>
+        <h1 class="page-header-title">Панель управления</h1>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <div>
+                    <p class="stat-card-title">Всего интеграций</p>
+                    <p class="stat-card-value">{{ if .total_integrations }}{{ .total_integrations }}{{ else }}0{{
+                        end }}</p>
+                    <p class="stat-card-change">Все созданные</p>
+                </div>
+                <div class="stat-card-icon" style="background: color-mix(in srgb, var(--primary) 10%, transparent);">
+                    <i data-lucide="webhook" style="color: var(--primary);"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <div>
+                    <p class="stat-card-title">Активных</p>
+                    <p class="stat-card-value">{{ if .active_integrations }}{{ .active_integrations }}{{ else }}0{{
+                        end }}</p>
+                    <p class="stat-card-change">Работают сейчас</p>
+                </div>
+                <div class="stat-card-icon" style="background: color-mix(in srgb, var(--success) 10%, transparent);">
+                    <i data-lucide="check-circle-2" style="color: var(--success);"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <div>
+                    <p class="stat-card-title">В режиме ожидания</p>
+                    <p class="stat-card-value">-</p>
+                    <p class="stat-card-change">Требуют настройки</p>
+                </div>
+                <div class="stat-card-icon" style="background: color-mix(in srgb, var(--warning) 10%, transparent);">
+                    <i data-lucide="clock" style="color: var(--warning);"></i>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <div>
+                    <p class="stat-card-title">Ошибки (24ч)</p>
+                    <p class="stat-card-value">{{ if .error_count }}{{ .error_count }}{{ else }}0{{ end }}</p>
+                    <p class="stat-card-change">За последние сутки</p>
+                </div>
+                <div class="stat-card-icon" style="background: color-mix(in srgb, var(--danger) 10%, transparent);">
+                    <i data-lucide="alert-triangle" style="color: var(--danger);"></i>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Быстрые действия</h2>
+            <p class="card-subtitle">Быстрый доступ к частым операциям</p>
+        </div>
+
+        <div class="quick-actions-grid">
+            <a href="/integrations/create-with-ai" class="btn btn-primary quick-action-btn ai-quick-action"
+                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; text-decoration: none;">
+                <div class="quick-action-header">
+                    <i data-lucide="sparkles"></i>
+                    <span>С помощью AI</span>
+                    <span class="quick-action-arrow"><i data-lucide="arrow-right"></i></span>
+                </div>
+                <span class="quick-action-desc">Создайте интеграцию с помощью искусственного интеллекта</span>
+            </a>
+            <a href="/integrations/create" class="btn btn-success quick-action-btn">
+                <div class="quick-action-header">
+                    <i data-lucide="plus"></i>
+                    <span>Создать вручную</span>
+                    <span class="quick-action-arrow"><i data-lucide="arrow-right"></i></span>
+                </div>
+                <span class="quick-action-desc">Создайте интеграцию самостоятельно пошагово</span>
+            </a>
+            <a href="/integrations" class="btn btn-secondary quick-action-btn">
+                <div class="quick-action-header">
+                    <i data-lucide="webhook"></i>
+                    <span>Все интеграции</span>
+                    <span class="quick-action-arrow"><i data-lucide="arrow-right"></i></span>
+                </div>
+                <span class="quick-action-desc">Просмотр и управление существующими интеграциями</span>
+            </a>
+            <a href="/projects" class="btn btn-secondary quick-action-btn">
+                <div class="quick-action-header">
+                    <i data-lucide="folder-kanban"></i>
+                    <span>Проекты</span>
+                    <span class="quick-action-arrow"><i data-lucide="arrow-right"></i></span>
+                </div>
+                <span class="quick-action-desc">Управление проектами и группировка интеграций</span>
+            </a>
+            <a href="/logs/requests" class="btn btn-secondary quick-action-btn">
+                <div class="quick-action-header">
+                    <i data-lucide="file-text"></i>
+                    <span>История запросов</span>
+                    <span class="quick-action-arrow"><i data-lucide="arrow-right"></i></span>
+                </div>
+                <span class="quick-action-desc">Просмотр логов запросов <br>и ответов</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Bottom Grid -->
+    <div class="bottom-grid">
+        <!-- Getting Started -->
+        {{ if lt .progress_completed 5 }}
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                    <i data-lucide="lightbulb"></i>
+                    Как начать работу
+                </h2>
+            </div>
+            {{ if .progress_completed }}
+            <div style="padding: 0 1.5rem 1rem 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <span style="font-size: 0.875rem; color: var(--text-secondary);">Прогресс</span>
+                    <span style="font-size: 0.875rem; font-weight: 600; color: var(--primary);">{{
+                        .progress_completed }}/5</span>
+                </div>
+                <div
+                    style="width: 100%; height: 8px; background: var(--secondary); border-radius: 4px; overflow: hidden;">
+                    <div
+                        style="height: 100%; background: var(--primary); width: {{ .progress_percentage }}%; transition: width 0.3s ease;">
+                    </div>
+                </div>
+            </div>
+            {{ end }}
+            <div class="steps-list">
+                {{ if .progress }}
+                {{ $step1 := index .progress "step1" }}
+                <div class="step-item" style="cursor: {{ if not $step1.Completed }}pointer{{ else }}default{{ end }};"
+                    onclick="{{ if not $step1.Completed }}window.location.href='/projects/create'{{ end }}">
+                    {{ if $step1.Completed }}
+                    <i data-lucide="check-circle-2" class="step-icon completed"></i>
+                    <span class="step-text completed">{{ $step1.Text }}</span>
+                    {{ else }}
+                    <i data-lucide="circle" class="step-icon pending"></i>
+                    <span class="step-text">{{ $step1.Text }}</span>
+                    <i data-lucide="arrow-right"
+                        style="margin-left: auto; width: 16px; height: 16px; color: var(--primary);"></i>
+                    {{ end }}
+                </div>
+
+                {{ $step2 := index .progress "step2" }}
+                <div class="step-item" style="cursor: {{ if not $step2.Completed }}pointer{{ else }}default{{ end }};"
+                    onclick="{{ if not $step2.Completed }}window.location.href='/integrations/create'{{ end }}">
+                    {{ if $step2.Completed }}
+                    <i data-lucide="check-circle-2" class="step-icon completed"></i>
+                    <span class="step-text completed">{{ $step2.Text }}</span>
+                    {{ else }}
+                    <i data-lucide="circle" class="step-icon pending"></i>
+                    <span class="step-text">{{ $step2.Text }}</span>
+                    <i data-lucide="arrow-right"
+                        style="margin-left: auto; width: 16px; height: 16px; color: var(--primary);"></i>
+                    {{ end }}
+                </div>
+
+                {{ $step3 := index .progress "step3" }}
+                <div class="step-item" style="cursor: {{ if not $step3.Completed }}pointer{{ else }}default{{ end }};"
+                    onclick="{{ if not $step3.Completed }}window.location.href='/integrations'{{ end }}">
+                    {{ if $step3.Completed }}
+                    <i data-lucide="check-circle-2" class="step-icon completed"></i>
+                    <span class="step-text completed">{{ $step3.Text }}</span>
+                    {{ else }}
+                    <i data-lucide="circle" class="step-icon pending"></i>
+                    <span class="step-text">{{ $step3.Text }}</span>
+                    <i data-lucide="arrow-right"
+                        style="margin-left: auto; width: 16px; height: 16px; color: var(--primary);"></i>
+                    {{ end }}
+                </div>
+
+                {{ $step4 := index .progress "step4" }}
+                <div class="step-item" style="cursor: {{ if not $step4.Completed }}pointer{{ else }}default{{ end }};"
+                    onclick="{{ if not $step4.Completed }}window.location.href='/integrations'{{ end }}">
+                    {{ if $step4.Completed }}
+                    <i data-lucide="check-circle-2" class="step-icon completed"></i>
+                    <span class="step-text completed">{{ $step4.Text }}</span>
+                    {{ else }}
+                    <i data-lucide="circle" class="step-icon pending"></i>
+                    <span class="step-text">{{ $step4.Text }}</span>
+                    <i data-lucide="arrow-right"
+                        style="margin-left: auto; width: 16px; height: 16px; color: var(--primary);"></i>
+                    {{ end }}
+                </div>
+
+                {{ $step5 := index .progress "step5" }}
+                <div class="step-item" style="cursor: {{ if not $step5.Completed }}pointer{{ else }}default{{ end }};"
+                    onclick="{{ if not $step5.Completed }}window.location.href='/integrations'{{ end }}">
+                    {{ if $step5.Completed }}
+                    <i data-lucide="check-circle-2" class="step-icon completed"></i>
+                    <span class="step-text completed">{{ $step5.Text }}</span>
+                    {{ else }}
+                    <i data-lucide="circle" class="step-icon pending"></i>
+                    <span class="step-text">{{ $step5.Text }}</span>
+                    <i data-lucide="arrow-right"
+                        style="margin-left: auto; width: 16px; height: 16px; color: var(--primary);"></i>
+                    {{ end }}
+                </div>
+                {{ else }}
+                <div class="step-item">
+                    <i data-lucide="circle" class="step-icon pending"></i>
+                    <span class="step-text">Создайте проект для группировки интеграций</span>
+                </div>
+                <div class="step-item">
+                    <i data-lucide="circle" class="step-icon pending"></i>
+                    <span class="step-text">Создайте интеграцию в проекте</span>
+                </div>
+                <div class="step-item">
+                    <i data-lucide="circle" class="step-icon pending"></i>
+                    <span class="step-text">Отправьте тестовый запрос на webhook URL</span>
+                </div>
+                <div class="step-item">
+                    <i data-lucide="circle" class="step-icon pending"></i>
+                    <span class="step-text">Настройте маппинг полей</span>
+                </div>
+                <div class="step-item">
+                    <i data-lucide="circle" class="step-icon pending"></i>
+                    <span class="step-text">Активируйте интеграцию</span>
+                </div>
+                {{ end }}
+            </div>
+        </div>
+        {{ end }}
+
+        <!-- System Statistics (Admin Only) -->
+        {{ if eq .role "admin" }}
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                    <i data-lucide="server"></i>
+                    Системная статистика
+                </h2>
+                <button onclick="refreshSystemStats()" class="btn btn-sm btn-secondary" title="Обновить">
+                    <i data-lucide="refresh-cw"></i>
+                </button>
+            </div>
+            <div id="system-stats-content">
+                <div style="padding: 2rem; text-align: center; color: var(--text-secondary);">
+                    <i data-lucide="loader-2"
+                        style="animation: spin 1s linear infinite; width: 24px; height: 24px;"></i>
+                    <p style="margin: 0.5rem 0 0 0;">Загрузка системной статистики...</p>
+                </div>
+            </div>
+        </div>
+        {{ end }}
+
+        <!-- Recent Activity -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Последняя активность</h2>
+            </div>
+            <div class="activity-list">
+                {{ if .activities }}
+                {{ range .activities }}
+                <div class="activity-item">
+                    <div class="activity-content">
+                        <div class="activity-header">
+                            {{ if eq .Status "success" }}
+                            <span class="badge badge-success">OK</span>
+                            {{ else if eq .Status "error" }}
+                            <span class="badge badge-danger">Ошибка</span>
+                            {{ else if eq .Status "warning" }}
+                            <span class="badge badge-warning">Внимание</span>
+                            {{ else }}
+                            <span class="badge badge-secondary">Инфо</span>
+                            {{ end }}
+                            <span class="activity-integration">{{ .IntegrationName }}</span>
+                        </div>
+                        <p class="activity-message">{{ .Message }}</p>
+                        {{ if .RequestURL }}
+                        <p class="activity-url"
+                            style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem; font-family: monospace;">
+                            {{ .RequestURL }}</p>
+                        {{ end }}
+                    </div>
+                    <span class="activity-time">{{ .TimeAgo }}</span>
+                </div>
+                {{ end }}
+                {{ else }}
+                <div class="activity-item">
+                    <div class="activity-content">
+                        <p class="activity-message"
+                            style="color: var(--text-secondary); text-align: center; padding: 1rem;">
+                            Пока нет активности. Создайте интеграцию и отправьте первый запрос.
+                        </p>
+                    </div>
+                </div>
+                {{ end }}
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- AI Chat Widget -->
+{{ template "partials/ai_chat.html" . }}
+
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .page-header>div {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .page-header button {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    .step-item[style*="cursor: pointer"]:hover {
+        background: var(--secondary);
+        border-radius: 8px;
+        padding: 0.5rem;
+        margin: -0.5rem;
+        transition: all 0.2s ease;
+    }
+
+    .step-item[style*="cursor: pointer"]:hover .step-text {
+        color: var(--primary);
+    }
+
+    .card-subtitle {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin: 0.25rem 0 0 0;
+        font-weight: normal;
+    }
+</style>
+
+{{ template "partials/scripts.html" . }}
+
+<!-- AI Chat JavaScript -->
+<script src="/static/js/ai-chat.js"></script>
+
+<script>
+
+    // Автоматическое обновление активности каждые 30 секунд
+    function updateActivity() {
+        fetch('/api/activity')
+            .then(response => response.json())
+            .then(data => {
+                if (data.activities && data.activities.length > 0) {
+                    const activityList = document.querySelector('.activity-list');
+                    if (activityList) {
+                        activityList.innerHTML = '';
+                        data.activities.forEach(activity => {
+                            const statusClass = activity.status === 'success' ? 'badge-success' :
+                                activity.status === 'error' ? 'badge-danger' :
+                                    activity.status === 'warning' ? 'badge-warning' : 'badge-secondary';
+                            const statusText = activity.status === 'success' ? 'OK' :
+                                activity.status === 'error' ? 'Ошибка' :
+                                    activity.status === 'warning' ? 'Внимание' : 'Инфо';
+
+                            const item = document.createElement('div');
+                            item.className = 'activity-item';
+                            item.innerHTML = `
+                                <div class="activity-content">
+                                    <div class="activity-header">
+                                        <span class="badge ${statusClass}">${statusText}</span>
+                                        <span class="activity-integration">${activity.integration_name}</span>
+                                    </div>
+                                    <p class="activity-message">${activity.message}</p>
+                                    ${activity.request_url ? `<p class="activity-url" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem; font-family: monospace;">${activity.request_url}</p>` : ''}
+                                </div>
+                                <span class="activity-time">${activity.time_ago}</span>
+                            `;
+                            activityList.appendChild(item);
+                        });
+                    }
+                }
+            })
+            .catch(error => console.error('Ошибка обновления активности:', error));
+    }
+
+    // Обновляем активность каждые 30 секунд
+    setInterval(updateActivity, 30000);
+
+    // Mobile Sidebar Toggle
+    function toggleMobileSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.querySelector('.sidebar-overlay');
+        sidebar.classList.toggle('mobile-open');
+        overlay.classList.toggle('active');
+    }
+
+    function closeMobileSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.querySelector('.sidebar-overlay');
+        sidebar.classList.remove('mobile-open');
+        overlay.classList.remove('active');
+    }
+
+    // Закрытие sidebar при клике на ссылку
+    document.querySelectorAll('.sidebar a').forEach(link => {
+        link.addEventListener('click', closeMobileSidebar);
+    });
+
+    // Создание тестового вебхука
+    function createWebhookTest() {
+        // Показываем индикатор загрузки
+        const button = event.target.closest('button');
+        if (button) {
+            button.disabled = true;
+            button.style.opacity = '0.6';
+        }
+
+        fetch('/api/webhook-test/create', {
+            method: 'POST'
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to create webhook test');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.webhook_url) {
+                    // Копируем URL в буфер обмена
+                    navigator.clipboard.writeText(data.webhook_url).then(() => {
+                        // Открываем страницу с тестовым вебхуком
+                        window.location.href = `/webhook-test/${data.token}`;
+                    }).catch(err => {
+                        console.error('Failed to copy URL:', err);
+                        // Всё равно открываем страницу
+                        window.location.href = `/webhook-test/${data.token}`;
+                    });
+                } else {
+                    throw new Error('No webhook URL in response');
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка при создании тестового вебхука:', error);
+                window.showNotification('Не удалось создать тестовый вебхук. Попробуйте ещё раз.', 'error');
+
+                // Восстанавливаем кнопку
+                if (button) {
+                    button.disabled = false;
+                    button.style.opacity = '1';
+                }
+            });
+    }
+
+    // System Statistics Functions (Admin Only)
+    {{ if eq .role "admin" }}
+
+    function loadSystemStats() {
+        fetch('/api/system-stats')
+            .then(response => response.json())
+            .then(data => {
+                displaySystemStats(data);
+            })
+            .catch(error => {
+                console.error('Error loading system stats:', error);
+                document.getElementById('system-stats-content').innerHTML = `
+                    <div style="padding: 2rem; text-align: center; color: var(--danger);">
+                        <i data-lucide="alert-circle" style="width: 24px; height: 24px;"></i>
+                        <p style="margin: 0.5rem 0 0 0;">Ошибка загрузки статистики</p>
+                    </div>
+                `;
+                if (window.lucide) window.lucide.createIcons();
+            });
+    }
+
+    function displaySystemStats(data) {
+        const content = document.getElementById('system-stats-content');
+
+        content.innerHTML = `
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; padding: 1.5rem;">
+                <div class="mini-stat-card">
+                    <div class="mini-stat-header">
+                        <i data-lucide="shield-check" style="color: var(--success);"></i>
+                        <span>Rate Limiter</span>
+                    </div>
+                    <div class="mini-stat-value">${data.rate_limiter?.enabled ? 'Активен' : 'Отключен'}</div>
+                    ${data.rate_limiter?.enabled ? `
+                        <div class="mini-stat-details">
+                            <small>${data.rate_limiter.rate} req/min, burst: ${data.rate_limiter.burst}</small>
+                            <small>Активных IP: ${data.rate_limiter.active_visitors || 0}</small>
+                        </div>
+                    ` : ''}
+                </div>
+                
+                <div class="mini-stat-card">
+                    <div class="mini-stat-header">
+                        <i data-lucide="zap" style="color: var(--warning);"></i>
+                        <span>Производительность</span>
+                    </div>
+                    <div class="mini-stat-value">${data.success_rate || 0}%</div>
+                    <div class="mini-stat-details">
+                        <small>Успешность запросов</small>
+                        <small>Среднее время: ${data.avg_response_time || 0}мс</small>
+                    </div>
+                </div>
+                
+                <div class="mini-stat-card">
+                    <div class="mini-stat-header">
+                        <i data-lucide="server" style="color: var(--info);"></i>
+                        <span>Система</span>
+                    </div>
+                    <div class="mini-stat-value">${data.uptime || 'N/A'}</div>
+                    <div class="mini-stat-details">
+                        <small>Время работы</small>
+                        <small>Версия: ${data.version || '1.0.0'}</small>
+                    </div>
+                </div>
+                
+                <div class="mini-stat-card">
+                    <div class="mini-stat-header">
+                        <i data-lucide="hard-drive" style="color: var(--primary);"></i>
+                        <span>База данных</span>
+                    </div>
+                    <div class="mini-stat-value">${data.db_connections || 0}</div>
+                    <div class="mini-stat-details">
+                        <small>Активных соединений</small>
+                        <small>Размер БД: ${data.db_size || 'N/A'}</small>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        if (window.lucide) window.lucide.createIcons();
+    }
+
+    function refreshSystemStats() {
+        const content = document.getElementById('system-stats-content');
+        content.innerHTML = `
+            <div style="padding: 2rem; text-align: center; color: var(--text-secondary);">
+                <i data-lucide="loader-2" style="animation: spin 1s linear infinite; width: 24px; height: 24px;"></i>
+                <p style="margin: 0.5rem 0 0 0;">Обновление статистики...</p>
+            </div>
+        `;
+        if (window.lucide) window.lucide.createIcons();
+
+        loadSystemStats();
+    }
+
+    // Load system stats on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        loadSystemStats();
+    });
+    {{ end }}
+</script>
+
+<style>
+    .mini-stat-card {
+        background: var(--card-background);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1rem;
+        transition: all 0.2s ease;
+    }
+
+    .mini-stat-card:hover {
+        border-color: var(--primary);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .mini-stat-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+    }
+
+    .mini-stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+
+    .mini-stat-details {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .mini-stat-details small {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+    }
+
+    @keyframes spin {
+        from {
+            transform: rotate(0deg);
+        }
+
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    /* AI Quick Action Animation */
+    .ai-quick-action {
+        transition: all 0.3s ease;
+    }
+
+    .ai-quick-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    }
+</style>
+
+<!-- AI Assistant Modal -->
+<div id="aiAssistantModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h2><i data-lucide="bot"></i> AI Помощник по интеграциям</h2>
+            <button class="btn-icon" onclick="closeAIAssistant()">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div id="aiAssistantContent">
+                <div class="ai-intro">
+                    <div class="ai-avatar-large">🤖</div>
+                    <h3>Привет! Я помогу создать интеграцию</h3>
+                    <p>Опишите что вы хотите сделать, и я создам интеграцию автоматически.</p>
+                </div>
+
+                <div class="ai-examples">
+                    <h4>Примеры запросов:</h4>
+                    <div class="ai-example-buttons">
+                        <button class="ai-example-btn"
+                            onclick="fillAIPrompt('Создать интеграцию для отправки уведомлений в Slack')">
+                            "Создать интеграцию для отправки уведомлений в Slack"
+                        </button>
+                        <button class="ai-example-btn"
+                            onclick="fillAIPrompt('Создать лид в Salesforce CRM из формы обратной связи')">
+                            "Создать лид в Salesforce CRM из формы обратной связи"
+                        </button>
+                        <button class="ai-example-btn"
+                            onclick="fillAIPrompt('Отправлять сообщения в Telegram при новых заказах')">
+                            "Отправлять сообщения в Telegram при новых заказах"
+                        </button>
+                        <button class="ai-example-btn" onclick="fillAIPrompt('Сохранить данные формы в Google Sheets')">
+                            "Сохранить данные формы в Google Sheets"
+                        </button>
+                    </div>
+                </div>
+
+                <form id="aiAssistantForm" onsubmit="createIntegrationWithAI(event)">
+                    <div class="form-group">
+                        <label for="aiDescription">
+                            <i data-lucide="message-square"></i>
+                            Опишите что вы хотите сделать
+                        </label>
+                        <textarea id="aiDescription" name="description"
+                            placeholder="Например: Создать интеграцию для отправки уведомлений в Slack при получении новых заявок с сайта"
+                            rows="4" required
+                            style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); background: var(--input-background); color: var(--text-primary); font-family: inherit; resize: vertical;"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="aiSampleData">
+                            <i data-lucide="file-json"></i>
+                            Образец данных (необязательно)
+                        </label>
+                        <textarea id="aiSampleData" name="sample_data"
+                            placeholder='{"name": "Иван Иванов", "email": "ivan@example.com", "message": "Интересует ваш продукт"}'
+                            rows="3"
+                            style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); background: var(--input-background); color: var(--text-primary); font-family: 'Courier New', monospace; resize: vertical;"></textarea>
+                        <small style="color: var(--text-secondary); margin-top: 0.25rem; display: block;">
+                            Если у вас есть пример данных, которые будут приходить, вставьте их сюда
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="aiProjectSelect">
+                            <i data-lucide="folder"></i>
+                            Проект
+                        </label>
+                        <select id="aiProjectSelect" name="project_id"
+                            style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); background: var(--input-background); color: var(--text-primary);">
+                            <option value="">Выберите проект...</option>
+                            <!-- Опции будут загружены через JavaScript -->
+                        </select>
+                    </div>
+
+                    <div id="aiProgress" style="display: none; margin: 1rem 0;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--primary);">
+                            <div
+                                style="width: 20px; height: 20px; border: 2px solid var(--border); border-top: 2px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite;">
+                            </div>
+                            <span id="aiProgressText">Создаю интеграцию с помощью AI...</span>
+                        </div>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="submit" class="btn btn-primary" id="aiCreateBtn">
+                            <i data-lucide="sparkles"></i>
+                            Создать с помощью AI
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="closeAIAssistant()">
+                            Отмена
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .ai-intro {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .ai-avatar-large {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+
+    .ai-intro h3 {
+        margin: 0 0 0.5rem 0;
+        color: var(--text-primary);
+    }
+
+    .ai-intro p {
+        color: var(--text-secondary);
+        margin: 0;
+    }
+
+    .ai-examples {
+        margin-bottom: 2rem;
+    }
+
+    .ai-examples h4 {
+        margin: 0 0 1rem 0;
+        font-size: 1rem;
+        color: var(--text-primary);
+    }
+
+    .ai-example-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .ai-example-btn {
+        background: var(--secondary);
+        border: 1px solid var(--border);
+        padding: 0.75rem;
+        border-radius: 8px;
+        text-align: left;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        color: var(--text-primary);
+        font-size: 0.9rem;
+    }
+
+    .ai-example-btn:hover {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        margin-top: 2rem;
+    }
+
+    @media (max-width: 768px) {
+        .modal-actions {
+            flex-direction: column;
+        }
+
+        .ai-example-buttons {
+            gap: 0.75rem;
+        }
+    }
+</style>
+
+<script>
+    // Функции для AI Assistant
+    function openAIAssistant() {
+        const modal = document.getElementById('aiAssistantModal');
+        if (modal) {
+            modal.style.display = 'flex';
+            loadProjectsForAI();
+
+            // Фокус на поле описания
+            setTimeout(() => {
+                const descField = document.getElementById('aiDescription');
+                if (descField) descField.focus();
+            }, 100);
+        }
+    }
+
+    function closeAIAssistant() {
+        const modal = document.getElementById('aiAssistantModal');
+        if (modal) {
+            modal.style.display = 'none';
+
+            // Сброс формы
+            const form = document.getElementById('aiAssistantForm');
+            if (form) form.reset();
+
+            // Скрытие прогресса
+            const progress = document.getElementById('aiProgress');
+            if (progress) progress.style.display = 'none';
+
+            // Восстановление кнопки
+            const btn = document.getElementById('aiCreateBtn');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="sparkles"></i> Создать с помощью AI';
+            }
+
+            if (window.lucide) window.lucide.createIcons();
+        }
+    }
+
+    function fillAIPrompt(text) {
+        const field = document.getElementById('aiDescription');
+        if (field) {
+            field.value = text;
+            field.focus();
+        }
+    }
+
+    function loadProjectsForAI() {
+        const select = document.getElementById('aiProjectSelect');
+        if (!select) return;
+
+        fetch('/api/projects')
+            .then(response => response.json())
+            .then(data => {
+                // Очищаем текущие опции (кроме первой)
+                while (select.children.length > 1) {
+                    select.removeChild(select.lastChild);
+                }
+
+                if (data.projects && data.projects.length > 0) {
+                    data.projects.forEach(project => {
+                        const option = document.createElement('option');
+                        option.value = project.id;
+                        option.textContent = project.name;
+                        select.appendChild(option);
+                    });
+                } else {
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = 'Нет доступных проектов';
+                    option.disabled = true;
+                    select.appendChild(option);
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка загрузки проектов:', error);
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'Ошибка загрузки проектов';
+                option.disabled = true;
+                select.appendChild(option);
+            });
+    }
+
+    function createIntegrationWithAI(event) {
+        event.preventDefault();
+
+        const form = event.target;
+        const formData = new FormData(form);
+        const btn = document.getElementById('aiCreateBtn');
+        const progress = document.getElementById('aiProgress');
+        const progressText = document.getElementById('aiProgressText');
+
+        // Показываем прогресс
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader-2" style="animation: spin 1s linear infinite;"></i> Создаю...';
+        }
+        if (progress) progress.style.display = 'block';
+        if (progressText) progressText.textContent = 'Анализирую описание с помощью AI...';
+
+        if (window.lucide) window.lucide.createIcons();
+
+        // Подготавливаем данные для отправки
+        const requestData = {
+            description: formData.get('description'),
+            sample_data: formData.get('sample_data') || '',
+            project_id: parseInt(formData.get('project_id')) || 0
+        };
+
+        // Отправляем запрос на создание интеграции
+        fetch('/api/ai/create-integration', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    if (progressText) progressText.textContent = 'Интеграция создана! Перенаправляю...';
+
+                    // Показываем уведомление об успехе
+                    if (window.showNotification) {
+                        window.showNotification('✅ Интеграция создана с помощью AI!', 'success');
+                    }
+
+                    // Закрываем модальное окно
+                    setTimeout(() => {
+                        closeAIAssistant();
+
+                        // Перенаправляем на страницу настройки интеграции
+                        if (data.integration && data.integration.id) {
+                            window.location.href = `/integrations/${data.integration.id}/configure`;
+                        } else {
+                            // Если нет ID, перенаправляем на список интеграций
+                            window.location.href = '/integrations';
+                        }
+                    }, 1000);
+                } else {
+                    throw new Error(data.error || 'Неизвестная ошибка');
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка создания интеграции:', error);
+
+                if (window.showNotification) {
+                    window.showNotification(`❌ Ошибка создания интеграции: ${error.message}`, 'error');
+                }
+
+                // Восстанавливаем форму
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i data-lucide="sparkles"></i> Создать с помощью AI';
+                }
+                if (progress) progress.style.display = 'none';
+
+                if (window.lucide) window.lucide.createIcons();
+            });
+    }
+
+    // Закрытие модального окна по клику вне его
+    document.addEventListener('click', (e) => {
+        const modal = document.getElementById('aiAssistantModal');
+        if (modal && e.target === modal) {
+            closeAIAssistant();
+        }
+    });
+
+    // Закрытие по Escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('aiAssistantModal');
+            if (modal && modal.style.display === 'flex') {
+                closeAIAssistant();
+            }
+        }
+    });
+</script>
+
+{{ end }}

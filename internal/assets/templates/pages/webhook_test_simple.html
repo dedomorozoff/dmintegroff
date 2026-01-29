@@ -1,0 +1,434 @@
+{{ define "pages/webhook_test_simple.html" }}
+{{ template "partials/head.html" . }}
+{{ template "partials/sidebar.html" . }}
+
+<main class="main-content">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>Отправка запросов</h1>
+        <p>Тестируйте любые API и вебхуки, отправляя HTTP-запросы на произвольные URL</p>
+    </div>
+
+    <!-- Mobile Header -->
+    <div class="page-header-mobile">
+        <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Меню">
+            <i data-lucide="menu"></i>
+        </button>
+        <a href="/dashboard">
+            <img src="/static/img/logo.png" alt="dmIntegroff" class="page-header-logo">
+        </a>
+        <h1 class="page-header-title">Отправка запросов</h1>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
+
+    <!-- Test URL Card -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">URL для тестирования</h2>
+            <button class="btn btn-secondary btn-sm" onclick="copyTestURL()">
+                <i data-lucide="copy"></i>
+                Копировать
+            </button>
+        </div>
+        <div class="card-body">
+            <div
+                style="background: var(--secondary); padding: 1rem; border-radius: var(--radius); font-family: monospace; word-break: break-all; margin-bottom: 1rem;">
+                <code id="test-url" style="color: var(--primary);">{{ .test_url }}</code>
+            </div>
+            <p style="color: var(--muted-foreground); font-size: 0.875rem;">
+                Встроенный тестовый URL для отладки. Все запросы на этот URL сохраняются и отображаются ниже
+            </p>
+        </div>
+    </div>
+
+    <!-- Request Form -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Отправить HTTP-запрос</h2>
+        </div>
+        <div class="card-body">
+            <form id="test-form" onsubmit="sendTestRequest(event)">
+                <div class="form-group">
+                    <label for="target-url">URL для запроса</label>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <input type="url" id="target-url" name="target-url"
+                            placeholder="https://api.example.com/webhook" value="{{ .test_url }}" style="flex: 1;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="useTestURL()">
+                            Тестовый URL
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="method">Метод</label>
+                    <select id="method" name="method" class="form-control">
+                        <option value="GET">GET</option>
+                        <option value="POST" selected>POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="DELETE">DELETE</option>
+                        <option value="PATCH">PATCH</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="headers">Заголовки (JSON)</label>
+                    <textarea id="headers" name="headers" class="form-control" rows="3"
+                        placeholder='{"Content-Type": "application/json"}'>{"Content-Type": "application/json"}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="body">Тело запроса</label>
+                    <textarea id="body" name="body" class="form-control" rows="8"
+                        placeholder='{"message": "Hello"}'>{"test": true, "message": "Тестовый запрос", "timestamp": "{{ .current_time }}"}</textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <i data-lucide="send"></i>
+                    Отправить запрос
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Recent Requests -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">История запросов</h2>
+            <div style="display: flex; gap: 0.5rem;">
+                <span class="badge badge-info" id="live-indicator"
+                    style="display: flex; align-items: center; gap: 0.25rem;">
+                    <i data-lucide="radio" style="width: 12px; height: 12px;"></i>
+                    <span>Обновление: 5 сек</span>
+                </span>
+                <button class="btn btn-secondary btn-sm" onclick="refreshRequests()">
+                    <i data-lucide="refresh-cw"></i>
+                    Обновить
+                </button>
+            </div>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            <div id="requests-container">
+                <div class="empty-state" id="empty-state">
+                    <i data-lucide="inbox"
+                        style="width: 64px; height: 64px; color: var(--muted-foreground); margin-bottom: 1rem;"></i>
+                    <p style="color: var(--muted-foreground);">Пока нет запросов</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<style>
+    /* Стили для элементов списка запросов */
+    .request-item {
+        border-bottom: 1px solid var(--border);
+        transition: background 0.2s ease;
+    }
+
+    .request-item:last-child {
+        border-bottom: none;
+    }
+
+    .request-item:hover {
+        background: var(--secondary);
+    }
+
+    .request-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        cursor: pointer;
+    }
+
+    .request-details {
+        padding: 0 1.5rem 1rem 1.5rem;
+        border-top: 1px solid var(--border);
+        background: color-mix(in srgb, var(--secondary) 30%, transparent);
+    }
+
+    .request-section {
+        margin-top: 1rem;
+    }
+
+    .request-section h4 {
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: var(--muted-foreground);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .request-section pre {
+        background: var(--background);
+        padding: 1rem;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin: 0;
+        border: 1px solid var(--border);
+    }
+
+    .request-section code {
+        font-family: 'Courier New', monospace;
+        font-size: 0.875rem;
+        color: var(--foreground);
+    }
+
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem;
+        text-align: center;
+    }
+
+    #live-indicator {
+        animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+
+        0%,
+        100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.5;
+        }
+    }
+
+    /* Исправление скроллбара для темной темы */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: var(--background);
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--muted-foreground);
+    }
+</style>
+
+{{ template "partials/scripts.html" . }}
+<script>
+    let pollInterval;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+        pollInterval = setInterval(refreshRequests, 5000);
+        refreshRequests();
+    });
+
+    function copyTestURL() {
+        const url = document.getElementById('test-url').textContent;
+        navigator.clipboard.writeText(url).then(() => {
+            window.showNotification('URL скопирован', 'success');
+        });
+    }
+
+    function useTestURL() {
+        document.getElementById('target-url').value = document.getElementById('test-url').textContent;
+    }
+
+    function sendTestRequest(event) {
+        event.preventDefault();
+
+        const method = document.getElementById('method').value;
+        const headersText = document.getElementById('headers').value;
+        const body = document.getElementById('body').value;
+        const targetURL = document.getElementById('target-url').value.trim();
+
+        if (!targetURL) {
+            window.showNotification('Укажите URL', 'error');
+            return;
+        }
+
+        let headers = {};
+        try {
+            if (headersText.trim()) {
+                headers = JSON.parse(headersText);
+            }
+        } catch (e) {
+            window.showNotification('Ошибка в формате JSON заголовков', 'error');
+            return;
+        }
+
+        const submitButton = event.target.querySelector('button[type="submit"]');
+        const originalText = submitButton.innerHTML;
+        submitButton.innerHTML = '<i data-lucide="loader-2" style="animation: spin 1s linear infinite;"></i> Отправка...';
+        submitButton.disabled = true;
+        if (window.lucide) lucide.createIcons();
+
+        const isTestURL = targetURL === document.getElementById('test-url').textContent;
+
+        // Используем прокси для всех запросов, чтобы логировать их на бэкенде
+        fetch('/api/http-proxy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                url: targetURL,
+                method: method,
+                headers: headers,
+                body: body
+            })
+        })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success || result.status > 0) {
+                    window.showNotification(`Выполнено: ${result.status}`, result.success ? 'success' : 'warning');
+                } else {
+                    window.showNotification('Ошибка запроса', 'error');
+                }
+                refreshRequests();
+            })
+            .catch(error => {
+                window.showNotification('Ошибка: ' + error.message, 'error');
+            })
+            .finally(() => {
+                submitButton.innerHTML = originalText;
+                submitButton.disabled = false;
+                if (window.lucide) lucide.createIcons();
+            });
+    }
+
+    function refreshRequests() {
+        fetch('/api/logs?limit=10&type=test')
+            .then(response => response.json())
+            .then(data => {
+                updateRequestsList(data.logs || []);
+            })
+            .catch(console.error);
+    }
+
+    function updateRequestsList(logs) {
+        const container = document.getElementById('requests-container');
+        if (!logs || logs.length === 0) return;
+
+        // Хелпер для экранирования HTML (защита от XSS и поломки верстки)
+        const escapeHTML = (str) => {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        };
+
+        const html = logs.map(log => {
+            const createdAt = log.created_at || log.CreatedAt;
+            const date = new Date(createdAt);
+            const timeStr = isNaN(date.getTime()) ? '---' : date.toLocaleTimeString('ru-RU');
+
+            const methodColors = {
+                'GET': 'badge-info',
+                'POST': 'badge-success',
+                'PUT': 'badge-warning',
+                'DELETE': 'badge-danger'
+            };
+            const badgeClass = methodColors[log.method] || 'badge-secondary';
+
+            const formatJSON = (str) => {
+                if (!str) return null;
+                try {
+                    return JSON.stringify(JSON.parse(str), null, 2);
+                } catch (e) {
+                    return str;
+                }
+            };
+
+            const reqHeaders = formatJSON(log.request_headers);
+            const respHeaders = formatJSON(log.response_headers);
+
+            return `
+                <div class="request-item">
+                    <div class="request-header" onclick="toggleRequest(${log.id})">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <span class="badge ${badgeClass}">${escapeHTML(log.method)}</span>
+                            <span style="font-family: monospace; font-size: 0.8125rem; color: var(--foreground); opacity: 0.8; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHTML(log.url)}</span>
+                            ${log.status_code ? `<span class="badge ${log.status_code >= 400 ? 'badge-danger' : 'badge-success'}">${log.status_code}</span>` : ''}
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <span style="color: var(--muted-foreground); font-size: 0.75rem;">${timeStr}</span>
+                            <i data-lucide="chevron-down" id="chevron-${log.id}" style="width: 16px; height: 16px; color: var(--muted-foreground);"></i>
+                        </div>
+                    </div>
+                    <div class="request-details" id="details-${log.id}" style="display: none;">
+                        <div class="request-section">
+                            <h4>Запрос: Заголовки</h4>
+                            <pre><code>${escapeHTML(reqHeaders) || 'Нет заголовков'}</code></pre>
+                        </div>
+                        ${log.request_body ? `
+                        <div class="request-section">
+                            <h4>Запрос: Тело</h4>
+                            <pre><code>${escapeHTML(log.request_body)}</code></pre>
+                        </div>` : ''}
+                        
+                        ${respHeaders ? `
+                        <div class="request-section">
+                            <h4>Ответ: Заголовки</h4>
+                            <pre><code>${escapeHTML(respHeaders)}</code></pre>
+                        </div>` : ''}
+
+                        ${log.response_body ? `
+                        <div class="request-section">
+                            <h4>Ответ: Тело</h4>
+                            <pre><code>${escapeHTML(log.response_body)}</code></pre>
+                        </div>` : ''}
+
+                        ${log.error_message ? `
+                        <div class="request-section">
+                            <h4>Ошибка</h4>
+                            <pre style="border-color: var(--destructive); color: var(--destructive);"><code>${escapeHTML(log.error_message)}</code></pre>
+                        </div>` : ''}
+                        
+                        <div class="request-section" style="font-size: 0.75rem; color: var(--muted-foreground); border-top: 1px solid var(--border); padding-top: 0.5rem; margin-top: 1rem;">
+                            <span>ID: ${log.id}</span>
+                            ${log.response_time ? `<span style="margin-left: 1rem;">Длительность: ${log.response_time} мс</span>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = html;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function toggleRequest(id) {
+        const details = document.getElementById(`details-${id}`);
+        const chevron = document.getElementById(`chevron-${id}`);
+        if (!details) return;
+
+        const isHidden = details.style.display === 'none';
+        details.style.display = isHidden ? 'block' : 'none';
+        if (chevron) {
+            chevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+    }
+
+    function toggleMobileSidebar() {
+        document.querySelector('.sidebar').classList.toggle('mobile-open');
+        document.querySelector('.sidebar-overlay').classList.toggle('active');
+    }
+
+    window.addEventListener('beforeunload', () => {
+        if (pollInterval) clearInterval(pollInterval);
+    });
+</script>
+{{ end }}

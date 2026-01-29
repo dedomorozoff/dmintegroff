@@ -1,0 +1,746 @@
+{{ define "pages/webhook_test.html" }}
+{{ template "partials/head.html" . }}
+{{ template "partials/sidebar.html" . }}
+
+<main class="main-content">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>Тестовый вебхук</h1>
+        <p>Отправляйте запросы и смотрите результаты (обновление каждые 5 сек)</p>
+    </div>
+
+    <!-- Mobile Header -->
+    <div class="page-header-mobile">
+        <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Меню">
+            <i data-lucide="menu"></i>
+        </button>
+        <a href="/dashboard">
+            <img src="/static/img/logo.png" alt="dmIntegroff" class="page-header-logo">
+        </a>
+        <h1 class="page-header-title">Тестовый вебхук</h1>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
+    {{ if .expired }}
+    <div class="card">
+        <div class="card-body" style="text-align: center; padding: 3rem;">
+            <i data-lucide="clock" style="width: 64px; height: 64px; color: var(--warning); margin-bottom: 1rem;"></i>
+            <h2>Срок действия истёк</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                Этот тестовый вебхук больше не активен. Создайте новый на дашборде.
+            </p>
+            <a href="/dashboard" class="btn btn-primary">
+                <i data-lucide="arrow-left"></i>
+                Вернуться на дашборд
+            </a>
+        </div>
+    </div>
+    {{ else }}
+
+    <!-- Webhook URL Card -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">URL вебхука</h2>
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="btn btn-secondary btn-sm" onclick="copyWebhookURL()">
+                    <i data-lucide="copy"></i>
+                    Копировать
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="deleteWebhook()">
+                    <i data-lucide="trash-2"></i>
+                    Удалить
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div style="background: var(--secondary); padding: 1rem; border-radius: 8px; font-family: monospace; word-break: break-all; margin-bottom: 1rem;">
+                <code id="webhook-url" style="color: var(--primary);">{{ .webhook_url }}</code>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.25rem;">
+                        Истекает: {{ .webhook_test.ExpiresAt.Format "02.01.2006 15:04" }}
+                    </p>
+                    <p style="color: var(--text-secondary); font-size: 0.875rem;">
+                        Запросов получено: <span id="request-count">{{ len .requests }}</span>
+                    </p>
+                </div>
+                <button class="btn btn-primary" onclick="sendTestRequest()">
+                    <i data-lucide="send"></i>
+                    Отправить тестовый запрос
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Requests List -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Полученные запросы</h2>
+            <span class="badge badge-primary" id="live-indicator" style="display: flex; align-items: center; gap: 0.25rem;">
+                <i data-lucide="radio" style="width: 12px; height: 12px;"></i>
+                <span>Обновление: 5 сек</span>
+            </span>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            <div id="requests-container">
+                {{ if .requests }}
+                {{ range .requests }}
+                <div class="request-item" data-id="{{ .ID }}">
+                    <div class="request-header">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <span class="badge badge-{{ if eq .Method "GET" }}primary{{ else if eq .Method "POST" }}success{{ else if eq .Method "PUT" }}warning{{ else if eq .Method "DELETE" }}danger{{ else }}secondary{{ end }}">
+                                {{ .Method }}
+                            </span>
+                            <span style="font-family: monospace; font-size: 0.875rem;">{{ .URL }}</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <span style="color: var(--text-secondary); font-size: 0.875rem;">
+                                {{ .CreatedAt.Format "15:04:05" }}
+                            </span>
+                            <button class="btn-icon" onclick="toggleRequest('{{ .ID }}')">
+                                <i data-lucide="chevron-down" id="chevron-{{ .ID }}"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="request-details" id="details-{{ .ID }}" style="display: none;">
+                        <div class="request-section">
+                            <h4>Заголовки</h4>
+                            <pre><code>{{ .Headers }}</code></pre>
+                        </div>
+                        {{ if .QueryParams }}
+                        <div class="request-section">
+                            <h4>Query параметры</h4>
+                            <pre><code>{{ .QueryParams }}</code></pre>
+                        </div>
+                        {{ end }}
+                        {{ if .Body }}
+                        <div class="request-section">
+                            <h4>Тело запроса</h4>
+                            <pre><code>{{ .Body }}</code></pre>
+                        </div>
+                        {{ end }}
+                        <div class="request-section">
+                            <h4>Информация</h4>
+                            <p><strong>IP адрес:</strong> {{ .ClientIP }}</p>
+                            <p><strong>Время:</strong> {{ .CreatedAt.Format "02.01.2006 15:04:05" }}</p>
+                        </div>
+                        <div class="request-section" style="border-top: 1px solid var(--border); padding-top: 1rem; margin-top: 1rem;">
+                            <button class="btn btn-primary" onclick="showUseAsSampleModal({{ .ID }}, '{{ .Body }}')">
+                                <i data-lucide="download"></i>
+                                Использовать как образец данных
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {{ end }}
+                {{ else }}
+                <div class="empty-state" id="empty-state">
+                    <i data-lucide="inbox" style="width: 64px; height: 64px; color: var(--text-secondary); margin-bottom: 1rem;"></i>
+                    <p style="color: var(--text-secondary);">Пока нет запросов</p>
+                    <p style="color: var(--text-secondary); font-size: 0.875rem;">
+                        Отправьте запрос на URL выше, чтобы увидеть его здесь
+                    </p>
+                </div>
+                {{ end }}
+            </div>
+        </div>
+    </div>
+
+    {{ end }}
+
+    <!-- Modal for selecting integration -->
+    <div id="useAsSampleModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Выберите интеграцию</h2>
+                <button class="btn-icon" onclick="closeUseAsSampleModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                    Выберите интеграцию, для которой хотите использовать этот запрос как образец данных
+                </p>
+                <div id="integrationsList" style="max-height: 400px; overflow-y: auto;">
+                    <!-- Integrations will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<style>
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+    }
+
+    .modal-content {
+        background: var(--background);
+        border-radius: 12px;
+        max-width: 600px;
+        width: 90%;
+        max-height: 80vh;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 1.25rem;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+    }
+
+    .integration-item {
+        padding: 1rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        margin-bottom: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .integration-item:hover {
+        background: var(--secondary);
+        border-color: var(--primary);
+    }
+
+    .integration-info h3 {
+        margin: 0 0 0.25rem 0;
+        font-size: 1rem;
+    }
+
+    .integration-info p {
+        margin: 0;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+
+    .loading-spinner {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 2rem;
+    }
+
+    .spinner {
+        border: 3px solid var(--border);
+        border-top: 3px solid var(--primary);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .request-item {
+        border-bottom: 1px solid var(--border);
+        transition: background 0.2s ease;
+    }
+
+    .request-item:last-child {
+        border-bottom: none;
+    }
+
+    .request-item:hover {
+        background: var(--secondary);
+    }
+
+    .request-item.new {
+        animation: highlight 1s ease;
+    }
+
+    @keyframes highlight {
+        0% { background: rgba(139, 142, 255, 0.3); }
+        100% { background: transparent; }
+    }
+
+    .request-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        cursor: pointer;
+    }
+
+    .request-details {
+        padding: 0 1.5rem 1rem 1.5rem;
+        border-top: 1px solid var(--border);
+    }
+
+    .request-section {
+        margin-top: 1rem;
+    }
+
+    .request-section h4 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .request-section pre {
+        background: var(--secondary);
+        padding: 1rem;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin: 0;
+    }
+
+    .request-section code {
+        font-family: monospace;
+        font-size: 0.875rem;
+        color: var(--text-primary);
+    }
+
+    .request-section p {
+        margin: 0.5rem 0;
+        font-size: 0.875rem;
+    }
+
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem;
+        text-align: center;
+    }
+
+    .btn-icon {
+        background: transparent;
+        border: none;
+        border-radius: var(--radius);
+        cursor: pointer;
+        padding: 0.2rem;
+        color: var(--muted-foreground);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+
+    .btn-icon:hover {
+        background: var(--secondary);
+        color: var(--foreground);
+    }
+
+    .btn-icon i {
+        width: 18px;
+        height: 18px;
+        transition: transform 0.2s ease-in-out;
+    }
+
+    #live-indicator {
+        animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+</style>
+
+{{ template "partials/scripts.html" . }}
+<script>
+    const token = "{{ .token }}";
+    let pollInterval;
+
+    // Инициализация иконок после загрузки
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    });
+
+    // Копирование URL в буфер обмена
+    function copyWebhookURL() {
+        const url = document.getElementById('webhook-url').textContent;
+        if (!url) {
+            console.error('Webhook URL not found');
+            return;
+        }
+        
+        navigator.clipboard.writeText(url).then(() => {
+            window.showNotification('URL скопирован в буфер обмена', 'success');
+        }).catch(err => {
+            console.error('Failed to copy URL:', err);
+            window.showNotification('Не удалось скопировать URL', 'error');
+        });
+    }
+
+    // Удаление вебхука
+    function deleteWebhook() {
+        if (!confirm('Вы уверены, что хотите удалить этот тестовый вебхук?')) {
+            return;
+        }
+
+        fetch(`/api/webhook-test/${token}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            window.showNotification('Тестовый вебхук удалён', 'success');
+            setTimeout(() => {
+                window.location.href = '/dashboard';
+            }, 1000);
+        })
+        .catch(error => {
+            window.showNotification('Ошибка при удалении', 'error');
+        });
+    }
+
+    // Отправка тестового запроса
+    function sendTestRequest() {
+        const url = document.getElementById('webhook-url').textContent;
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Test-Header': 'Test Value'
+            },
+            body: JSON.stringify({
+                test: true,
+                message: 'Тестовый запрос',
+                timestamp: new Date().toISOString()
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            window.showNotification('Тестовый запрос отправлен', 'success');
+        })
+        .catch(error => {
+            window.showNotification('Ошибка при отправке запроса', 'error');
+        });
+    }
+
+    // Переключение отображения деталей запроса
+    function toggleRequest(id) {
+        const details = document.getElementById(`details-${id}`);
+        const chevron = document.getElementById(`chevron-${id}`);
+        
+        if (details && chevron) {
+            if (details.style.display === 'none' || details.style.display === '') {
+                details.style.display = 'block';
+                chevron.style.transform = 'rotate(180deg)';
+            } else {
+                details.style.display = 'none';
+                chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+    }
+
+    // Polling для обновления запросов
+    function pollRequests() {
+        fetch(`/api/webhook-test/${token}/requests`)
+            .then(response => response.json())
+            .then(data => {
+                updateRequests(data.requests);
+            })
+            .catch(error => {
+                console.error('Ошибка при получении запросов:', error);
+            });
+    }
+
+    // Обновление списка запросов
+    function updateRequests(requests) {
+        const container = document.getElementById('requests-container');
+        const emptyState = document.getElementById('empty-state');
+        const countElement = document.getElementById('request-count');
+        
+        if (!container || !countElement) {
+            console.error('Required elements not found');
+            return;
+        }
+        
+        if (!requests || requests.length === 0) {
+            if (!emptyState) {
+                container.innerHTML = `
+                    <div class="empty-state" id="empty-state">
+                        <i data-lucide="inbox" style="width: 64px; height: 64px; color: var(--text-secondary); margin-bottom: 1rem;"></i>
+                        <p style="color: var(--text-secondary);">Пока нет запросов</p>
+                        <p style="color: var(--text-secondary); font-size: 0.875rem;">
+                            Отправьте запрос на URL выше, чтобы увидеть его здесь
+                        </p>
+                    </div>
+                `;
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            }
+            return;
+        }
+
+        // Удаляем empty state если есть
+        if (emptyState) {
+            emptyState.remove();
+        }
+
+        // Обновляем счётчик
+        countElement.textContent = requests.length;
+
+        // Проверяем новые запросы
+        const existingIds = Array.from(container.querySelectorAll('.request-item')).map(el => el.dataset.id);
+        
+        requests.forEach(request => {
+            const requestId = String(request.id || request.ID);
+            if (!existingIds.includes(requestId)) {
+                addRequestToList(request);
+            }
+        });
+    }
+
+    // Добавление нового запроса в список
+    function addRequestToList(request) {
+        const container = document.getElementById('requests-container');
+        const date = new Date(request.created_at || request.CreatedAt);
+        const time = date.toLocaleTimeString('ru-RU');
+        const fullDate = date.toLocaleString('ru-RU');
+        
+        const methodColors = {
+            'GET': 'primary',
+            'POST': 'success',
+            'PUT': 'warning',
+            'DELETE': 'danger'
+        };
+        const method = request.method || request.Method || 'UNKNOWN';
+        const url = request.url || request.URL || '/';
+        const methodColor = methodColors[method] || 'secondary';
+
+        const requestHTML = `
+            <div class="request-item new" data-id="${request.id || request.ID}">
+                <div class="request-header" onclick="toggleRequest(${request.id || request.ID})">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span class="badge badge-${methodColor}">${method}</span>
+                        <span style="font-family: monospace; font-size: 0.875rem;">${url}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <span style="color: var(--text-secondary); font-size: 0.875rem;">${time}</span>
+                        <button class="btn-icon">
+                            <i data-lucide="chevron-down" id="chevron-${request.id || request.ID}"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="request-details" id="details-${request.id || request.ID}" style="display: none;">
+                    <div class="request-section">
+                        <h4>Заголовки</h4>
+                        <pre><code>${request.headers || request.Headers || ''}</code></pre>
+                    </div>
+                    ${(request.query_params || request.QueryParams) ? `
+                    <div class="request-section">
+                        <h4>Query параметры</h4>
+                        <pre><code>${request.query_params || request.QueryParams}</code></pre>
+                    </div>
+                    ` : ''}
+                    ${(request.body || request.Body) ? `
+                    <div class="request-section">
+                        <h4>Тело запроса</h4>
+                        <pre><code>${request.body || request.Body}</code></pre>
+                    </div>
+                    ` : ''}
+                    <div class="request-section">
+                        <h4>Информация</h4>
+                        <p><strong>IP адрес:</strong> ${request.client_ip || request.ClientIP || 'N/A'}</p>
+                        <p><strong>Время:</strong> ${fullDate}</p>
+                    </div>
+                    <div class="request-section" style="border-top: 1px solid var(--border); padding-top: 1rem; margin-top: 1rem;">
+                        <button class="btn btn-primary" onclick="showUseAsSampleModal(${request.id || request.ID}, '${(request.body || request.Body || '').replace(/'/g, "\\'")}')">
+                            <i data-lucide="download"></i>
+                            Использовать как образец данных
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        container.insertAdjacentHTML('afterbegin', requestHTML);
+        
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+
+        // Убираем класс new через секунду
+        setTimeout(() => {
+            const element = container.querySelector(`[data-id="${request.id || request.ID}"]`);
+            if (element) {
+                element.classList.remove('new');
+            }
+        }, 1000);
+    }
+
+    // Запускаем polling каждые 5 секунд
+    pollInterval = setInterval(pollRequests, 5000);
+
+    // Останавливаем polling при уходе со страницы
+    window.addEventListener('beforeunload', () => {
+        clearInterval(pollInterval);
+    });
+
+    // Mobile Sidebar Toggle
+    function toggleMobileSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.querySelector('.sidebar-overlay');
+        sidebar.classList.toggle('mobile-open');
+        overlay.classList.toggle('active');
+    }
+    
+    function closeMobileSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.querySelector('.sidebar-overlay');
+        sidebar.classList.remove('mobile-open');
+        overlay.classList.remove('active');
+    }
+
+    // Use as sample functionality
+    let currentRequestId = null;
+    let currentRequestBody = null;
+
+    function showUseAsSampleModal(requestId, requestBody) {
+        currentRequestId = requestId;
+        currentRequestBody = requestBody;
+        
+        const modal = document.getElementById('useAsSampleModal');
+        const integrationsList = document.getElementById('integrationsList');
+        
+        // Show loading
+        integrationsList.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+        modal.style.display = 'flex';
+        
+        // Load integrations
+        fetch('/api/integrations')
+            .then(response => response.json())
+            .then(data => {
+                if (!data.integrations || data.integrations.length === 0) {
+                    integrationsList.innerHTML = `
+                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                            <p>У вас пока нет интеграций</p>
+                            <a href="/integrations/create" class="btn btn-primary" style="margin-top: 1rem;">
+                                <i data-lucide="plus"></i>
+                                Создать интеграцию
+                            </a>
+                        </div>
+                    `;
+                    if (typeof lucide !== 'undefined') {
+                        lucide.createIcons();
+                    }
+                    return;
+                }
+                
+                integrationsList.innerHTML = data.integrations.map(integration => `
+                    <div class="integration-item" onclick="useAsSample(${integration.id})">
+                        <div class="integration-info">
+                            <h3>${integration.name}</h3>
+                            <p>${integration.target_api || 'Не указан Target API'}</p>
+                        </div>
+                        <i data-lucide="arrow-right"></i>
+                    </div>
+                `).join('');
+                
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            })
+            .catch(error => {
+                integrationsList.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--destructive);">
+                        <p>Ошибка при загрузке интеграций</p>
+                    </div>
+                `;
+                console.error('Error loading integrations:', error);
+            });
+    }
+
+    function closeUseAsSampleModal() {
+        const modal = document.getElementById('useAsSampleModal');
+        modal.style.display = 'none';
+        currentRequestId = null;
+        currentRequestBody = null;
+    }
+
+    function useAsSample(integrationId) {
+        if (!currentRequestId || !integrationId) {
+            window.showNotification('Ошибка: не выбран запрос или интеграция', 'error');
+            return;
+        }
+
+        fetch(`/api/webhook-test/${token}/use-as-sample/${currentRequestId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                integration_id: integrationId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                window.showNotification('Образец данных сохранён', 'success');
+                closeUseAsSampleModal();
+                
+                // Redirect to configuration page after a short delay
+                setTimeout(() => {
+                    window.location.href = data.redirect_url;
+                }, 1000);
+            } else {
+                window.showNotification(data.error || 'Ошибка при сохранении', 'error');
+            }
+        })
+        .catch(error => {
+            window.showNotification('Ошибка при сохранении образца', 'error');
+            console.error('Error:', error);
+        });
+    }
+
+    // Close modal on outside click
+    document.addEventListener('click', function(event) {
+        const modal = document.getElementById('useAsSampleModal');
+        if (modal && event.target === modal) {
+            closeUseAsSampleModal();
+        }
+    });
+</script>
+{{ end }}

@@ -1,0 +1,615 @@
+{{ define "pages/integrations.html" }}
+{{ template "partials/head.html" . }}
+    {{ template "partials/sidebar.html" . }}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1>Интеграции</h1>
+                    <p>Управление всеми интеграциями</p>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    {{ if .integrations }}
+                    <button onclick="showImportModal()" class="btn btn-secondary">
+                        <i data-lucide="upload"></i>
+                        Импорт
+                    </button>
+                    <button onclick="exportSelected()" class="btn btn-secondary" id="exportBtn" disabled>
+                        <i data-lucide="download"></i>
+                        Экспорт
+                    </button>
+                    <button onclick="showGitExportModal()" class="btn btn-secondary" id="gitExportBtn" disabled>
+                        <i data-lucide="git-branch"></i>
+                        Экспорт в Git
+                    </button>
+                    {{ end }}
+
+                    <a href="/integrations/create-with-ai" class="btn btn-success">
+                        <i data-lucide="sparkles"></i>
+                        Создать с AI
+                    </a>
+                    <a href="/integrations/create" class="btn btn-secondary">
+                        <i data-lucide="plus"></i>
+                        Создать вручную
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="page-header-mobile">
+            <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Меню">
+                <i data-lucide="menu"></i>
+            </button>
+            <a href="/dashboard">
+                <img src="/static/img/logo.png" alt="dmIntegroff" class="page-header-logo">
+            </a>
+            <h1 class="page-header-title">Интеграции</h1>
+        </div>
+        <div class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
+        <div class="card">
+            <!-- Search/Filter -->
+            <div style="padding: 1rem; border-bottom: 1px solid var(--border);">
+                <div style="position: relative; max-width: 400px;">
+                    <i data-lucide="search" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--muted-foreground);"></i>
+                    <input type="text" 
+                           id="integrationSearch" 
+                           placeholder="Поиск по названию, проекту, URL, методам..." 
+                           style="width: 100%; padding: 0.5rem 0.75rem 0.5rem 2.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--background); color: var(--foreground);"
+                           oninput="filterIntegrations(this.value)">
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Название</th>
+                            <th>Проект</th>
+                            {{ if eq .role "admin" }}
+                            <th>Автор</th>
+                            {{ end }}
+                            <th>Webhook URL</th>
+                            <th>Статус</th>
+                            <th>Target API</th>
+                            <th style="text-align: right;">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ if .integrations }}
+                        {{ range .integrations }}
+                        <tr data-integration-id="{{ .ID }}" data-integration-mode="{{ .Mode }}" data-has-payload="{{ if .SamplePayload }}true{{ else }}false{{ end }}">
+                            <td style="word-break: break-word;"><strong>{{ .Name }}</strong></td>
+                            <td>
+                                <a href="/projects/{{ .Project.ID }}" style="color: var(--primary); display: inline-flex; align-items: center; gap: 0.25rem;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"></path>
+                                    </svg>
+                                    {{ .Project.Name }}
+                                </a>
+                            </td>
+                            {{ if eq $.role "admin" }}
+                            <td>
+                                <span style="color: var(--text-secondary); font-size: 0.9em;">
+                                    {{ if .Project.CreatedBy }}{{ .Project.CreatedBy.Username }}{{ else }}-{{ end }}
+                                </span>
+                            </td>
+                            {{ end }}
+                            <td style="white-space: nowrap;">
+                                <code style="font-size: 0.75rem;">/webhook/{{ .WebhookToken }}</code>
+                                <button onclick="copyToClipboard('{{ $.appURL }}{{ $.appPath }}/webhook/{{ .WebhookToken }}')" 
+                                        style="background: none; border: none; cursor: pointer; color: var(--primary); margin-left: 0.5rem; padding: 0.25rem;">
+                                    <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+                                </button>
+                            </td>
+                            <td>
+                                {{ if eq .Mode "listening" }}
+                                <span class="badge badge-warning"><i data-lucide="clock" style="width: 12px; height: 12px; margin-right: 0.25rem;"></i> Прослушивание</span>
+                                {{ else if eq .Mode "active" }}
+                                <span class="badge badge-success"><i data-lucide="check-circle-2" style="width: 12px; height: 12px; margin-right: 0.25rem;"></i> Активна</span>
+                                {{ else }}
+                                <span class="badge badge-danger"><i data-lucide="pause-circle" style="width: 12px; height: 12px; margin-right: 0.25rem;"></i> Неактивна</span>
+                                {{ end }}
+                            </td>
+                            <td>{{ if .TargetAPI }}{{ .TargetAPI }}{{ else }}<span style="color: var(--muted-foreground);">-</span>{{ end }}</td>
+                            <td style="text-align: right;">
+                                <div class="dropdown" style="position: relative; display: inline-flex; align-items: center; gap: 0.5rem;" data-actions-cell>
+                                    {{ if not .SamplePayload }}
+                                    <span style="color: var(--muted-foreground); font-size: 0.8125rem; white-space: nowrap;" data-waiting-text>Ожидание данных...</span>
+                                    {{ end }}
+                                    <button class="btn btn-secondary btn-sm dropdown-toggle" onclick="toggleDropdown(event, '{{ .ID }}', this)" style="padding: 0.5rem 0.75rem;">
+                                        <i data-lucide="more-vertical" style="width: 16px; height: 16px;"></i>
+                                    </button>
+                                    <div class="dropdown-menu" id="dropdown-{{ .ID }}" style="display: none; position: fixed; background: var(--card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); min-width: 200px; z-index: 9999;">
+                                        {{ if eq .Mode "listening" }}
+                                            <a href="/integrations/{{ .ID }}/configure" class="dropdown-item" data-configure-btn>
+                                                <i data-lucide="settings"></i> Настроить маппинг
+                                            </a>
+                                            {{ if and .SamplePayload .MappingConfig }}
+                                            <form method="POST" action="/integrations/{{ .ID }}/toggle" class="dropdown-form">
+                                                <button type="submit" class="dropdown-item">
+                                                    <i data-lucide="play"></i> Активировать
+                                                </button>
+                                            </form>
+                                            {{ end }}
+                                            <form method="POST" action="/integrations/{{ .ID }}/cancel-listening" class="dropdown-form" onsubmit="return confirm('Отменить прослушивание? Интеграция будет деактивирована.');">
+                                                <button type="submit" class="dropdown-item">
+                                                    <i data-lucide="x"></i> Отменить прослушивание
+                                                </button>
+                                            </form>
+                                        {{ else if eq .Mode "active" }}
+                                            <a href="/integrations/{{ .ID }}/configure" class="dropdown-item">
+                                                <i data-lucide="settings"></i> Редактировать маппинг
+                                            </a>
+                                            <a href="/integrations/{{ .ID }}/outputs" class="dropdown-item">
+                                                <i data-lucide="git-branch"></i> Дополнительные выходы
+                                            </a>
+                                            <form method="POST" action="/integrations/{{ .ID }}/toggle" class="dropdown-form">
+                                                <button type="submit" class="dropdown-item">
+                                                    <i data-lucide="pause"></i> Деактивировать
+                                                </button>
+                                            </form>
+                                            <form method="POST" action="/integrations/{{ .ID }}/reconfigure" class="dropdown-form" onsubmit="return confirm('Автоматически определить маппинг с новыми данными? Интеграция будет переведена в режим прослушивания.');">
+                                                <button type="submit" class="dropdown-item">
+                                                    <i data-lucide="refresh-cw"></i> Автоопределение маппинга
+                                                </button>
+                                            </form>
+                                        {{ else }}
+                                            <a href="/integrations/{{ .ID }}/configure" class="dropdown-item">
+                                                <i data-lucide="settings"></i> Настроить маппинг
+                                            </a>
+                                            <a href="/integrations/{{ .ID }}/outputs" class="dropdown-item">
+                                                <i data-lucide="git-branch"></i> Дополнительные выходы
+                                            </a>
+                                            <form method="POST" action="/integrations/{{ .ID }}/toggle" class="dropdown-form">
+                                                <button type="submit" class="dropdown-item">
+                                                    <i data-lucide="play"></i> Активировать
+                                                </button>
+                                            </form>
+                                            <form method="POST" action="/integrations/{{ .ID }}/reconfigure" class="dropdown-form" onsubmit="return confirm('Автоматически определить маппинг с новыми данными?');">
+                                                <button type="submit" class="dropdown-item">
+                                                    <i data-lucide="refresh-cw"></i> Автоопределение маппинга
+                                                </button>
+                                            </form>
+                                        {{ end }}
+                                        <div class="dropdown-divider"></div>
+                                        <a href="/integrations/{{ .ID }}/edit" class="dropdown-item">
+                                            <i data-lucide="pencil"></i> Редактировать
+                                        </a>
+                                        <form method="POST" action="/integrations/{{ .ID }}/delete" class="dropdown-form" onsubmit="return confirm('Удалить интеграцию {{ .Name }}?');">
+                                            <button type="submit" class="dropdown-item" style="color: var(--destructive);">
+                                                <i data-lucide="trash-2"></i> Удалить
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {{ end }}
+                        {{ else }}
+                        <tr>
+                            <td colspan="{{ if eq .role "admin" }}5{{ else }}4{{ end }}" style="text-align: center; padding: 3rem; color: var(--muted-foreground);">
+                                <div style="margin-bottom: 1rem;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>
+                                        <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path>
+                                    </svg>
+                                </div>
+                                <h3 style="margin-bottom: 0.5rem;">Интеграций пока нет</h3>
+                                <p style="margin-top: 0.5rem; margin-bottom: 1rem;">Создайте первую интеграцию для начала работы</p>
+                                <a href="/integrations/create" class="btn">
+                                    <i data-lucide="plus"></i>
+                                    Создать интеграцию
+                                </a>
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Mobile Cards -->
+            <div class="mobile-card-list">
+                {{ if .integrations }}
+                {{ range .integrations }}
+                <div class="mobile-card">
+                    <div class="mobile-card-header">
+                        <div class="mobile-card-title">{{ .Name }}</div>
+                        <div class="mobile-card-actions">
+                            <button class="btn btn-secondary btn-sm dropdown-toggle" onclick="toggleDropdown(event, '{{ .ID }}', this)"></button>
+                                <i data-lucide="more-vertical"></i>
+                            </button>
+                            <div class="dropdown-menu" id="dropdown-mobile-{{ .ID }}" style="display: none; position: fixed; background: var(--card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); min-width: 200px; z-index: 9999;">
+                                {{ if eq .Mode "listening" }}
+                                    <a href="/integrations/{{ .ID }}/configure" class="dropdown-item">
+                                        <i data-lucide="settings"></i> Настроить маппинг
+                                    </a>
+                                    {{ if and .SamplePayload .MappingConfig }}
+                                    <form method="POST" action="/integrations/{{ .ID }}/toggle" class="dropdown-form">
+                                        <button type="submit" class="dropdown-item">
+                                            <i data-lucide="play"></i> Активировать
+                                        </button>
+                                    </form>
+                                    {{ end }}
+                                    <form method="POST" action="/integrations/{{ .ID }}/cancel-listening" class="dropdown-form" onsubmit="return confirm('Отменить прослушивание?');">
+                                        <button type="submit" class="dropdown-item">
+                                            <i data-lucide="x"></i> Отменить прослушивание
+                                        </button>
+                                    </form>
+                                {{ else if eq .Mode "active" }}
+                                    <a href="/integrations/{{ .ID }}/configure" class="dropdown-item">
+                                        <i data-lucide="settings"></i> Редактировать маппинг
+                                    </a>
+                                    <form method="POST" action="/integrations/{{ .ID }}/toggle" class="dropdown-form">
+                                        <button type="submit" class="dropdown-item">
+                                            <i data-lucide="pause"></i> Деактивировать
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="/integrations/{{ .ID }}/reconfigure" class="dropdown-form" onsubmit="return confirm('Автоматически определить маппинг с новыми данными?');">
+                                        <button type="submit" class="dropdown-item">
+                                            <i data-lucide="refresh-cw"></i> Автоопределение маппинга
+                                        </button>
+                                    </form>
+                                {{ else }}
+                                    <a href="/integrations/{{ .ID }}/configure" class="dropdown-item">
+                                        <i data-lucide="settings"></i> Настроить маппинг
+                                    </a>
+                                    <form method="POST" action="/integrations/{{ .ID }}/toggle" class="dropdown-form">
+                                        <button type="submit" class="dropdown-item">
+                                            <i data-lucide="play"></i> Активировать
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="/integrations/{{ .ID }}/reconfigure" class="dropdown-form" onsubmit="return confirm('Автоматически определить маппинг с новыми данными?');">
+                                        <button type="submit" class="dropdown-item">
+                                            <i data-lucide="refresh-cw"></i> Автоопределение маппинга
+                                        </button>
+                                    </form>
+                                {{ end }}
+                                <div class="dropdown-divider"></div>
+                                <a href="/integrations/{{ .ID }}/edit" class="dropdown-item">
+                                    <i data-lucide="pencil"></i> Редактировать
+                                </a>
+                                <form method="POST" action="/integrations/{{ .ID }}/delete" class="dropdown-form" onsubmit="return confirm('Удалить интеграцию {{ .Name }}?');">
+                                    <button type="submit" class="dropdown-item" style="color: var(--destructive);">
+                                        <i data-lucide="trash-2"></i> Удалить
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mobile-card-body">
+                        <div class="mobile-card-row">
+                            <span class="mobile-card-label">Проект</span>
+                            <span class="mobile-card-value">{{ .Project.Name }}</span>
+                        </div>
+                        <div class="mobile-card-row">
+                            <span class="mobile-card-label">Статус</span>
+                            <span class="mobile-card-value">
+                                {{ if eq .Mode "listening" }}
+                                <span class="badge badge-warning">Прослушивание</span>
+                                {{ else if eq .Mode "active" }}
+                                <span class="badge badge-success">Активна</span>
+                                {{ else }}
+                                <span class="badge badge-danger">Неактивна</span>
+                                {{ end }}
+                            </span>
+                        </div>
+                        <div class="mobile-card-row">
+                            <span class="mobile-card-label">HTTP in</span>
+                            <span class="mobile-card-value">
+                                {{ if eq .WebhookHTTPMethods "*" }}
+                                    <span title="Все методы">*</span>
+                                {{ else if eq .WebhookHTTPMethods "" }}
+                                    <span title="Все методы">*</span>
+                                {{ else }}
+                                    {{ .WebhookHTTPMethods }}
+                                {{ end }}
+                            </span>
+                        </div>
+                        <div class="mobile-card-row">
+                            <span class="mobile-card-label">HTTP out</span>
+                            <span class="mobile-card-value">
+                                {{ if .HTTPMethod }}{{ .HTTPMethod }}{{ else }}POST{{ end }}
+                            </span>
+                        </div>
+                        {{ if .TargetAPI }}
+                        <div class="mobile-card-row">
+                            <span class="mobile-card-label">Target API</span>
+                            <span class="mobile-card-value">{{ .TargetAPI }}</span>
+                        </div>
+                        {{ end }}
+                        <div class="mobile-card-row" style="flex-direction: column; align-items: flex-start; gap: 0.25rem;">
+                            <span class="mobile-card-label">Webhook URL</span>
+                            <div style="display: flex; align-items: center; gap: 0.5rem; width: 100%;">
+                                <code style="font-size: 0.7rem; word-break: break-all; flex: 1;">/webhook/{{ .WebhookToken }}</code>
+                                <button onclick="copyToClipboard('{{ $.appURL }}{{ $.appPath }}/webhook/{{ .WebhookToken }}')" 
+                                        style="background: none; border: none; cursor: pointer; color: var(--primary); padding: 0.25rem;">
+                                    <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {{ end }}
+                {{ else }}
+                <div style="text-align: center; padding: 3rem 1rem; color: var(--muted-foreground);">
+                    <div style="margin-bottom: 1rem;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>
+                            <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path>
+                        </svg>
+                    </div>
+                    <h3 style="margin-bottom: 0.5rem;">Интеграций пока нет</h3>
+                    <p style="margin-top: 0.5rem; margin-bottom: 1rem;">Создайте первую интеграцию для начала работы</p>
+                    <a href="/integrations/create" class="btn">
+                        <i data-lucide="plus"></i>
+                        Создать интеграцию
+                    </a>
+                </div>
+                {{ end }}
+            </div>
+        </div>
+    </main>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1rem;
+            color: var(--foreground);
+            text-decoration: none;
+            transition: background 0.2s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        .dropdown-item:hover {
+            background: var(--secondary);
+        }
+
+        .dropdown-item i {
+            width: 16px !important;
+            height: 16px !important;
+            min-width: 16px;
+            min-height: 16px;
+            max-width: 16px;
+            max-height: 16px;
+        }
+        
+        .dropdown-item svg {
+            width: 16px !important;
+            height: 16px !important;
+        }
+
+        .dropdown-form {
+            margin: 0;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 0.25rem 0;
+        }
+
+        .dropdown-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Адаптивность для маленьких экранов */
+        .table-container {
+            overflow-x: auto;
+            width: 100%;
+        }
+        
+        @media (max-width: 1200px) {
+            .table-container {
+                overflow-x: auto;
+            }
+            
+            table {
+                min-width: 900px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            table {
+                min-width: 100%;
+                font-size: 0.875rem;
+            }
+            
+            th, td {
+                padding: 0.5rem !important;
+            }
+            
+            .dropdown {
+                position: static !important;
+            }
+            
+            .dropdown-menu {
+                position: absolute !important;
+                right: 0 !important;
+                left: auto !important;
+            }
+        }
+    </style>
+
+    <script>
+        lucide.createIcons();
+        
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                window.showNotification('Скопировано: ' + text, 'success');
+            });
+        }
+
+        function filterIntegrations(searchText) {
+            const search = searchText.toLowerCase().trim();
+            
+            // Фильтруем десктопную таблицу
+            const tableRows = document.querySelectorAll('table tbody tr');
+            let visibleCount = 0;
+            
+            tableRows.forEach(row => {
+                const name = row.querySelector('td:nth-child(1)')?.textContent.toLowerCase() || '';
+                const project = row.querySelector('td:nth-child(2)')?.textContent.toLowerCase() || '';
+                const webhookUrl = row.querySelector('td code')?.textContent.toLowerCase() || '';
+                const httpIn = row.querySelector('td:nth-child(5)')?.textContent.toLowerCase() || '';
+                const httpOut = row.querySelector('td:nth-child(6)')?.textContent.toLowerCase() || '';
+                const status = row.querySelector('td:nth-child(7)')?.textContent.toLowerCase() || '';
+                const targetApi = row.querySelector('td:nth-child(8)')?.textContent.toLowerCase() || '';
+                
+                const matches = name.includes(search) || 
+                               project.includes(search) || 
+                               webhookUrl.includes(search) ||
+                               httpIn.includes(search) ||
+                               httpOut.includes(search) ||
+                               status.includes(search) ||
+                               targetApi.includes(search);
+                
+                if (matches || search === '') {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Фильтруем мобильные карточки
+            const mobileCards = document.querySelectorAll('.mobile-card');
+            mobileCards.forEach(card => {
+                const title = card.querySelector('.mobile-card-title')?.textContent.toLowerCase() || '';
+                const allText = card.textContent.toLowerCase();
+                
+                const matches = allText.includes(search);
+                
+                if (matches || search === '') {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            
+            // Показываем сообщение если ничего не найдено
+            const noResultsMsg = document.getElementById('noSearchResults');
+            if (visibleCount === 0 && search !== '') {
+                if (!noResultsMsg) {
+                    const msg = document.createElement('tr');
+                    msg.id = 'noSearchResults';
+                    msg.innerHTML = '<td colspan="100%" style="text-align: center; padding: 2rem; color: var(--muted-foreground);">Ничего не найдено</td>';
+                    document.querySelector('table tbody').appendChild(msg);
+                }
+            } else {
+                if (noResultsMsg) {
+                    noResultsMsg.remove();
+                }
+            }
+        }
+
+        function toggleDropdown(event, id, button) {
+            event.stopPropagation();
+            let dropdown = document.getElementById('dropdown-' + id);
+            if (!dropdown) {
+                dropdown = document.getElementById('dropdown-mobile-' + id);
+            }
+            const allDropdowns = document.querySelectorAll('.dropdown-menu');
+            
+            // Закрываем все другие выпадающие меню
+            allDropdowns.forEach(d => {
+                if (d !== dropdown) {
+                    d.style.display = 'none';
+                }
+            });
+            
+            // Переключаем текущее меню
+            if (dropdown.style.display === 'none') {
+                // Получаем позицию кнопки
+                const rect = button.getBoundingClientRect();
+                
+                // Позиционируем меню под кнопкой справа
+                dropdown.style.top = (rect.bottom + 4) + 'px';
+                dropdown.style.left = (rect.right - 200) + 'px'; // 200px - ширина меню
+                
+                dropdown.style.display = 'block';
+                lucide.createIcons();
+            } else {
+                dropdown.style.display = 'none';
+            }
+        }
+
+        // Закрываем выпадающие меню при клике вне их
+        document.addEventListener('click', function() {
+            const allDropdowns = document.querySelectorAll('.dropdown-menu');
+            allDropdowns.forEach(d => d.style.display = 'none');
+        });
+
+        function updateIntegrationStatuses() {
+            fetch('/api/integrations')
+                .then(response => response.json())
+                .then(data => {
+                    data.integrations.forEach(integration => {
+                        const row = document.querySelector(`tr[data-integration-id="${integration.id}"]`);
+                        if (!row) return;
+
+                        const currentMode = row.getAttribute('data-integration-mode');
+                        const currentHasPayload = row.getAttribute('data-has-payload') === 'true';
+                        const actionsCell = row.querySelector('[data-actions-cell]');
+
+                        if (currentMode === 'listening' && integration.has_payload && !currentHasPayload) {
+                            row.setAttribute('data-has-payload', 'true');
+                            const waitingText = row.querySelector('[data-waiting-text]');
+                            if (waitingText) waitingText.remove();
+
+                            const existingBtn = row.querySelector('[data-configure-btn]');
+                            if (!existingBtn && actionsCell) {
+                                const configureBtn = document.createElement('a');
+                                configureBtn.href = `/integrations/${integration.id}/configure`;
+                                configureBtn.className = 'btn btn-success btn-sm';
+                                configureBtn.setAttribute('data-configure-btn', '');
+                                configureBtn.innerHTML = '<i data-lucide="settings"></i> Настроить';
+                                actionsCell.insertBefore(configureBtn, actionsCell.firstChild);
+                                lucide.createIcons();
+                            }
+                        }
+                    });
+                })
+                .catch(error => console.error('Ошибка при обновлении статусов:', error));
+        }
+
+        const listeningRows = document.querySelectorAll('tr[data-integration-mode="listening"][data-has-payload="false"]');
+        if (listeningRows.length > 0) {
+            updateIntegrationStatuses();
+            setInterval(updateIntegrationStatuses, 2000);
+        }
+    </script>
+    
+    {{ template "pages/integrations_export_import.html" . }}
+
+    <!-- AI Assistant Chat Widget -->
+    {{ template "partials/ai_chat.html" . }}
+
+    <!-- AI Assistant Script -->
+    <script src="/static/js/ai-assistant.js"></script>
+    <script>
+        // Инициализируем AI ассистент для страницы интеграций
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.aiAssistant) {
+                window.aiAssistant.setIntegrationContext({
+                    source: 'integrations_list',
+                    total_integrations: {{ len .integrations }}
+                });
+            }
+        });
+    </script>
+</body>
+</html>
+{{ end }}

@@ -1,0 +1,314 @@
+{{ define "pages/integration_output_configure.html" }}
+{{ template "partials/head.html" . }}
+
+<!-- JSON Highlight Styles -->
+<link rel="stylesheet" href="/static/css/json-highlight.css">
+<style>
+    @keyframes spin {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
+</style>
+
+{{ template "partials/sidebar.html" . }}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <div>
+                <h1>Настройка маппинга выхода</h1>
+                <p><strong>Интеграция:</strong> {{ .integration.Name }}</p>
+                <p><strong>Выход:</strong> {{ .output.Name }}</p>
+            </div>
+            <a href="/integrations/{{ .integration.ID }}/outputs" class="btn btn-secondary">
+                <i class="icon">←</i> К списку выходов
+            </a>
+        </div>
+
+        {{ if .integration.SamplePayload }}
+        <div class="card">
+            <div class="card-header">
+                <h3>Образец данных (из интеграции)</h3>
+            </div>
+            <div class="card-body">
+                <pre style="background: #1a1f2e; color: #abb2bf; padding: 1rem; border-radius: 8px; overflow-x: auto;">{{ .integration.SamplePayload }}</pre>
+            </div>
+        </div>
+
+        <form method="POST" action="/integrations/{{ .integration.ID }}/outputs/{{ .output.ID }}/configure" class="form mt-4">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Настройка трансформации данных</h3>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label>
+                            <input type="radio" name="mapping_type" value="template" checked onchange="toggleMappingType()">
+                            Использовать шаблон (рекомендуется)
+                        </label>
+                        <label style="margin-left: 2rem;">
+                            <input type="radio" name="mapping_type" value="mapping" onchange="toggleMappingType()">
+                            Использовать простой маппинг
+                        </label>
+                    </div>
+
+                    <!-- Template Mode -->
+                    <div id="template_mode">
+                        <div class="form-group">
+                            <label for="template_type">Тип шаблона</label>
+                            <select id="template_type" name="template_type" class="form-control">
+                                <option value="json" {{ if eq .output.TemplateType "json" }}selected{{ end }}>JSON</option>
+                                <option value="xml" {{ if eq .output.TemplateType "xml" }}selected{{ end }}>XML</option>
+                                <option value="text" {{ if eq .output.TemplateType "text" }}selected{{ end }}>Plain Text</option>
+                                <option value="custom" {{ if eq .output.TemplateType "custom" }}selected{{ end }}>Custom</option>
+                            </select>
+                        </div>
+
+                        <!-- AI Генерация шаблона -->
+                        {{ if .integration.SamplePayload }}
+                        <div class="form-group" style="padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; border-left: 4px solid #667eea;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+                                <div>
+                                    <strong style="display: flex; align-items: center; gap: 0.5rem; color: white;">
+                                        <i data-lucide="bot"></i> AI Генерация шаблона
+                                    </strong>
+                                    <small style="color: rgba(255,255,255,0.9);">
+                                        Автоматически создайте шаблон для целевой системы
+                                    </small>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; flex: 1;">
+                                    <input type="text" id="aiTemplateTargetSystem" placeholder="Например: Salesforce CRM, Slack, Telegram..." 
+                                           style="padding: 0.5rem; border-radius: 6px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3); flex: 1; min-width: 200px;"
+                                           onkeypress="if(event.key==='Enter'){event.preventDefault();generateAITemplate();}">
+                                    <button type="button" id="generateAITemplateBtn" class="btn btn-success btn-sm" onclick="generateAITemplate()" 
+                                            style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); white-space: nowrap;">
+                                        <i data-lucide="sparkles"></i> Сгенерировать
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="aiTemplateStatus" style="display: none;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; color: rgba(255,255,255,0.9);">
+                                    <div style="width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top: 2px solid white; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                                    <span>Генерирую шаблон с помощью AI...</span>
+                                </div>
+                            </div>
+                        </div>
+                        {{ end }}
+
+                        <div class="form-group">
+                            <label for="output_template">Шаблон вывода</label>
+                            <textarea id="output_template" name="output_template" class="form-control" rows="15" 
+                                      style="font-family: monospace;">{{ .output.OutputTemplate }}</textarea>
+                            <small class="form-text">
+                                Используйте <code>{{`{{field.path}}`}}</code> для вставки значений из входных данных.
+                                Например: <code>{{`{{user.name}}`}}</code>, <code>{{`{{email}}`}}</code>
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- Mapping Mode -->
+                    <div id="mapping_mode" style="display:none;">
+                        <div class="form-group">
+                            <label>Маппинг полей</label>
+                            <div id="mapping_fields">
+                                {{ range .fields }}
+                                <div class="mapping-row">
+                                    <input type="text" class="form-control" placeholder="Целевое поле" 
+                                           name="target_field[]" value="{{ index $.currentMapping .Path }}">
+                                    <span>=</span>
+                                    <input type="text" class="form-control" readonly value="{{ .Path }}" 
+                                           name="source_field[]">
+                                </div>
+                                {{ end }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="icon">💾</i> Сохранить маппинг
+                </button>
+                <button type="button" class="btn btn-info" onclick="testMapping()">
+                    <i class="icon">🧪</i> Протестировать
+                </button>
+                <a href="/integrations/{{ .integration.ID }}/outputs" class="btn btn-secondary">Отмена</a>
+            </div>
+        </form>
+        {{ else }}
+        <div class="alert alert-warning">
+            <h3>⚠️ Нет образца данных</h3>
+            <p>Для настройки маппинга необходимо сначала получить образец данных в интеграции.</p>
+            <a href="/integrations/{{ .integration.ID }}/configure" class="btn btn-primary">
+                Перейти к настройке интеграции
+            </a>
+        </div>
+        {{ end }}
+    </div>
+
+    <!-- Modal для результатов теста -->
+    <div id="testModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Результат тестирования</h2>
+                <button class="modal-close" onclick="closeTestModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="testModalBody">
+                <!-- Результаты будут загружены через JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Chat Widget -->
+    {{ template "partials/ai_chat.html" . }}
+
+    <script src="/static/js/ai-assistant.js"></script>
+    <script src="/static/js/popular-templates.js"></script>
+    <script>
+        // Инициализируем AI ассистент для настройки маппинга выхода
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.aiAssistant) {
+                window.aiAssistant.setIntegrationContext({
+                    source: 'output_configure',
+                    integration_id: {{ .integration.ID }},
+                    integration_name: '{{ .integration.Name }}',
+                    output_id: {{ .output.ID }},
+                    output_name: '{{ .output.Name }}'
+                });
+            }
+        });
+    </script>
+
+    <script>
+    function generateAITemplate() {
+        const targetSystem = document.getElementById('aiTemplateTargetSystem').value;
+        if (!targetSystem || !targetSystem.trim()) {
+            alert('Укажите целевую систему');
+            return;
+        }
+
+        const statusDiv = document.getElementById('aiTemplateStatus');
+        const generateBtn = document.getElementById('generateAITemplateBtn');
+        
+        statusDiv.style.display = 'block';
+        generateBtn.disabled = true;
+
+        fetch('/api/ai/generate-template', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                integration_id: {{ .integration.ID }},
+                output_id: {{ .output.ID }},
+                target_system: targetSystem,
+                template_type: document.getElementById('template_type').value
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success' && data.template) {
+                document.getElementById('output_template').value = data.template;
+                alert('✅ Шаблон успешно сгенерирован!');
+            } else {
+                alert('❌ Ошибка: ' + (data.error || 'Не удалось сгенерировать шаблон'));
+            }
+        })
+        .catch(error => {
+            alert('❌ Ошибка: ' + error.message);
+        })
+        .finally(() => {
+            statusDiv.style.display = 'none';
+            generateBtn.disabled = false;
+        });
+    }
+
+    function toggleMappingType() {
+        const mappingType = document.querySelector('input[name="mapping_type"]:checked').value;
+        if (mappingType === 'template') {
+            document.getElementById('template_mode').style.display = 'block';
+            document.getElementById('mapping_mode').style.display = 'none';
+        } else {
+            document.getElementById('template_mode').style.display = 'none';
+            document.getElementById('mapping_mode').style.display = 'block';
+        }
+    }
+
+    function testMapping() {
+        const integrationId = {{ .integration.ID }};
+        const outputId = {{ .output.ID }};
+        
+        fetch(`/integrations/${integrationId}/outputs/${outputId}/test`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                document.getElementById('testModalBody').innerHTML = `
+                    <div class="test-result">
+                        <h3>✅ Тестирование успешно</h3>
+                        
+                        <div class="result-section">
+                            <h4>Входные данные:</h4>
+                            <pre><code>${data.input}</code></pre>
+                        </div>
+                        
+                        <div class="result-section">
+                            <h4>Результат трансформации:</h4>
+                            <pre><code>${data.output}</code></pre>
+                        </div>
+                        
+                        <div class="result-section">
+                            <h4>Информация:</h4>
+                            <ul>
+                                <li><strong>Target API:</strong> <code>${data.target_api}</code></li>
+                                <li><strong>HTTP метод:</strong> ${data.http_method}</li>
+                                <li><strong>Тип шаблона:</strong> ${data.template_type || 'json'}</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            } else {
+                document.getElementById('testModalBody').innerHTML = `
+                    <div class="alert alert-danger">
+                        <h3>❌ Ошибка</h3>
+                        <p>${data.error}</p>
+                    </div>
+                `;
+            }
+            document.getElementById('testModal').style.display = 'flex';
+        })
+        .catch(error => {
+            document.getElementById('testModalBody').innerHTML = `
+                <div class="alert alert-danger">
+                    <h3>❌ Ошибка</h3>
+                    <p>${error.message}</p>
+                </div>
+            `;
+            document.getElementById('testModal').style.display = 'flex';
+        });
+    }
+
+    function closeTestModal() {
+        document.getElementById('testModal').style.display = 'none';
+    }
+
+    window.onclick = function(event) {
+        const modal = document.getElementById('testModal');
+        if (event.target === modal) {
+            closeTestModal();
+        }
+    }
+    </script>
+    </main>
+
+{{ template "partials/scripts.html" . }}
+{{ end }}
